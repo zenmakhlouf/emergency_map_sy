@@ -84,7 +84,7 @@ class _MapScreenState extends State<MapScreen> {
         _currentPosition = LatLng(position.latitude, position.longitude);
         _isLoading = false;
       });
-      _mapController.move(_currentPosition, 14);
+      //_mapController.move(_currentPosition, 14);
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -129,6 +129,9 @@ class _MapScreenState extends State<MapScreen> {
                     initialZoom: 14,
                     maxZoom: 18,
                     minZoom: 3,
+                    onMapReady: () {
+                      _mapController.move(_currentPosition, 14);
+                    },
                   ),
                   children: [
                     TileLayer(

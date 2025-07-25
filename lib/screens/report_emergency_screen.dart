@@ -149,6 +149,7 @@ class _ReportEmergencyScreenState extends State<ReportEmergencyScreen> {
                       urlTemplate:
                           'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                       subdomains: const ['a', 'b', 'c'],
+                      userAgentPackageName: 'com.example.emergency_map_sy',
                     ),
                     MarkerLayer(
                       markers: [
