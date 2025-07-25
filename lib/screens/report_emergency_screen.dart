@@ -3,9 +3,6 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
 import '../models/emergency_report.dart';
 import '../services/emergency_service.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
-import 'package:latlong2/latlong.dart';
 
 class ReportEmergencyScreen extends StatefulWidget {
   final LatLng initialPosition;
@@ -148,15 +145,10 @@ class _ReportEmergencyScreenState extends State<ReportEmergencyScreen> {
                     },
                   ),
                   children: [
-                  TileLayer(
+                    TileLayer(
                       urlTemplate:
-                          "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                      tileProvider: NetworkTileProvider(
-                        headers: {
-                          'User-Agent':
-                              'EmergencyMapSy/1.0 (zen.makhlouf@gmail.com)'
-                        },
-                      ),
+                          'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      subdomains: const ['a', 'b', 'c'],
                     ),
                     MarkerLayer(
                       markers: [

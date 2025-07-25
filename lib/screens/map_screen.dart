@@ -134,6 +134,12 @@ class _MapScreenState extends State<MapScreen> {
                     TileLayer(
                       urlTemplate:
                           'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName:
+                          'com.example.emergency_map_sy', // Replace with your actual package name
+                      // Alternative: you can also use additionalOptions for more control
+                      // additionalOptions: {
+                      //   'User-Agent': 'YourAppName/1.0.0 (contact@yourdomain.com)',
+                      // },
                     ),
                     MarkerLayer(
                       markers: [
