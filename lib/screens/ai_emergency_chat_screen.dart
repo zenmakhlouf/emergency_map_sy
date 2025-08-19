@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/user_type.dart';
+import '../features/auth/models/user_type.dart';
 import 'emergency_chat_screen.dart';
 import 'emergency_report_form_screen.dart';
 

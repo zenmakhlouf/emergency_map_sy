@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/user_type.dart';
+import '../features/auth/models/user_type.dart';
 
 class EmergencyChatScreen extends StatefulWidget {
   final String incidentTitle;

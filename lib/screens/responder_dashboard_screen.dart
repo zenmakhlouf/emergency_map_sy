@@ -4,7 +4,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/emergency_report.dart';
 import '../services/emergency_service.dart';
-import '../models/user_type.dart';
+import '../features/auth/models/user_type.dart';
 import 'emergency_chat_screen.dart';
 
 class ResponderDashboardScreen extends StatefulWidget {

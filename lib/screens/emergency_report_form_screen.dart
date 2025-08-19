@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../models/emergency_report.dart';
-import '../models/user_type.dart';
+import '../features/auth/models/user_type.dart';
 import '../services/emergency_service.dart';
 import 'emergency_chat_screen.dart';
 

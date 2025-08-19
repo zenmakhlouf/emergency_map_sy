@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/user_type.dart';
-import 'phone_auth_screen.dart';
+import '../features/auth/models/user_type.dart';
+import '../features/auth/screens/login/login_screen.dart';
 
 class UserTypeSelectorScreen extends StatelessWidget {
   const UserTypeSelectorScreen({super.key});
@@ -113,7 +113,7 @@ class UserTypeSelectorScreen extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => PhoneAuthScreen(userType: userType),
+              builder: (context) => LoginScreen(userType: userType),
             ),
           );
         },
