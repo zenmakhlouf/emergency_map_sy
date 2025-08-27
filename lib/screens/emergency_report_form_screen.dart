@@ -7,16 +7,20 @@ import '../services/emergency_service.dart';
 import 'emergency_chat_screen.dart';
 
 class EmergencyReportFormScreen extends StatefulWidget {
-  const EmergencyReportFormScreen({super.key});
+  final String? prefillTitle;
+  final String? prefillDescription;
+  const EmergencyReportFormScreen(
+      {super.key, this.prefillTitle, this.prefillDescription});
 
   @override
-  State<EmergencyReportFormScreen> createState() => _EmergencyReportFormScreenState();
+  State<EmergencyReportFormScreen> createState() =>
+      _EmergencyReportFormScreenState();
 }
 
 class _EmergencyReportFormScreenState extends State<EmergencyReportFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _descriptionController = TextEditingController();
+  late final TextEditingController _titleController;
+  late final TextEditingController _descriptionController;
   EmergencyType _selectedType = EmergencyType.nonEmergency;
   int _volunteersNeeded = 1;
   late LatLng _selectedPosition;
@@ -26,6 +30,9 @@ class _EmergencyReportFormScreenState extends State<EmergencyReportFormScreen> {
   @override
   void initState() {
     super.initState();
+    _titleController = TextEditingController(text: widget.prefillTitle ?? '');
+    _descriptionController =
+        TextEditingController(text: widget.prefillDescription ?? '');
     // Default to Amman coordinates
     _selectedPosition = const LatLng(31.9539, 35.9106);
   }
@@ -217,7 +224,7 @@ class _EmergencyReportFormScreenState extends State<EmergencyReportFormScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Emergency reported successfully')),
           );
-          
+
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -243,4 +250,4 @@ class _EmergencyReportFormScreenState extends State<EmergencyReportFormScreen> {
       }
     }
   }
-} 
+}
