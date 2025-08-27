@@ -5,4 +5,5 @@ class Urls {
   static const checkOTP = '$baseUrl/auth/check-otp';
   static const login = '$baseUrl/auth/login';
   static const register = '$baseUrl/auth/register';
+  static const reports = '$baseUrl/reports';
 }

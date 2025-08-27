@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
-import '../models/emergency_report.dart';
-import '../services/emergency_service.dart';
+import 'dart:async';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../features/reports/cubit/reports_cubit.dart';
+import '../features/reports/models/report.dart';
 import '../features/auth/models/user_type.dart';
 import 'emergency_chat_screen.dart';
 
@@ -17,21 +19,28 @@ class ResponderDashboardScreen extends StatefulWidget {
 
 class _ResponderDashboardScreenState extends State<ResponderDashboardScreen>
     with SingleTickerProviderStateMixin {
-  final EmergencyService _emergencyService = EmergencyService();
   final MapController _mapController = MapController();
   LatLng _currentPosition = const LatLng(31.9539, 35.9106); // Default to Amman
   bool _isLoading = true;
   late TabController _tabController;
+  DateTime? _lastRefreshed;
+  Timer? _poller;
+  final Duration _pollInterval = const Duration(seconds: 5);
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _getCurrentLocation();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchReports();
+      _startPolling();
+    });
   }
 
   @override
   void dispose() {
+    _poller?.cancel();
     _tabController.dispose();
     super.dispose();
   }
@@ -89,6 +98,7 @@ class _ResponderDashboardScreenState extends State<ResponderDashboardScreen>
         _currentPosition = LatLng(position.latitude, position.longitude);
         _isLoading = false;
       });
+      _fetchReports();
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -98,7 +108,33 @@ class _ResponderDashboardScreenState extends State<ResponderDashboardScreen>
       setState(() {
         _isLoading = false;
       });
+      _fetchReports();
     }
+  }
+
+  Future<void> _fetchReports() async {
+    try {
+      await context.read<ReportsCubit>().fetchReports(query: {
+        'map_list': 1,
+        'get': 1,
+        'location[lat]': _currentPosition.latitude,
+        'location[lon]': _currentPosition.longitude,
+      });
+      setState(() {
+        _lastRefreshed = DateTime.now();
+      });
+    } catch (_) {}
+  }
+
+  void _startPolling() {
+    _poller?.cancel();
+    _poller = Timer.periodic(_pollInterval, (_) => _fetchReports());
+  }
+
+  String _formattedLastRefreshed() {
+    if (_lastRefreshed == null) return 'Never';
+    final dt = _lastRefreshed!;
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -179,14 +215,14 @@ class _ResponderDashboardScreenState extends State<ResponderDashboardScreen>
   Widget _buildMapTab() {
     return _isLoading
         ? const Center(child: CircularProgressIndicator())
-        : StreamBuilder<List<EmergencyReport>>(
-            stream: _emergencyService.getActiveReports(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+        : BlocBuilder<ReportsCubit, ReportsState>(
+            builder: (context, state) {
+              if (state is ReportsFailure) {
+                return const SizedBox();
               }
 
-              final reports = snapshot.data ?? [];
+              final List<ReportEntity> reports =
+                  state is ReportsSuccess ? state.reports : <ReportEntity>[];
 
               return Column(
                 children: [
@@ -264,9 +300,10 @@ class _ResponderDashboardScreenState extends State<ResponderDashboardScreen>
                                           _showIncidentDetails(context, report);
                                         },
                                         child: Icon(
-                                          _getIconForEmergencyType(report.type),
+                                          _getIconForEmergencyType(
+                                              report.state?.emergencyType),
                                           color: _getColorForEmergencyType(
-                                              report.type),
+                                              report.state?.emergencyType),
                                           size: 40,
                                         ),
                                       ),
@@ -332,14 +369,14 @@ class _ResponderDashboardScreenState extends State<ResponderDashboardScreen>
   }
 
   Widget _buildActiveIncidentsTab() {
-    return StreamBuilder<List<EmergencyReport>>(
-      stream: _emergencyService.getActiveReports(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+    return BlocBuilder<ReportsCubit, ReportsState>(
+      builder: (context, state) {
+        if (state is ReportsLoading) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final reports = snapshot.data ?? [];
+        final List<ReportEntity> reports =
+            state is ReportsSuccess ? state.reports : <ReportEntity>[];
 
         if (reports.isEmpty) {
           return const Center(
@@ -417,14 +454,15 @@ class _ResponderDashboardScreenState extends State<ResponderDashboardScreen>
     );
   }
 
-  Widget _buildIncidentCard(EmergencyReport report) {
+  Widget _buildIncidentCard(ReportEntity report) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: _getColorForEmergencyType(report.type),
+          backgroundColor:
+              _getColorForEmergencyType(report.state?.emergencyType),
           child: Icon(
-            _getIconForEmergencyType(report.type),
+            _getIconForEmergencyType(report.state?.emergencyType),
             color: Colors.white,
           ),
         ),
@@ -441,10 +479,11 @@ class _ResponderDashboardScreenState extends State<ResponderDashboardScreen>
               children: [
                 Chip(
                   label: Text(
-                    report.type.toString().split('.').last,
+                    (report.state?.emergencyType ?? 'unknown').toString(),
                     style: const TextStyle(fontSize: 12, color: Colors.white),
                   ),
-                  backgroundColor: _getColorForEmergencyType(report.type),
+                  backgroundColor:
+                      _getColorForEmergencyType(report.state?.emergencyType),
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -502,37 +541,33 @@ class _ResponderDashboardScreenState extends State<ResponderDashboardScreen>
     );
   }
 
-  IconData _getIconForEmergencyType(EmergencyType type) {
-    switch (type) {
-      case EmergencyType.burglary:
-        return Icons.home_work;
-      case EmergencyType.lifeThreatening:
-        return Icons.emergency;
-      case EmergencyType.suspicious:
-        return Icons.visibility;
-      case EmergencyType.unusualSounds:
-        return Icons.volume_up;
-      case EmergencyType.nonEmergency:
+  IconData _getIconForEmergencyType(String? apiType) {
+    switch ((apiType ?? '').toLowerCase()) {
+      case 'fire':
+        return Icons.local_fire_department;
+      case 'police':
+        return Icons.local_police;
+      case 'medical':
+        return Icons.medical_services;
+      default:
         return Icons.info;
     }
   }
 
-  Color _getColorForEmergencyType(EmergencyType type) {
-    switch (type) {
-      case EmergencyType.burglary:
-        return Colors.amber;
-      case EmergencyType.lifeThreatening:
+  Color _getColorForEmergencyType(String? apiType) {
+    switch ((apiType ?? '').toLowerCase()) {
+      case 'fire':
         return Colors.red;
-      case EmergencyType.suspicious:
-        return Colors.orange;
-      case EmergencyType.unusualSounds:
+      case 'police':
+        return Colors.blue;
+      case 'medical':
         return Colors.purple;
-      case EmergencyType.nonEmergency:
+      default:
         return Colors.green;
     }
   }
 
-  void _showIncidentDetails(BuildContext context, EmergencyReport report) {
+  void _showIncidentDetails(BuildContext context, ReportEntity report) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -559,9 +594,10 @@ class _ResponderDashboardScreenState extends State<ResponderDashboardScreen>
                     ),
                   ),
                   Chip(
-                    backgroundColor: _getColorForEmergencyType(report.type),
+                    backgroundColor:
+                        _getColorForEmergencyType(report.state?.emergencyType),
                     label: Text(
-                      report.type.toString().split('.').last,
+                      (report.state?.emergencyType ?? 'unknown').toString(),
                       style: const TextStyle(color: Colors.white),
                     ),
                   ),

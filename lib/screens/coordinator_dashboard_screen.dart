@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import '../models/emergency_report.dart';
-import '../services/emergency_service.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:async';
+import '../features/reports/cubit/reports_cubit.dart';
+import '../features/reports/models/report.dart';
 import '../features/auth/models/user_type.dart';
 import 'emergency_chat_screen.dart';
 
@@ -10,25 +12,59 @@ class CoordinatorDashboardScreen extends StatefulWidget {
   const CoordinatorDashboardScreen({super.key});
 
   @override
-  State<CoordinatorDashboardScreen> createState() => _CoordinatorDashboardScreenState();
+  State<CoordinatorDashboardScreen> createState() =>
+      _CoordinatorDashboardScreenState();
 }
 
 class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
     with SingleTickerProviderStateMixin {
-  final EmergencyService _emergencyService = EmergencyService();
   final MapController _mapController = MapController();
   late TabController _tabController;
+  DateTime? _lastRefreshed;
+  final Duration _pollInterval = const Duration(seconds: 5);
+  Timer? _poller;
+  LatLng _currentPosition = const LatLng(31.9539, 35.9106);
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchReports();
+      _startPolling();
+    });
   }
 
   @override
   void dispose() {
+    _poller?.cancel();
     _tabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchReports() async {
+    try {
+      await context.read<ReportsCubit>().fetchReports(query: {
+        'map_list': 1,
+        'get': 1,
+        'location[lat]': _currentPosition.latitude,
+        'location[lon]': _currentPosition.longitude,
+      });
+      setState(() {
+        _lastRefreshed = DateTime.now();
+      });
+    } catch (_) {}
+  }
+
+  void _startPolling() {
+    _poller?.cancel();
+    _poller = Timer.periodic(_pollInterval, (_) => _fetchReports());
+  }
+
+  String _formattedLastRefreshed() {
+    if (_lastRefreshed == null) return 'Never';
+    final dt = _lastRefreshed!;
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -91,120 +127,143 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
   }
 
   Widget _buildOverviewTab() {
-    return StreamBuilder<List<EmergencyReport>>(
-      stream: _emergencyService.getActiveReports(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+    return BlocBuilder<ReportsCubit, ReportsState>(
+      builder: (context, state) {
+        if (state is ReportsFailure) {
+          return Center(child: Text('Failed to load reports'));
         }
 
-        final reports = snapshot.data ?? [];
+        if (state is ReportsSuccess) {
+          // fallthrough to render
+        }
+
+        final List<ReportEntity> reports =
+            state is ReportsSuccess ? state.reports : <ReportEntity>[];
         final activeCount = reports.length;
-        final criticalCount = reports.where((r) => r.type == EmergencyType.lifeThreatening).length;
-        final highPriorityCount = reports.where((r) => r.type == EmergencyType.burglary).length;
+        final criticalCount =
+            reports.where((r) => (r.state?.severity ?? 0) >= 8).length;
+        final highPriorityCount =
+            reports.where((r) => (r.state?.severity ?? 0) >= 6).length;
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Status Cards
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatusCard(
-                      'Active Incidents',
-                      activeCount.toString(),
-                      Icons.emergency,
-                      Colors.red,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildStatusCard(
-                      'Critical',
-                      criticalCount.toString(),
-                      Icons.warning,
-                      Colors.orange,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatusCard(
-                      'High Priority',
-                      highPriorityCount.toString(),
-                      Icons.priority_high,
-                      Colors.amber,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildStatusCard(
-                      'Responders',
-                      '12',
-                      Icons.security,
-                      Colors.blue,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Recent Incidents
-              const Text(
-                'Recent Incidents',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              
-              if (reports.isEmpty)
-                const Center(
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.check_circle,
-                        size: 64,
-                        color: Colors.green,
+        return RefreshIndicator(
+          onRefresh: _fetchReports,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Status Cards
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatusCard(
+                        'Active Incidents',
+                        activeCount.toString(),
+                        Icons.emergency,
+                        Colors.red,
                       ),
-                      SizedBox(height: 16),
-                      Text(
-                        'All Clear',
-                        style: TextStyle(
-                          fontSize: 18,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildStatusCard(
+                        'Critical',
+                        criticalCount.toString(),
+                        Icons.warning,
+                        Colors.orange,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatusCard(
+                        'High Priority',
+                        highPriorityCount.toString(),
+                        Icons.priority_high,
+                        Colors.amber,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildStatusCard(
+                        'Responders',
+                        '12',
+                        Icons.security,
+                        Colors.blue,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _fetchReports,
+                        icon: const Icon(Icons.refresh),
+                        label: Text('Refresh • ${_formattedLastRefreshed()}'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const SizedBox(height: 16),
+
+                // Recent Incidents
+                const Text(
+                  'Recent Incidents',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                if (reports.isEmpty)
+                  const Center(
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.check_circle,
+                          size: 64,
                           color: Colors.green,
-                          fontWeight: FontWeight.bold,
                         ),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'No active incidents at the moment',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
+                        SizedBox(height: 16),
+                        Text(
+                          'All Clear',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                        SizedBox(height: 8),
+                        Text(
+                          'No active incidents at the moment',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: reports.length,
+                    itemBuilder: (context, index) {
+                      final report = reports[index];
+                      return _buildIncidentCard(report);
+                    },
                   ),
-                )
-              else
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: reports.length,
-                  itemBuilder: (context, index) {
-                    final report = reports[index];
-                    return _buildIncidentCard(report);
-                  },
-                ),
-            ],
+              ],
+            ),
           ),
         );
       },
@@ -212,24 +271,25 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
   }
 
   Widget _buildMapTab() {
-    return StreamBuilder<List<EmergencyReport>>(
-      stream: _emergencyService.getActiveReports(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+    return BlocBuilder<ReportsCubit, ReportsState>(
+      builder: (context, state) {
+        if (state is ReportsLoading) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final reports = snapshot.data ?? [];
-        final center = reports.isNotEmpty 
+        final List<ReportEntity> reports =
+            state is ReportsSuccess ? state.reports : <ReportEntity>[];
+        final center = reports.isNotEmpty
             ? LatLng(
-                reports.map((r) => r.latitude).reduce((a, b) => a + b) / reports.length,
-                reports.map((r) => r.longitude).reduce((a, b) => a + b) / reports.length,
+                reports.map((r) => r.latitude).reduce((a, b) => a + b) /
+                    reports.length,
+                reports.map((r) => r.longitude).reduce((a, b) => a + b) /
+                    reports.length,
               )
-            : const LatLng(31.9539, 35.9106); // Default to Amman
+            : const LatLng(31.9539, 35.9106);
 
         return Column(
           children: [
-            // Map
             Expanded(
               child: Card(
                 margin: const EdgeInsets.all(16),
@@ -281,19 +341,36 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                               return Marker(
                                 width: 50.0,
                                 height: 50.0,
-                                point: LatLng(report.latitude, report.longitude),
+                                point:
+                                    LatLng(report.latitude, report.longitude),
                                 child: GestureDetector(
                                   onTap: () {
                                     _showIncidentDetails(context, report);
                                   },
                                   child: Icon(
-                                    _getIconForEmergencyType(report.type),
-                                    color: _getColorForEmergencyType(report.type),
+                                    _getIconForEmergencyType(
+                                        report.state?.emergencyType),
+                                    color: _getColorForEmergencyType(
+                                        report.state?.emergencyType),
                                     size: 40,
                                   ),
                                 ),
                               );
                             }).toList(),
+                          ),
+                          Align(
+                            alignment: Alignment.topCenter,
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: GestureDetector(
+                                onTap: _fetchReports,
+                                child: Chip(
+                                  backgroundColor: Colors.white,
+                                  label: Text(
+                                      'Last refresh: ${_formattedLastRefreshed()}  ·  Tap to refresh'),
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -302,8 +379,6 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                 ),
               ),
             ),
-
-            // Quick Actions
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -311,9 +386,10 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        // TODO: Implement dispatch functionality
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Dispatching additional responders')),
+                          const SnackBar(
+                              content:
+                                  Text('Dispatching additional responders')),
                         );
                       },
                       icon: const Icon(Icons.send),
@@ -328,9 +404,10 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        // TODO: Implement broadcast functionality
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Broadcasting alert to all responders')),
+                          const SnackBar(
+                              content:
+                                  Text('Broadcasting alert to all responders')),
                         );
                       },
                       icon: const Icon(Icons.broadcast_on_personal),
@@ -382,7 +459,8 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
     );
   }
 
-  Widget _buildStatusCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatusCard(
+      String title, String value, IconData icon, Color color) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -413,14 +491,15 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
     );
   }
 
-  Widget _buildIncidentCard(EmergencyReport report) {
+  Widget _buildIncidentCard(ReportEntity report) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: _getColorForEmergencyType(report.type),
+          backgroundColor:
+              _getColorForEmergencyType(report.state?.emergencyType),
           child: Icon(
-            _getIconForEmergencyType(report.type),
+            _getIconForEmergencyType(report.state?.emergencyType),
             color: Colors.white,
           ),
         ),
@@ -437,10 +516,11 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
               children: [
                 Chip(
                   label: Text(
-                    report.type.toString().split('.').last,
+                    (report.state?.emergencyType ?? 'unknown').toString(),
                     style: const TextStyle(fontSize: 12, color: Colors.white),
                   ),
-                  backgroundColor: _getColorForEmergencyType(report.type),
+                  backgroundColor:
+                      _getColorForEmergencyType(report.state?.emergencyType),
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -498,37 +578,33 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
     );
   }
 
-  IconData _getIconForEmergencyType(EmergencyType type) {
-    switch (type) {
-      case EmergencyType.burglary:
-        return Icons.home_work;
-      case EmergencyType.lifeThreatening:
-        return Icons.emergency;
-      case EmergencyType.suspicious:
-        return Icons.visibility;
-      case EmergencyType.unusualSounds:
-        return Icons.volume_up;
-      case EmergencyType.nonEmergency:
+  IconData _getIconForEmergencyType(String? apiType) {
+    switch ((apiType ?? '').toLowerCase()) {
+      case 'fire':
+        return Icons.local_fire_department;
+      case 'police':
+        return Icons.local_police;
+      case 'medical':
+        return Icons.medical_services;
+      default:
         return Icons.info;
     }
   }
 
-  Color _getColorForEmergencyType(EmergencyType type) {
-    switch (type) {
-      case EmergencyType.burglary:
-        return Colors.amber;
-      case EmergencyType.lifeThreatening:
+  Color _getColorForEmergencyType(String? apiType) {
+    switch ((apiType ?? '').toLowerCase()) {
+      case 'fire':
         return Colors.red;
-      case EmergencyType.suspicious:
-        return Colors.orange;
-      case EmergencyType.unusualSounds:
+      case 'police':
+        return Colors.blue;
+      case 'medical':
         return Colors.purple;
-      case EmergencyType.nonEmergency:
+      default:
         return Colors.green;
     }
   }
 
-  void _showIncidentDetails(BuildContext context, EmergencyReport report) {
+  void _showIncidentDetails(BuildContext context, ReportEntity report) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -555,9 +631,10 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                     ),
                   ),
                   Chip(
-                    backgroundColor: _getColorForEmergencyType(report.type),
+                    backgroundColor:
+                        _getColorForEmergencyType(report.state?.emergencyType),
                     label: Text(
-                      report.type.toString().split('.').last,
+                      (report.state?.emergencyType ?? 'unknown').toString(),
                       style: const TextStyle(color: Colors.white),
                     ),
                   ),
@@ -603,7 +680,9 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                       onPressed: () {
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Dispatching additional responders')),
+                          const SnackBar(
+                              content:
+                                  Text('Dispatching additional responders')),
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -622,4 +701,4 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
       },
     );
   }
-} 
+}

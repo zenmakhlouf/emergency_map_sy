@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
-import '../models/emergency_report.dart';
-import '../services/emergency_service.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:async';
+import '../features/reports/cubit/reports_cubit.dart';
+import '../features/reports/models/report.dart';
 import 'report_emergency_screen.dart';
 
 class MapScreen extends StatefulWidget {
@@ -14,15 +16,22 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  final EmergencyService _emergencyService = EmergencyService();
   final MapController _mapController = MapController();
   LatLng _currentPosition = const LatLng(31.9539, 35.9106); // Default to Amman
   bool _isLoading = true;
+  DateTime? _lastRefreshed;
+  Timer? _poller;
+  final Duration _pollInterval = const Duration(seconds: 5);
+  List<ReportEntity> _cachedReports = <ReportEntity>[];
 
   @override
   void initState() {
     super.initState();
     _getCurrentLocation();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchReportsForPosition(_currentPosition);
+      _startPolling();
+    });
   }
 
   Future<void> _getCurrentLocation() async {
@@ -84,6 +93,7 @@ class _MapScreenState extends State<MapScreen> {
         _currentPosition = LatLng(position.latitude, position.longitude);
         _isLoading = false;
       });
+      _fetchReportsForPosition(_currentPosition);
       //_mapController.move(_currentPosition, 14);
     } catch (e) {
       if (context.mounted) {
@@ -94,7 +104,38 @@ class _MapScreenState extends State<MapScreen> {
       setState(() {
         _isLoading = false;
       });
+      _fetchReportsForPosition(_currentPosition);
     }
+  }
+
+  void _fetchReportsForPosition(LatLng position) {
+    try {
+      context.read<ReportsCubit>().fetchReports(query: {
+        'map_list': 1,
+        'get': 1,
+        'location[lat]': position.latitude,
+        'location[lon]': position.longitude,
+      }).then((_) {
+        setState(() {
+          _lastRefreshed = DateTime.now();
+        });
+      });
+    } catch (e) {
+      // avoid crash if provider missing
+    }
+  }
+
+  void _startPolling() {
+    _poller?.cancel();
+    _poller = Timer.periodic(_pollInterval, (_) {
+      _fetchReportsForPosition(_currentPosition);
+    });
+  }
+
+  String _formattedLastRefreshed() {
+    if (_lastRefreshed == null) return 'Never';
+    final dt = _lastRefreshed!;
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -113,14 +154,16 @@ class _MapScreenState extends State<MapScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : StreamBuilder<List<EmergencyReport>>(
-              stream: _emergencyService.getActiveReports(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+          : BlocBuilder<ReportsCubit, ReportsState>(
+              builder: (context, state) {
+                if (state is ReportsFailure && _cachedReports.isEmpty) {
+                  return Center(
+                      child: Text('Failed to load reports: ${state.message}'));
                 }
-
-                final reports = snapshot.data ?? [];
+                if (state is ReportsSuccess) {
+                  _cachedReports = state.reports;
+                }
+                final List<ReportEntity> reports = _cachedReports;
 
                 return FlutterMap(
                   mapController: _mapController,
@@ -168,14 +211,31 @@ class _MapScreenState extends State<MapScreen> {
                                 _showReportDetails(context, report);
                               },
                               child: Icon(
-                                _getIconForEmergencyType(report.type),
-                                color: _getColorForEmergencyType(report.type),
+                                _getIconForEmergencyType(
+                                    report.state?.emergencyType),
+                                color: _getColorForEmergencyType(
+                                    report.state?.emergencyType),
                                 size: 40,
                               ),
                             ),
                           );
                         }),
                       ],
+                    ),
+                    Align(
+                      alignment: Alignment.topCenter,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: GestureDetector(
+                          onTap: () =>
+                              _fetchReportsForPosition(_currentPosition),
+                          child: Chip(
+                            backgroundColor: Colors.white,
+                            label: Text(
+                                'Last refresh: ${_formattedLastRefreshed()}  ·  Tap to refresh'),
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 );
@@ -198,37 +258,33 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  IconData _getIconForEmergencyType(EmergencyType type) {
-    switch (type) {
-      case EmergencyType.burglary:
-        return Icons.home_work;
-      case EmergencyType.lifeThreatening:
-        return Icons.emergency;
-      case EmergencyType.suspicious:
-        return Icons.visibility;
-      case EmergencyType.unusualSounds:
-        return Icons.volume_up;
-      case EmergencyType.nonEmergency:
+  IconData _getIconForEmergencyType(String? apiType) {
+    switch ((apiType ?? '').toLowerCase()) {
+      case 'fire':
+        return Icons.local_fire_department;
+      case 'police':
+        return Icons.local_police;
+      case 'medical':
+        return Icons.medical_services;
+      default:
         return Icons.info;
     }
   }
 
-  Color _getColorForEmergencyType(EmergencyType type) {
-    switch (type) {
-      case EmergencyType.burglary:
-        return Colors.amber;
-      case EmergencyType.lifeThreatening:
+  Color _getColorForEmergencyType(String? apiType) {
+    switch ((apiType ?? '').toLowerCase()) {
+      case 'fire':
         return Colors.red;
-      case EmergencyType.suspicious:
-        return Colors.orange;
-      case EmergencyType.unusualSounds:
+      case 'police':
+        return Colors.blue;
+      case 'medical':
         return Colors.purple;
-      case EmergencyType.nonEmergency:
+      default:
         return Colors.green;
     }
   }
 
-  void _showReportDetails(BuildContext context, EmergencyReport report) {
+  void _showReportDetails(BuildContext context, ReportEntity report) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -253,9 +309,10 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                   ),
                   Chip(
-                    backgroundColor: _getColorForEmergencyType(report.type),
+                    backgroundColor:
+                        _getColorForEmergencyType(report.state?.emergencyType),
                     label: Text(
-                      report.type.toString().split('.').last,
+                      (report.state?.emergencyType ?? 'unknown').toString(),
                       style: const TextStyle(color: Colors.white),
                     ),
                   ),
@@ -269,21 +326,7 @@ class _MapScreenState extends State<MapScreen> {
                 style: const TextStyle(fontSize: 16),
               ),
               const Spacer(),
-              ElevatedButton(
-                onPressed: () {
-                  // For MVP, just show a confirmation without actually storing the volunteer
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('You volunteered to help!'),
-                    ),
-                  );
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(50),
-                ),
-                child: const Text('Volunteer to Help'),
-              ),
+              // CTA removed in new flow
             ],
           ),
         );

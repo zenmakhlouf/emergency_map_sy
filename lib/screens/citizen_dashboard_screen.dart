@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
-import '../models/emergency_report.dart';
-import '../services/emergency_service.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:async';
+import '../features/reports/cubit/reports_cubit.dart';
+import '../features/reports/models/report.dart';
 import 'ai_emergency_chat_screen.dart';
 
 class CitizenDashboardScreen extends StatefulWidget {
@@ -15,21 +17,30 @@ class CitizenDashboardScreen extends StatefulWidget {
 
 class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
     with SingleTickerProviderStateMixin {
-  final EmergencyService _emergencyService = EmergencyService();
   final MapController _mapController = MapController();
   LatLng _currentPosition = const LatLng(31.9539, 35.9106); // Default to Amman
   bool _isLoading = true;
   late TabController _tabController;
+  DateTime? _lastRefreshed;
+  Duration _pollInterval = const Duration(seconds: 5);
+  Timer? _poller;
+  List<ReportEntity> _cachedReports = <ReportEntity>[];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _getCurrentLocation();
+    // kick off initial fetch via cubit when widget builds
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchReportsForPosition(_currentPosition);
+      _startPolling();
+    });
   }
 
   @override
   void dispose() {
+    _poller?.cancel();
     _tabController.dispose();
     super.dispose();
   }
@@ -48,6 +59,7 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
       setState(() {
         _isLoading = false;
       });
+      _fetchReportsForPosition(_currentPosition);
       return;
     }
 
@@ -78,6 +90,7 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
       setState(() {
         _isLoading = false;
       });
+      _fetchReportsForPosition(_currentPosition);
       return;
     }
 
@@ -87,6 +100,7 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
         _currentPosition = LatLng(position.latitude, position.longitude);
         _isLoading = false;
       });
+      _fetchReportsForPosition(_currentPosition);
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -96,7 +110,35 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
       setState(() {
         _isLoading = false;
       });
+      _fetchReportsForPosition(_currentPosition);
     }
+  }
+
+  Future<void> _fetchReportsForPosition(LatLng position) async {
+    try {
+      await context.read<ReportsCubit>().fetchReports(query: {
+        'map_list': 1,
+        'get': 1,
+        'location[lat]': position.latitude,
+        'location[lon]': position.longitude,
+      });
+      setState(() {
+        _lastRefreshed = DateTime.now();
+      });
+    } catch (_) {}
+  }
+
+  void _startPolling() {
+    _poller?.cancel();
+    _poller = Timer.periodic(_pollInterval, (_) {
+      _fetchReportsForPosition(_currentPosition);
+    });
+  }
+
+  String _formattedLastRefreshed() {
+    if (_lastRefreshed == null) return 'Never';
+    final dt = _lastRefreshed!;
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -174,164 +216,194 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
   Widget _buildScrollableMapTab() {
     return _isLoading
         ? const Center(child: CircularProgressIndicator())
-        : StreamBuilder<List<EmergencyReport>>(
-            stream: _emergencyService.getActiveReports(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+        : BlocBuilder<ReportsCubit, ReportsState>(
+            builder: (context, state) {
+              if (state is ReportsFailure && _cachedReports.isEmpty) {
+                return Center(
+                    child: Text('Failed to load reports: ${state.message}'));
               }
+              if (state is ReportsSuccess) {
+                _cachedReports = state.reports;
+              }
+              final List<ReportEntity> reports = _cachedReports;
 
-              final reports = snapshot.data ?? [];
-
-              return SingleChildScrollView(
-                child: Column(
-                  children: [
-                    // Map Card
-                    Card(
-                      margin: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.map, color: Colors.red),
-                                const SizedBox(width: 8),
-                                const Text(
-                                  'Live Incident Map',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
+              return RefreshIndicator(
+                onRefresh: () => _fetchReportsForPosition(_currentPosition),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Column(
+                    children: [
+                      // Map Card
+                      Card(
+                        margin: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.map, color: Colors.red),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Live Incident Map',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                ),
-                                const Spacer(),
-                                IconButton(
-                                  icon: const Icon(Icons.my_location),
-                                  onPressed: () {
-                                    _mapController.move(_currentPosition, 15);
+                                  const Spacer(),
+                                  IconButton(
+                                    icon: const Icon(Icons.my_location),
+                                    onPressed: () {
+                                      _mapController.move(_currentPosition, 15);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(
+                              height: 300,
+                              child: FlutterMap(
+                                mapController: _mapController,
+                                options: MapOptions(
+                                  initialCenter: _currentPosition,
+                                  initialZoom: 14,
+                                  maxZoom: 18,
+                                  minZoom: 3,
+                                  onMapReady: () {
+                                    _mapController.move(_currentPosition, 14);
                                   },
                                 ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(
-                            height: 300,
-                            child: FlutterMap(
-                              mapController: _mapController,
-                              options: MapOptions(
-                                initialCenter: _currentPosition,
-                                initialZoom: 14,
-                                maxZoom: 18,
-                                minZoom: 3,
-                                onMapReady: () {
-                                  _mapController.move(_currentPosition, 14);
-                                },
-                              ),
-                              children: [
-                                TileLayer(
-                                  urlTemplate:
-                                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                  userAgentPackageName:
-                                      'com.example.emergency_map_sy',
-                                ),
-                                MarkerLayer(
-                                  markers: [
-                                    // User's current location marker
-                                    Marker(
-                                      width: 40.0,
-                                      height: 40.0,
-                                      point: _currentPosition,
-                                      child: const Icon(
-                                        Icons.location_on,
-                                        color: Colors.blue,
-                                        size: 40,
-                                      ),
-                                    ),
-                                    // Emergency report markers
-                                    ...reports.map((report) {
-                                      return Marker(
-                                        width: 50.0,
-                                        height: 50.0,
-                                        point: LatLng(
-                                            report.latitude, report.longitude),
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            _showReportDetails(context, report);
-                                          },
-                                          child: Icon(
-                                            _getIconForEmergencyType(
-                                                report.type),
-                                            color: _getColorForEmergencyType(
-                                                report.type),
-                                            size: 40,
-                                          ),
+                                children: [
+                                  TileLayer(
+                                    urlTemplate:
+                                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                    userAgentPackageName:
+                                        'com.example.emergency_map_sy',
+                                  ),
+                                  MarkerLayer(
+                                    markers: [
+                                      // User's current location marker
+                                      Marker(
+                                        width: 40.0,
+                                        height: 40.0,
+                                        point: _currentPosition,
+                                        child: const Icon(
+                                          Icons.location_on,
+                                          color: Colors.blue,
+                                          size: 40,
                                         ),
-                                      );
-                                    }),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Emergency Report Button
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const AIEmergencyChatScreen(),
+                                      ),
+                                      // Emergency report markers
+                                      ...reports.map((report) {
+                                        return Marker(
+                                          width: 50.0,
+                                          height: 50.0,
+                                          point: LatLng(report.latitude,
+                                              report.longitude),
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              _showReportDetails(
+                                                  context, report);
+                                            },
+                                            child: Icon(
+                                              _getIconForEmergencyType(
+                                                  report.state?.emergencyType),
+                                              color: _getColorForEmergencyType(
+                                                  report.state?.emergencyType),
+                                              size: 40,
+                                            ),
+                                          ),
+                                        );
+                                      }),
+                                    ],
+                                  ),
+                                ],
                               ),
-                            );
-                          },
-                          icon: const Icon(Icons.add),
-                          label: const Text('Report Emergency'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    // Nearby Incidents
-                    Card(
-                      margin: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Text(
-                              'Nearby Incidents',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                      // Refresh and Report Row
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () async {
+                                  await _fetchReportsForPosition(
+                                      _currentPosition);
+                                },
+                                icon: const Icon(Icons.refresh),
+                                label: Text(
+                                    'Refresh • ${_formattedLastRefreshed()}'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.grey.shade200,
+                                  foregroundColor: Colors.black87,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
+                                ),
                               ),
                             ),
-                          ),
-                          ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: reports.length,
-                            itemBuilder: (context, index) {
-                              final report = reports[index];
-                              return _buildIncidentCard(report);
-                            },
-                          ),
-                        ],
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const AIEmergencyChatScreen(),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.add),
+                                label: const Text('Report Emergency'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                      // Nearby Incidents
+                      Card(
+                        margin: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Text(
+                                'Nearby Incidents',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              itemCount: reports.length,
+                              itemBuilder: (context, index) {
+                                final report = reports[index];
+                                return _buildIncidentCard(report);
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
@@ -402,14 +474,15 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
     );
   }
 
-  Widget _buildIncidentCard(EmergencyReport report) {
+  Widget _buildIncidentCard(ReportEntity report) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: _getColorForEmergencyType(report.type),
+          backgroundColor:
+              _getColorForEmergencyType(report.state?.emergencyType),
           child: Icon(
-            _getIconForEmergencyType(report.type),
+            _getIconForEmergencyType(report.state?.emergencyType),
             color: Colors.white,
           ),
         ),
@@ -426,10 +499,11 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
               children: [
                 Chip(
                   label: Text(
-                    report.type.toString().split('.').last,
+                    (report.state?.emergencyType ?? 'unknown').toString(),
                     style: const TextStyle(fontSize: 12, color: Colors.white),
                   ),
-                  backgroundColor: _getColorForEmergencyType(report.type),
+                  backgroundColor:
+                      _getColorForEmergencyType(report.state?.emergencyType),
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -445,37 +519,33 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
     );
   }
 
-  IconData _getIconForEmergencyType(EmergencyType type) {
-    switch (type) {
-      case EmergencyType.burglary:
-        return Icons.home_work;
-      case EmergencyType.lifeThreatening:
-        return Icons.emergency;
-      case EmergencyType.suspicious:
-        return Icons.visibility;
-      case EmergencyType.unusualSounds:
-        return Icons.volume_up;
-      case EmergencyType.nonEmergency:
+  IconData _getIconForEmergencyType(String? apiType) {
+    switch ((apiType ?? '').toLowerCase()) {
+      case 'fire':
+        return Icons.local_fire_department;
+      case 'police':
+        return Icons.local_police;
+      case 'medical':
+        return Icons.medical_services;
+      default:
         return Icons.info;
     }
   }
 
-  Color _getColorForEmergencyType(EmergencyType type) {
-    switch (type) {
-      case EmergencyType.burglary:
-        return Colors.amber;
-      case EmergencyType.lifeThreatening:
+  Color _getColorForEmergencyType(String? apiType) {
+    switch ((apiType ?? '').toLowerCase()) {
+      case 'fire':
         return Colors.red;
-      case EmergencyType.suspicious:
-        return Colors.orange;
-      case EmergencyType.unusualSounds:
+      case 'police':
+        return Colors.blue;
+      case 'medical':
         return Colors.purple;
-      case EmergencyType.nonEmergency:
+      default:
         return Colors.green;
     }
   }
 
-  void _showReportDetails(BuildContext context, EmergencyReport report) {
+  void _showReportDetails(BuildContext context, ReportEntity report) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -502,9 +572,10 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
                     ),
                   ),
                   Chip(
-                    backgroundColor: _getColorForEmergencyType(report.type),
+                    backgroundColor:
+                        _getColorForEmergencyType(report.state?.emergencyType),
                     label: Text(
-                      report.type.toString().split('.').last,
+                      (report.state?.emergencyType ?? 'unknown').toString(),
                       style: const TextStyle(color: Colors.white),
                     ),
                   ),
