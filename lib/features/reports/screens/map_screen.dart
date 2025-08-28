@@ -4,9 +4,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
-import '../features/reports/cubit/reports_cubit.dart';
-import '../features/reports/models/report.dart';
-import 'report_emergency_screen.dart';
+import '../cubit/reports_cubit.dart';
+import '../models/report.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -243,14 +242,6 @@ class _MapScreenState extends State<MapScreen> {
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ReportEmergencyScreen(
-                initialPosition: _currentPosition,
-              ),
-            ),
-          );
         },
         tooltip: 'Report Emergency',
         child: const Icon(Icons.add),

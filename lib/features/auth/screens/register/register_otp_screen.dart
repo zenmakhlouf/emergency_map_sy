@@ -1,8 +1,8 @@
+import 'package:emergency_map_sy/screens/unified_dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pinput/pinput.dart';
 
-import '../../../../screens/citizen_dashboard_screen.dart';
 import '../../../../screens/coordinator_dashboard_screen.dart';
 import '../../../../screens/responder_dashboard_screen.dart';
 import '../../../../widgets/loading_ui.dart';
@@ -61,17 +61,7 @@ class RegisterOtpScreen extends StatelessWidget {
 
             if (state is AuthSuccess) {
               Widget dashboard;
-              switch (userType) {
-                case UserType.citizen:
-                  dashboard = const CitizenDashboardScreen();
-                  break;
-                case UserType.responder:
-                  dashboard = const ResponderDashboardScreen();
-                  break;
-                case UserType.coordinator:
-                  dashboard = const CoordinatorDashboardScreen();
-                  break;
-              }
+              dashboard = UnifiedDashboardScreen(userType: userType);
 
               Navigator.pushAndRemoveUntil(
                 context,
@@ -174,20 +164,27 @@ class RegisterOtpScreen extends StatelessWidget {
                                 const SizedBox(height: 16),
                                 state is VerifyCodeLoading
                                     ? const LoadingUi()
-                                    : SizedBox(
+                                    : // Button to VERIFY the code and complete registration
+                                    SizedBox(
                                         width: double.infinity,
                                         child: ElevatedButton(
                                           onPressed: () {
-                                            if (formKey.currentState!.validate()) {
-                                              cubit.checkOtp('phone_number_register');
+                                            final cubit =
+                                                context.read<AuthCubit>();
+                                            if (formKey.currentState!
+                                                .validate()) {
+                                              // The register() method in the cubit is designed for this step.
+                                              cubit.register();
                                             }
                                           },
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: Colors.red,
                                             foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(vertical: 16),
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 16),
                                           ),
-                                          child: const Text('Verify Code'),
+                                          child:
+                                              const Text('Register with Code'),
                                         ),
                                       ),
                                 const SizedBox(height: 16),

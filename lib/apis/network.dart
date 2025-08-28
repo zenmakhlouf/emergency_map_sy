@@ -13,7 +13,7 @@ class Network {
     dio = Dio(
       BaseOptions(
         headers: {
-          // 'Authorization': "Bearer ${AppSharedPreferences.getToken}",
+          //'Authorization': "Bearer ${AppSharedPreferences.getToken}",
           'Content-Type': 'application/json',
           "Accept": 'application/json',
           "Accept-Charset": "application/json",
@@ -22,16 +22,16 @@ class Network {
       ),
     );
 
-    dio.interceptors.add(PrettyDioLogger(
-      requestHeader: false,
-      requestBody: true,
-      responseBody: true,
-      responseHeader: false,
-      error: true,
-      request: true,
-      compact: true,
-      maxWidth: 1000,
-    ));
+    // dio.interceptors.add(PrettyDioLogger(
+    //   requestHeader: false,
+    //   requestBody: true,
+    //   responseBody: true,
+    //   responseHeader: false,
+    //   error: true,
+    //   request: true,
+    //   compact: true,
+    //   maxWidth: 1000,
+    // ));
 
     dio.interceptors.add(
       InterceptorsWrapper(
@@ -55,12 +55,27 @@ class Network {
     };
   }
 
+  static void setBearer(String? token) {
+    if (token == null || token.isEmpty) {
+      dio.options.headers.remove('Authorization');
+    } else {
+      dio.options.headers['Authorization'] = 'Bearer $token';
+    }
+  }
+
   static Future<Response> getData({
     required String url,
     Map<String, dynamic>? queryParams,
+    String? bearerToken,
   }) async {
     try {
-      final response = await dio.get(url, queryParameters: queryParams);
+      final response = await dio.get(
+        url,
+        queryParameters: queryParams,
+        options: bearerToken == null
+            ? null
+            : Options(headers: {"Authorization": "Bearer $bearerToken"}),
+      );
 
       return response;
     } on DioException catch (e) {
@@ -74,11 +89,15 @@ class Network {
   static Future<Response> postData({
     required String url,
     dynamic body,
+    String? bearerToken,
   }) async {
     try {
       final response = await dio.post(
         url,
         data: body,
+        options: bearerToken == null
+            ? null
+            : Options(headers: {"Authorization": "Bearer $bearerToken"}),
       );
 
       if ((response.statusCode ?? 500) >= 500) {
@@ -96,9 +115,16 @@ class Network {
   static Future<Response> putData({
     required String url,
     Map<String, dynamic>? data,
+    String? bearerToken,
   }) async {
     try {
-      final response = await dio.put(url, data: data);
+      final response = await dio.put(
+        url,
+        data: data,
+        options: bearerToken == null
+            ? null
+            : Options(headers: {"Authorization": "Bearer $bearerToken"}),
+      );
 
       if ((response.statusCode ?? 500) >= 500) {
         throw ServerException('خطأ في الخادم - الرجاء المحاولة لاحقاً');
@@ -106,19 +132,26 @@ class Network {
 
       return response;
     } on DioException catch (e) {
-    if ((e.response?.statusCode ?? 500) >= 500) {
-    throw ServerException('خطأ في الخادم - الرجاء المحاولة لاحقاً');
-    }
-    rethrow;
+      if ((e.response?.statusCode ?? 500) >= 500) {
+        throw ServerException('خطأ في الخادم - الرجاء المحاولة لاحقاً');
+      }
+      rethrow;
     }
   }
 
   static Future<Response> deleteData({
     required String url,
     Map<String, dynamic>? data,
+    String? bearerToken,
   }) async {
     try {
-      final response = await dio.delete(url, data: data);
+      final response = await dio.delete(
+        url,
+        data: data,
+        options: bearerToken == null
+            ? null
+            : Options(headers: {"Authorization": "Bearer $bearerToken"}),
+      );
 
       if ((response.statusCode ?? 500) >= 500) {
         throw ServerException('خطأ في الخادم - الرجاء المحاولة لاحقاً');

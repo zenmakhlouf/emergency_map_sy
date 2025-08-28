@@ -1,10 +1,10 @@
+import 'package:emergency_map_sy/screens/unified_dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../cubit/auth_cubit.dart';
 import '../../models/user_type.dart';
 import '../../../../widgets/loading_ui.dart';
-import '../../../../screens/citizen_dashboard_screen.dart';
 import '../../../../screens/responder_dashboard_screen.dart';
 import '../../../../screens/coordinator_dashboard_screen.dart';
 import 'register_otp_screen.dart';
@@ -18,17 +18,7 @@ class RegisterScreen extends StatelessWidget {
 
   void _navigateToDashboard(BuildContext context) {
     Widget dashboard;
-    switch (userType) {
-      case UserType.citizen:
-        dashboard = const CitizenDashboardScreen();
-        break;
-      case UserType.responder:
-        dashboard = const ResponderDashboardScreen();
-        break;
-      case UserType.coordinator:
-        dashboard = const CoordinatorDashboardScreen();
-        break;
-    }
+    dashboard = UnifiedDashboardScreen(userType: userType);
 
     Navigator.pushAndRemoveUntil(
       context,
@@ -166,23 +156,29 @@ class RegisterScreen extends StatelessWidget {
                                   const SizedBox(height: 16),
                                   state is SendCodeLoading
                                       ? const LoadingUi()
-                                      : SizedBox(
+                                      : // Button to SEND the registration confirmation code
+                                      SizedBox(
                                           width: double.infinity,
                                           child: ElevatedButton(
                                             autofocus: true,
                                             onPressed: () {
-                                              if (formKey.currentState!.validate()) {
-                                                cubit.sendOtp('phone_number_register');
+                                              final cubit =
+                                                  context.read<AuthCubit>();
+                                              if (formKey.currentState!
+                                                  .validate()) {
+                                                cubit.sendOtp(
+                                                    'phone_number_register');
                                               }
                                             },
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor: Colors.red,
                                               foregroundColor: Colors.white,
-                                              padding: const EdgeInsets.symmetric(
-                                                vertical: 16,
-                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 16),
                                             ),
-                                            child: const Text('Send Verification Code'),
+                                            child: const Text(
+                                                'Send Register Code'),
                                           ),
                                         ),
                                 ],

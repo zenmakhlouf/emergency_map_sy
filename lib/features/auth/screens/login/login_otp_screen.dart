@@ -1,8 +1,8 @@
+import 'package:emergency_map_sy/screens/unified_dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pinput/pinput.dart';
 
-import '../../../../screens/citizen_dashboard_screen.dart';
 import '../../../../screens/coordinator_dashboard_screen.dart';
 import '../../../../screens/responder_dashboard_screen.dart';
 import '../../../../widgets/loading_ui.dart';
@@ -40,6 +40,7 @@ class LoginOtpScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print("user type ${userType.toString()} we are in login");
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -61,22 +62,11 @@ class LoginOtpScreen extends StatelessWidget {
 
             if (state is AuthSuccess) {
               Widget dashboard;
-              switch (userType) {
-                case UserType.citizen:
-                  dashboard = const CitizenDashboardScreen();
-                  break;
-                case UserType.responder:
-                  dashboard = const ResponderDashboardScreen();
-                  break;
-                case UserType.coordinator:
-                  dashboard = const CoordinatorDashboardScreen();
-                  break;
-              }
-
+              dashboard = UnifiedDashboardScreen(userType: userType);
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (context) => dashboard),
-                    (route) => false,
+                (route) => false,
               );
             }
           },
@@ -154,7 +144,8 @@ class LoginOtpScreen extends StatelessWidget {
                                     length: 4,
                                     controller: cubit.otpController,
                                     defaultPinTheme: PinTheme(
-                                      width: MediaQuery.of(context).size.width / 6,
+                                      width:
+                                          MediaQuery.of(context).size.width / 6,
                                       height: 60,
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(12),
@@ -174,20 +165,27 @@ class LoginOtpScreen extends StatelessWidget {
                                 const SizedBox(height: 16),
                                 state is VerifyCodeLoading
                                     ? const LoadingUi()
-                                    : SizedBox(
+                                    : // Button to VERIFY the code and log in
+                                    SizedBox(
                                         width: double.infinity,
                                         child: ElevatedButton(
                                           onPressed: () {
-                                            if (formKey.currentState!.validate()) {
-                                              cubit.checkOtp('phone_number_login');
+                                            final cubit =
+                                                context.read<AuthCubit>();
+                                            if (formKey.currentState!
+                                                .validate()) {
+                                              // You can use either checkOtp or the login method depending on your flow.
+                                              // The login() method is designed for this purpose in the cubit.
+                                              cubit.login();
                                             }
                                           },
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: Colors.red,
                                             foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(vertical: 16),
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 16),
                                           ),
-                                          child: const Text('Verify Code'),
+                                          child: const Text('Login with Code'),
                                         ),
                                       ),
                                 const SizedBox(height: 16),
