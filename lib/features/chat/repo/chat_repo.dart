@@ -5,14 +5,11 @@ import '../../../utils/urls.dart';
 import '../models/chat_models.dart';
 
 class ChatRepository {
-  Future<List<ConversationSummary>> fetchChats({required String bearer}) async {
-    if (bearer.isEmpty) {
-      throw Exception('Bearer token is required');
-    }
-
+  Future<List<ConversationSummary>> fetchChats() async {
+    
     try {
       final Response res =
-          await Network.getData(url: Urls.chats, bearerToken: bearer);
+          await Network.getData(url: Urls.chats);
       final dynamic body = res.data;
       List<dynamic> items = <dynamic>[];
 
@@ -72,12 +69,9 @@ class ChatRepository {
   }
 
   Future<List<ChatMessageEntity>> fetchMessages({
-    required String bearer,
     required int chatId,
   }) async {
-    if (bearer.isEmpty) {
-      throw Exception('Bearer token is required');
-    }
+   
 
     if (chatId <= 0) {
       throw Exception('Invalid chat ID');
@@ -86,7 +80,7 @@ class ChatRepository {
     try {
       final Response res = await Network.getData(
         url: Urls.chatMessages(chatId),
-        bearerToken: bearer,
+      
       );
       final dynamic body = res.data;
       List<dynamic> items = <dynamic>[];
@@ -150,16 +144,13 @@ class ChatRepository {
   }
 
   Future<ChatMessageEntity> sendMessage({
-    required String bearer,
     int? chatId,
     required double lat,
     required double lon,
     required String address,
     required String text,
   }) async {
-    if (bearer.isEmpty) {
-      throw Exception('Bearer token is required');
-    }
+   
 
     if (text.trim().isEmpty) {
       throw Exception('Message text cannot be empty');
@@ -183,7 +174,7 @@ class ChatRepository {
       final Response res = await Network.postData(
         url: url,
         body: FormData.fromMap(formData),
-        bearerToken: bearer,
+      
       );
 
       final dynamic body = res.data;

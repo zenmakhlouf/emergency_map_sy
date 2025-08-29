@@ -15,27 +15,6 @@ class LoginScreen extends StatelessWidget {
 
   final formKey = GlobalKey<FormFieldState>();
 
-  // void _navigateToDashboard(BuildContext context) {
-  //   Widget dashboard;
-  //   switch (userType) {
-  //     case UserType.citizen:
-  //       dashboard = const UnifiedDashboardScreen();
-  //       break;
-  //     case UserType.responder:
-  //       dashboard = const UnifiedDashboardScreen();
-  //       break;
-  //     case UserType.coordinator:
-  //       dashboard = const UnifiedDashboardScreen();
-  //       break;
-  //   }
-
-  //   Navigator.pushAndRemoveUntil(
-  //     context,
-  //     MaterialPageRoute(builder: (context) => dashboard),
-  //     (route) => false,
-  //   );
-  // }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

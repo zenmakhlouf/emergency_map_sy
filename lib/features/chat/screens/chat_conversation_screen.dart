@@ -8,14 +8,12 @@ import '../models/chat_models.dart';
 class ChatConversationScreen extends StatefulWidget {
   final int chatId;
   final String chatTitle;
-  final String bearerToken;
   final int currentUserId;
 
   const ChatConversationScreen({
     super.key,
     required this.chatId,
     required this.chatTitle,
-    required this.bearerToken,
     required this.currentUserId,
   });
 
@@ -49,7 +47,6 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
   Future<void> _loadMessages() async {
     if (mounted) {
       await context.read<ChatCubit>().loadMessages(
-            bearer: widget.bearerToken,
             chatId: widget.chatId,
           );
     }
@@ -93,7 +90,6 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
 
     try {
       await context.read<ChatCubit>().sendMessage(
-            bearer: widget.bearerToken,
             chatId: widget.chatId,
             // Pass the location data, with fallbacks
             lat: position?.latitude ?? 0.0,

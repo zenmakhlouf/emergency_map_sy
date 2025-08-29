@@ -11,15 +11,12 @@ class ChatCubit extends Cubit<ChatState> {
 
   final ChatRepository _repo;
 
-  Future<void> loadChats({required String bearer}) async {
-    if (bearer.isEmpty) {
-      emit(ChatError('Authentication token is required'));
-      return;
-    }
+  Future<void> loadChats() async {
+    
 
     emit(ChatLoading());
     try {
-      final chats = await _repo.fetchChats(bearer: bearer);
+      final chats = await _repo.fetchChats();
       debugPrint('[ChatCubit] Loaded ${chats.length} chats');
       emit(ChatListLoaded(chats));
     } catch (e) {
@@ -29,13 +26,9 @@ class ChatCubit extends Cubit<ChatState> {
   }
 
   Future<void> loadMessages({
-    required String bearer,
     required int chatId,
   }) async {
-    if (bearer.isEmpty) {
-      emit(ChatError('Authentication token is required'));
-      return;
-    }
+    
     if (chatId <= 0) {
       emit(ChatError('Invalid chat ID'));
       return;
@@ -44,7 +37,7 @@ class ChatCubit extends Cubit<ChatState> {
     emit(ChatLoading());
     try {
       final messages =
-          await _repo.fetchMessages(bearer: bearer, chatId: chatId);
+          await _repo.fetchMessages( chatId: chatId);
       debugPrint(
           '[ChatCubit] Loaded ${messages.length} messages for chat $chatId');
       emit(ChatMessagesLoaded(chatId, messages));
@@ -55,17 +48,13 @@ class ChatCubit extends Cubit<ChatState> {
   }
 
   Future<void> sendMessage({
-    required String bearer,
     int? chatId,
     required double lat,
     required double lon,
     required String address,
     required String text,
   }) async {
-    if (bearer.isEmpty) {
-      emit(ChatError('Authentication token is required'));
-      return;
-    }
+    
     if (text.trim().isEmpty) {
       emit(ChatError('Message text cannot be empty'));
       return;
@@ -77,7 +66,6 @@ class ChatCubit extends Cubit<ChatState> {
     try {
       debugPrint('[ChatCubit] Sending message to chat ${chatId ?? 'new'}');
       final sentMessage = await _repo.sendMessage(
-        bearer: bearer,
         chatId: chatId,
         lat: lat,
         lon: lon,
@@ -91,7 +79,7 @@ class ChatCubit extends Cubit<ChatState> {
       if (chatId == null && sentMessage.conversationId != null) {
         emit(ChatNewConversationStarted(sentMessage));
         // Also refresh the main chat list in the background
-        await loadChats(bearer: bearer);
+        await loadChats();
         return;
       }
 
@@ -103,7 +91,7 @@ class ChatCubit extends Cubit<ChatState> {
           final updatedMessages = [...currentState.messages, sentMessage];
           emit(ChatMessagesLoaded(chatId, updatedMessages));
         } else {
-          await loadMessages(bearer: bearer, chatId: chatId);
+          await loadMessages(chatId: chatId);
         }
       }
     } catch (e) {

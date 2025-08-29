@@ -36,7 +36,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
   Future<void> _loadChats() async {
     final auth = context.read<AuthCubit>();
     if (auth.isAuthenticated && mounted) {
-      await context.read<ChatCubit>().loadChats(bearer: auth.token!);
+      await context.read<ChatCubit>().loadChats();
     }
   }
 
@@ -129,7 +129,6 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                             child: ChatConversationScreen(
                               chatId: chat.id,
                               chatTitle: chat.getChatTitle(currentUserId),
-                              bearerToken: authCubit.token!,
                               currentUserId: currentUserId,
                             ),
                           ),

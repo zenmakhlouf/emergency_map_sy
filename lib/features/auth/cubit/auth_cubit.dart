@@ -64,6 +64,7 @@ class AuthCubit extends Cubit<AuthState> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('auth_token');
       await prefs.remove('user_id');
+      Network.clearBearer();
     } catch (e) {
       debugPrint('[AuthCubit] Failed to clear stored session data: $e');
     }
@@ -74,6 +75,7 @@ class AuthCubit extends Cubit<AuthState> {
     _userId = userId;
     _isAuthenticated = token != null && token.isNotEmpty && userId != null;
     Network.setBearer(token);
+    print("i have set bearer token gloablly");
 
     if (persist && token != null && userId != null) {
       _storeAuthData(token, userId);
@@ -214,6 +216,4 @@ class AuthCubit extends Cubit<AuthState> {
     phoneController.dispose();
     return super.close();
   }
-
-  
 }

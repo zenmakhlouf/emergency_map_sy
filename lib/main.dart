@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-//import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'apis/network.dart';
 import 'features/reports/cubit/reports_cubit.dart';
@@ -11,9 +10,7 @@ import 'screens/user_type_selector_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  //await Firebase.initializeApp();
   await Network.init();
-
   runApp(
     MultiBlocProvider(
       providers: [

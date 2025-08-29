@@ -141,7 +141,6 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen> {
         : 'ناحية الهمك'; // Geocoding could be added here
 
     await context.read<ChatCubit>().sendMessage(
-          bearer: token,
           chatId: null, // This indicates a new conversation
           lat: lat,
           lon: lon,
@@ -171,7 +170,6 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen> {
                   child: ChatConversationScreen(
                     chatId: newConversationId,
                     chatTitle: 'Emergency Chat',
-                    bearerToken: auth.token!,
                     currentUserId: auth.userId!,
                   ),
                 ),
