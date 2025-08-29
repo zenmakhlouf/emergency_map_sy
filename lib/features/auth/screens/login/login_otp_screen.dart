@@ -57,7 +57,7 @@ class LoginOtpScreen extends StatelessWidget {
             final cubit = context.read<AuthCubit>();
 
             if (state is VerifyCodeSuccess) {
-              cubit.login();
+              cubit.login(userType);
             }
 
             if (state is AuthSuccess) {
@@ -176,7 +176,7 @@ class LoginOtpScreen extends StatelessWidget {
                                                 .validate()) {
                                               // You can use either checkOtp or the login method depending on your flow.
                                               // The login() method is designed for this purpose in the cubit.
-                                              cubit.login();
+                                              cubit.login(userType);
                                             }
                                           },
                                           style: ElevatedButton.styleFrom(

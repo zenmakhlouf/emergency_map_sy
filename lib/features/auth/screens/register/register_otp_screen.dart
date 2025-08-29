@@ -56,7 +56,7 @@ class RegisterOtpScreen extends StatelessWidget {
             final cubit = context.read<AuthCubit>();
 
             if (state is VerifyCodeSuccess) {
-              cubit.register();
+              cubit.register(userType);
             }
 
             if (state is AuthSuccess) {
@@ -174,7 +174,7 @@ class RegisterOtpScreen extends StatelessWidget {
                                             if (formKey.currentState!
                                                 .validate()) {
                                               // The register() method in the cubit is designed for this step.
-                                              cubit.register();
+                                              cubit.register(userType);
                                             }
                                           },
                                           style: ElevatedButton.styleFrom(

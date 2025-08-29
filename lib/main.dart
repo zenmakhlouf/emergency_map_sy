@@ -1,5 +1,8 @@
+import 'package:emergency_map_sy/features/auth/models/user_type.dart';
+import 'package:emergency_map_sy/screens/unified_dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'apis/network.dart';
 import 'features/reports/cubit/reports_cubit.dart';
 import 'features/reports/repo/reportRepoService.dart';
@@ -40,7 +43,34 @@ class MyApp extends StatelessWidget {
           elevation: 0,
         ),
       ),
-      home: const UserTypeSelectorScreen(),
+      home: FutureBuilder<Widget>(
+        future: _getStartScreen(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            print(snapshot.error);
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+          return snapshot.data!;
+        },
+      ),
     );
   }
+}
+
+Future<Widget> _getStartScreen() async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('auth_token');
+  final userType = prefs.getString('user_type');
+
+  // defensive check — empty string should count as "not logged in"
+  if (token == null || token.isEmpty || userType == null || userType.isEmpty) {
+    return const UserTypeSelectorScreen();
+  }
+
+  return UnifiedDashboardScreen(
+      userType: UserType.values.firstWhere(
+    (e) => e.name == userType,
+  ));
 }

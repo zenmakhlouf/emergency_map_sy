@@ -1,5 +1,6 @@
 import 'package:emergency_map_sy/features/auth/cubit/auth_cubit.dart';
 import 'package:emergency_map_sy/features/profile/cubit/profile_cubit.dart';
+import 'package:emergency_map_sy/screens/user_type_selector_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -82,8 +83,12 @@ class ProfileScreen extends StatelessWidget {
                         onPressed: () {
                           // Pop all routes until login or home screen
                           context.read<AuthCubit>().logout();
-                          Navigator.of(context)
-                              .popUntil((route) => route.isFirst);
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                                builder: (_) => UserTypeSelectorScreen()),
+                            (Route<dynamic> route) =>
+                                false, // remove ALL previous routes
+                          );
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red,

@@ -38,162 +38,159 @@ class RegisterScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back, color: Colors.red),
         ),
       ),
-      body: BlocProvider(
-        create: (context) => AuthCubit(),
-        child: BlocConsumer<AuthCubit, AuthState>(
-          listener: (context, state) {
-            final cubit = context.read<AuthCubit>();
-
-            if (state is SendCodeSuccess) {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => RegisterOtpScreen(
-                    userType: userType,
-                    cubit: cubit,
-                  ),
-                ),
-              );
-            }
-          },
-          builder: (context, state) {
-            final cubit = context.read<AuthCubit>();
-
-            return Container(
-              height: double.infinity,
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFFFFF5F5), Color(0xFFFFEBEE)],
-                ),
-              ),
-              alignment: Alignment.center,
-              child: SafeArea(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Form(
-                    key: formKey,
-                    child: Column(
-                      children: [
-                        // Back Button
-                        Center(
-                          child: Card(
-                            elevation: 4,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(24.0),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  // Title
-                                  const Text(
-                                    'Enter Your Info',
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-
-                                  // Subtitle
-                                  Text(
-                                    'Verify your identity as a ${userType.name}',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  const SizedBox(height: 24),
-                                  TextFormField(
-                                    controller: cubit.nameController,
-                                    keyboardType: TextInputType.name,
-                                    decoration: const InputDecoration(
-                                      prefixStyle: TextStyle(color: Colors.black),
-                                      labelText: 'name',
-                                      border: OutlineInputBorder(),
-                                      contentPadding: EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 12,
-                                      ),
-                                    ),
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) {
-                                        return 'This field is required';
-                                      } else {
-                                        return null;
-                                      }
-                                    },
-                                  ),
-                                  const SizedBox(height: 12),
-
-                                  TextFormField(
-                                    controller: cubit.phoneController,
-                                    keyboardType: TextInputType.phone,
-                                    decoration: const InputDecoration(
-                                      prefixText: '+963 ',
-                                      prefixStyle: TextStyle(color: Colors.black),
-                                      labelText: '+963 999999999',
-                                      border: OutlineInputBorder(),
-                                      contentPadding: EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 12,
-                                      ),
-                                    ),
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) {
-                                        return 'This field is required';
-                                      } else if (value.length != 9) {
-                                        return 'Please enter a valid phone number without 0';
-                                      } else {
-                                        return null;
-                                      }
-                                    },
-                                  ),
-                                  const SizedBox(height: 16),
-                                  state is SendCodeLoading
-                                      ? const LoadingUi()
-                                      : // Button to SEND the registration confirmation code
-                                      SizedBox(
-                                          width: double.infinity,
-                                          child: ElevatedButton(
-                                            autofocus: true,
-                                            onPressed: () {
-                                              final cubit =
-                                                  context.read<AuthCubit>();
-                                              if (formKey.currentState!
-                                                  .validate()) {
-                                                cubit.sendOtp(
-                                                    'phone_number_register');
-                                              }
-                                            },
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.red,
-                                              foregroundColor: Colors.white,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 16),
-                                            ),
-                                            child: const Text(
-                                                'Send Register Code'),
-                                          ),
-                                        ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+      body: BlocConsumer<AuthCubit, AuthState>(
+        listener: (context, state) {
+          final cubit = context.read<AuthCubit>();
+      
+          if (state is SendCodeSuccess) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => RegisterOtpScreen(
+                  userType: userType,
+                  cubit: cubit,
                 ),
               ),
             );
-          },
-        ),
+          }
+        },
+        builder: (context, state) {
+          final cubit = context.read<AuthCubit>();
+      
+          return Container(
+            height: double.infinity,
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFFFF5F5), Color(0xFFFFEBEE)],
+              ),
+            ),
+            alignment: Alignment.center,
+            child: SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    children: [
+                      // Back Button
+                      Center(
+                        child: Card(
+                          elevation: 4,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(24.0),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Title
+                                const Text(
+                                  'Enter Your Info',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+      
+                                // Subtitle
+                                Text(
+                                  'Verify your identity as a ${userType.name}',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 24),
+                                TextFormField(
+                                  controller: cubit.nameController,
+                                  keyboardType: TextInputType.name,
+                                  decoration: const InputDecoration(
+                                    prefixStyle: TextStyle(color: Colors.black),
+                                    labelText: 'name',
+                                    border: OutlineInputBorder(),
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'This field is required';
+                                    } else {
+                                      return null;
+                                    }
+                                  },
+                                ),
+                                const SizedBox(height: 12),
+      
+                                TextFormField(
+                                  controller: cubit.phoneController,
+                                  keyboardType: TextInputType.phone,
+                                  decoration: const InputDecoration(
+                                    prefixText: '+963 ',
+                                    prefixStyle: TextStyle(color: Colors.black),
+                                    labelText: '+963 999999999',
+                                    border: OutlineInputBorder(),
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'This field is required';
+                                    } else if (value.length != 9) {
+                                      return 'Please enter a valid phone number without 0';
+                                    } else {
+                                      return null;
+                                    }
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+                                state is SendCodeLoading
+                                    ? const LoadingUi()
+                                    : // Button to SEND the registration confirmation code
+                                    SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton(
+                                          autofocus: true,
+                                          onPressed: () {
+                                            final cubit =
+                                                context.read<AuthCubit>();
+                                            if (formKey.currentState!
+                                                .validate()) {
+                                              cubit.sendOtp(
+                                                  'phone_number_register');
+                                            }
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.red,
+                                            foregroundColor: Colors.white,
+                                            padding:
+                                                const EdgeInsets.symmetric(
+                                                    vertical: 16),
+                                          ),
+                                          child: const Text(
+                                              'Send Register Code'),
+                                        ),
+                                      ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
