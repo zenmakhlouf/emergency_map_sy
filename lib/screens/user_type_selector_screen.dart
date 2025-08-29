@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/shared_preferences/shared_preferences_helper.dart';
 import '../features/auth/models/user_type.dart';
 import '../features/auth/screens/login/login_screen.dart';
 
@@ -110,6 +111,7 @@ class UserTypeSelectorScreen extends StatelessWidget {
       ),
       child: InkWell(
         onTap: () {
+          AppSharedPreferences.saveUserType(userType);
           Navigator.push(
             context,
             MaterialPageRoute(

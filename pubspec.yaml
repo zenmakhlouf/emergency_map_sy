@@ -46,6 +46,7 @@ dependencies:
   pinput: ^5.0.1
   dio: ^5.9.0
   pretty_dio_logger: ^1.4.0
+  shared_preferences: ^2.5.2
 
 dev_dependencies:
   flutter_test:

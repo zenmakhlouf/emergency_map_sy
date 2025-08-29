@@ -2,8 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../apis/exceptions_handler.dart';
-import '../../../apis/network.dart';
+import '../../../core/apis/exceptions_handler.dart';
+import '../../../core/apis/network.dart';
 import '../../../utils/urls.dart';
 
 part 'auth_state.dart';
