@@ -1419,7 +1419,6 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
         ),
         backgroundColor: Colors.green.shade600,
         duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
       ),
     );
   }
