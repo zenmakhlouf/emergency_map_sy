@@ -205,21 +205,29 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
     if (!mounted) return;
 
     if (state is ChatMessagesLoaded && state.chatId == widget.chatId) {
+     final newMessages = state.messages;
+      final updatedPendingMessages =
+          Map<int, PendingMessage>.from(_pendingMessages);
+
+      updatedPendingMessages.removeWhere((tempId, pending) {
+        final pendingTime = DateTime.tryParse(pending.message.createdAt ?? '');
+        if (pendingTime == null) return false;
+
+        return newMessages.any((confirmed) {
+          final confirmedTime = DateTime.tryParse(confirmed.createdAt ?? '');
+          if (confirmedTime == null) return false;
+
+          return confirmed.sender?.user.id == widget.currentUserId &&
+              confirmed.text.trim() == pending.message.text.trim() &&
+              confirmedTime.difference(pendingTime).abs().inSeconds < 30;
+        });
+      });
+
       setState(() {
-        _confirmedMessages = state.messages;
+        _confirmedMessages = newMessages;
+        _pendingMessages = updatedPendingMessages;
         _networkError = null;
         _lastSuccessfulRefresh = DateTime.now();
-
-        // Reconcile pending messages: remove any that have now been confirmed by the server.
-        final confirmedIds = _confirmedMessages.map((m) => m.id).toSet();
-        _pendingMessages.removeWhere((key, pending) {
-          // This is a simple reconciliation. A more robust way would be matching a unique ID.
-          // For now, we assume if a message with the same text from the user appears, it's ours.
-          final isConfirmed = _confirmedMessages.any((confirmed) =>
-              confirmed.sender?.user.id == widget.currentUserId &&
-              confirmed.text == pending.message.text);
-          return isConfirmed;
-        });
       });
       _scrollToBottom(isNewMessage: true);
     } else if (state is ChatError) {
