@@ -34,7 +34,7 @@ class ReportLocation {
 
 class ReportStateApi {
   final String? report;
-  final int? severity; // desired int in frontend
+  final double? severity; // severity is now a decimal from API
   final String? emergencyType; // raw string from backend, may be upper/lower
   final String? emergencySubType;
   final String? status;
@@ -54,30 +54,30 @@ class ReportStateApi {
   factory ReportStateApi.fromJson(Map<String, dynamic>? json) {
     if (json == null) return const ReportStateApi();
 
-    int? parsedSeverity;
+    double? parsedSeverity;
     final dynamic rawSeverity = json['severity'];
     if (rawSeverity == null) {
       parsedSeverity = null;
     } else if (rawSeverity is num) {
-      parsedSeverity = rawSeverity.round();
+      parsedSeverity = rawSeverity.toDouble();
     } else {
       final String s = rawSeverity.toString().trim().toLowerCase();
-      // Map common words to numeric scale temporarily until backend fixes to int
+      // Map common words to numeric scale temporarily until backend fixes to double
       switch (s) {
         case 'critical':
-          parsedSeverity = 9;
+          parsedSeverity = 0.9;
           break;
         case 'high':
-          parsedSeverity = 7;
+          parsedSeverity = 0.7;
           break;
         case 'medium':
-          parsedSeverity = 5;
+          parsedSeverity = 0.5;
           break;
         case 'low':
-          parsedSeverity = 3;
+          parsedSeverity = 0.3;
           break;
         default:
-          parsedSeverity = double.tryParse(s)?.round();
+          parsedSeverity = double.tryParse(s);
           if (parsedSeverity == null) {
             debugPrint(
                 '[reports] Bad severity value "$rawSeverity"; storing null and surfacing in UI');
@@ -99,10 +99,25 @@ class ReportStateApi {
   }
 }
 
+class ReportConversation {
+  final int id;
+
+  const ReportConversation({required this.id});
+
+  factory ReportConversation.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const ReportConversation(id: 0);
+    final dynamic id = json['id'];
+    return ReportConversation(
+      id: (id is num) ? id.toInt() : int.tryParse('$id') ?? 0,
+    );
+  }
+}
+
 class ReportEntity {
   final int id;
   final int initiatorId;
   final DateTime createdAt;
+  final ReportConversation? conversation;
   final ReportLocation location;
   final ReportStateApi? state;
   final String? distance;
@@ -113,6 +128,19 @@ class ReportEntity {
     final String? raw = state?.report ?? location.address;
     if (raw == null || raw.trim().isEmpty) return 'No description';
     return raw;
+  }
+
+  // Add fullAddress getter to fix linter errors
+  String get fullAddress {
+    final address = location.address;
+    if (address == null || address.trim().isEmpty) {
+      return 'موقع غير محدد'; // "Unknown location" in Arabic
+    }
+    // If address contains "Live Location" in English, replace with Arabic
+    if (address.toLowerCase().contains('live location')) {
+      return 'موقع مباشر';
+    }
+    return address;
   }
 
   double get latitude => location.latitude;
@@ -127,6 +155,7 @@ class ReportEntity {
     required this.id,
     required this.initiatorId,
     required this.createdAt,
+    this.conversation,
     required this.location,
     required this.state,
     required this.distance,
@@ -150,6 +179,8 @@ class ReportEntity {
           ? (json['initiator_id'] as num).toInt()
           : int.tryParse('${json['initiator_id']}') ?? 0,
       createdAt: created,
+      conversation: ReportConversation.fromJson(
+          json['conversation'] as Map<String, dynamic>?),
       location:
           ReportLocation.fromJson(json['location'] as Map<String, dynamic>?),
       state: ReportStateApi.fromJson(json['state'] as Map<String, dynamic>?),

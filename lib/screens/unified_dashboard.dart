@@ -1,16 +1,23 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:emergency_map_sy/features/profile/screens/profile_screen.dart';
+import 'package:emergency_map_sy/services/routing_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import '../features/reports/cubit/reports_cubit.dart';
 import '../features/reports/models/report.dart';
 import '../features/auth/cubit/auth_cubit.dart';
 import '../features/auth/models/user_type.dart';
 import '../features/chat/screens/ai_emergency_chat_screen.dart';
 import '../features/chat/screens/chats_list_screen.dart';
+import '../features/chat/screens/chat_conversation_screen.dart';
+import '../features/chat/cubit/chat_cubit.dart';
+
+// Please ensure the path to your routing_service.dart file is correct.
 
 /// A unified dashboard that adapts its interface based on user type
 /// Provides real-time emergency reporting and monitoring capabilities
@@ -32,24 +39,60 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   final MapController _mapController = MapController();
   late TabController _tabController;
   Timer? _reportPoller;
+  Timer? _locationPoller;
+  final ScrollController _reportsScrollController = ScrollController();
 
   // Location and data state
   LatLng _currentPosition = const LatLng(33.5138, 36.2765); // Damascus default
+  String _currentAddress = "Getting location...";
   List<ReportEntity> _cachedReports = <ReportEntity>[];
+  List<ReportEntity> _filteredReports = <ReportEntity>[];
+  ReportEntity? _activeAssignment; // Single active assignment
   DateTime? _lastSuccessfulRefresh;
+
+  // Filter and search state
+  String _searchQuery = "";
+  String? _selectedCategory;
+  String? _selectedStatus;
+  String _sortBy = "distance"; // Changed default to distance
+  bool _sortAscending = true; // Changed to true for nearest first
 
   // UI state management
   bool _isInitializing = true;
   bool _isLocationLoading = false;
   bool _isRefreshing = false;
+  bool _showMarkersAtCurrentZoom = true;
   String? _locationError;
   String? _networkError;
 
+  // Routing State
+  List<LatLng> _routePolyline = [];
+  bool _isRouteLoading = false;
+
   // Configuration constants
   static const Duration _pollInterval = Duration(seconds: 20);
+  static const Duration _locationPollInterval = Duration(seconds: 30);
   static const Duration _networkTimeout = Duration(seconds: 20);
   static const double _defaultZoom = 14.0;
-  static const double _coordinatorZoom = 10.0;
+  static const double _minZoomForMarkers = 8.0;
+
+  // Emergency type categories for filtering
+  static const List<String> _emergencyCategories = [
+    'medical',
+    'fire',
+    'police',
+    'traffic',
+    'other'
+  ];
+
+  // Status options for filtering
+  static const List<String> _statusOptions = [
+    'pending',
+    'assigned',
+    'in_progress',
+    'resolved',
+    'closed'
+  ];
 
   @override
   void initState() {
@@ -68,14 +111,15 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Handle app lifecycle for better resource management
     switch (state) {
       case AppLifecycleState.resumed:
         _startPolling();
+        _startLocationPolling();
         break;
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
         _stopPolling();
+        _stopLocationPolling();
         break;
       default:
         break;
@@ -87,25 +131,17 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   // ============================================================================
 
   void _initializeTabController() {
-    _tabController = TabController(
-      length: _getTabConfiguration().length,
-      vsync: this,
-    );
+    // All user types now have only 3 tabs: Map, Reports, Chat
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   /// Initialize the app by setting up auth and getting initial data
   Future<void> _initializeApp() async {
     try {
-      // Initialize AuthCubit first to set network bearer token
       await _initializeAuth();
-
-      // Get user location
       await _initializeLocation();
-
-      // Load initial reports
+      _startLocationPolling();
       await _loadInitialReports();
-
-      // Start polling for updates
       _startPolling();
     } catch (e) {
       debugPrint("Initialization error: $e");
@@ -117,13 +153,11 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     }
   }
 
-  /// Initialize authentication to set network bearer token
   Future<void> _initializeAuth() async {
-    final authCubit = context.read<AuthCubit>();
     await context.read<AuthCubit>().waitForInitialization();
   }
 
-  /// Get user's current location with proper error handling
+  /// Get user's current location with improved error handling
   Future<void> _initializeLocation() async {
     if (!mounted) return;
 
@@ -133,13 +167,11 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     });
 
     try {
-      // Check if location services are enabled
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         throw LocationException('Location services are disabled');
       }
 
-      // Check and request permissions
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -150,17 +182,20 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
         throw LocationException('Location permission denied');
       }
 
-      // Get current position with timeout
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
         timeLimit: const Duration(seconds: 10),
       );
 
       if (mounted) {
+        final newPosition = LatLng(position.latitude, position.longitude);
         setState(() {
-          _currentPosition = LatLng(position.latitude, position.longitude);
+          _currentPosition = newPosition;
           _locationError = null;
         });
+
+        await _updateAddressFromCoordinates(newPosition);
+        await _sendLocationToBackend(newPosition);
       }
     } catch (e) {
       debugPrint("Location error: $e");
@@ -176,7 +211,71 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     }
   }
 
-  /// Load initial reports for the current position
+  /// Update address using OpenStreetMap Nominatim with Arabic support
+  Future<void> _updateAddressFromCoordinates(LatLng position) async {
+    try {
+      final url = 'https://nominatim.openstreetmap.org/reverse'
+          '?format=json'
+          '&lat=${position.latitude}'
+          '&lon=${position.longitude}'
+          '&zoom=18'
+          '&addressdetails=1'
+          '&accept-language=ar,en';
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'User-Agent': 'EmergencyMapApp/1.0',
+        },
+      ).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200 && mounted) {
+        final data = json.decode(response.body);
+        final displayName = data['display_name'] as String?;
+
+        if (displayName != null && displayName.isNotEmpty) {
+          setState(() {
+            _currentAddress = displayName;
+          });
+        } else {
+          _setFallbackAddress(position);
+        }
+      } else {
+        _setFallbackAddress(position);
+      }
+    } catch (e) {
+      debugPrint("Nominatim geocoding error: $e");
+      _setFallbackAddress(position);
+    }
+  }
+
+  void _setFallbackAddress(LatLng position) {
+    if (mounted) {
+      setState(() {
+        _currentAddress =
+            "${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}";
+      });
+    }
+  }
+
+  /// Send current location to backend ensuring address is a string
+  Future<void> _sendLocationToBackend(LatLng position) async {
+    try {
+      final locationData = {
+        'location': {
+          'lat': position.latitude,
+          'lon': position.longitude,
+          'address': _currentAddress.toString(), // Ensure it's a string
+        }
+      };
+
+      debugPrint("Sending location to backend: $locationData");
+      // Implement your backend location update API call here
+    } catch (e) {
+      debugPrint("Failed to send location to backend: $e");
+    }
+  }
+
   Future<void> _loadInitialReports() async {
     await _fetchReports();
   }
@@ -185,7 +284,6 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   // DATA FETCHING METHODS
   // ============================================================================
 
-  /// Fetch reports for current position with error handling
   Future<void> _fetchReports() async {
     if (!mounted) return;
 
@@ -196,6 +294,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
           'get': 1,
           'location[lat]': _currentPosition.latitude,
           'location[lon]': _currentPosition.longitude,
+          'location[address]': _currentAddress.toString(), // Ensure string
         },
       ).timeout(_networkTimeout);
 
@@ -215,7 +314,6 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     }
   }
 
-  /// Manual refresh triggered by user
   Future<void> _handleManualRefresh() async {
     if (!mounted || _isRefreshing) return;
 
@@ -223,9 +321,11 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
 
     try {
       await _fetchReports();
-      _showSuccessSnackBar("Reports updated successfully");
+      await _initializeLocation();
+      _clearRoute();
+      _showSuccessSnackBar("Reports and location updated successfully");
     } catch (e) {
-      _showErrorSnackBar("Failed to refresh reports");
+      _showErrorSnackBar("Failed to refresh data");
     } finally {
       if (mounted) {
         setState(() => _isRefreshing = false);
@@ -238,9 +338,11 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   // ============================================================================
 
   void _startPolling() {
-    _stopPolling(); // Ensure no duplicate timers
+    if (!_showMarkersAtCurrentZoom) return;
+
+    _stopPolling();
     _reportPoller = Timer.periodic(_pollInterval, (_) {
-      if (mounted) _fetchReports();
+      if (mounted && _showMarkersAtCurrentZoom) _fetchReports();
     });
   }
 
@@ -249,64 +351,218 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     _reportPoller = null;
   }
 
+  void _startLocationPolling() {
+    _stopLocationPolling();
+    _locationPoller = Timer.periodic(_locationPollInterval, (_) async {
+      if (mounted) {
+        try {
+          final position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.best,
+          );
+          final newPosition = LatLng(position.latitude, position.longitude);
+
+          if (_calculateDistance(_currentPosition, newPosition) > 0.01) {
+            setState(() => _currentPosition = newPosition);
+            await _updateAddressFromCoordinates(newPosition);
+            await _sendLocationToBackend(newPosition);
+          }
+        } catch (e) {
+          debugPrint("Location polling error: $e");
+        }
+      }
+    });
+  }
+
+  void _stopLocationPolling() {
+    _locationPoller?.cancel();
+    _locationPoller = null;
+  }
+
+  double _calculateDistance(LatLng pos1, LatLng pos2) {
+    return Geolocator.distanceBetween(
+          pos1.latitude,
+          pos1.longitude,
+          pos2.latitude,
+          pos2.longitude,
+        ) /
+        1000;
+  }
+
   // ============================================================================
-  // UI CONFIGURATION BY USER TYPE
+  // FILTERING AND SEARCH METHODS
   // ============================================================================
 
-  List<Tab> _getTabConfiguration() {
-    switch (widget.userType) {
-      case UserType.citizen:
-        return const [
-          Tab(icon: Icon(Icons.map_outlined), text: 'Map'),
-          Tab(icon: Icon(Icons.report_outlined), text: 'Reports'),
-          Tab(icon: Icon(Icons.chat_outlined), text: 'Chat'),
-        ];
-      case UserType.responder:
-      case UserType.coordinator:
-        return const [
-          Tab(icon: Icon(Icons.dashboard_outlined), text: 'Overview'),
-          Tab(icon: Icon(Icons.map_outlined), text: 'Map'),
-          Tab(icon: Icon(Icons.chat_outlined), text: 'Chat'),
-        ];
-      default:
-        return const [Tab(icon: Icon(Icons.error), text: 'Error')];
+  void _applyFiltersAndSearch() {
+    List<ReportEntity> filtered = List.from(_cachedReports);
+
+    // Apply search filter
+    if (_searchQuery.isNotEmpty) {
+      filtered = filtered
+          .where((report) =>
+              report.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+              report.description
+                  .toLowerCase()
+                  .contains(_searchQuery.toLowerCase()) ||
+              (report.fullAddress
+                  .toLowerCase()
+                  .contains(_searchQuery.toLowerCase())))
+          .toList();
     }
+
+    // Apply category filter
+    if (_selectedCategory != null && _selectedCategory!.isNotEmpty) {
+      filtered = filtered
+          .where((report) =>
+              (report.state?.emergencyType ?? '').toLowerCase() ==
+              _selectedCategory!.toLowerCase())
+          .toList();
+    }
+
+    // Apply status filter
+    if (_selectedStatus != null && _selectedStatus!.isNotEmpty) {
+      filtered = filtered
+          .where((report) =>
+              (report.state?.status ?? 'pending').toLowerCase() ==
+              _selectedStatus!.toLowerCase())
+          .toList();
+    }
+
+    // Apply sorting with distance as default
+    filtered.sort((a, b) {
+      int comparison = 0;
+
+      switch (_sortBy) {
+        case "priority":
+          comparison =
+              (b.state?.severity ?? 0.0).compareTo(a.state?.severity ?? 0.0);
+          break;
+        case "distance":
+          final distanceA = _calculateDistance(
+              _currentPosition, LatLng(a.latitude, a.longitude));
+          final distanceB = _calculateDistance(
+              _currentPosition, LatLng(b.latitude, b.longitude));
+          comparison = distanceA.compareTo(distanceB);
+          break;
+        case "date":
+        default:
+          comparison = b.createdAt.compareTo(a.createdAt);
+          break;
+      }
+
+      return _sortAscending ? comparison : -comparison;
+    });
+
+    setState(() {
+      _filteredReports = filtered;
+    });
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _searchQuery = "";
+      _selectedCategory = null;
+      _selectedStatus = null;
+      _sortBy = "distance"; // Default to distance
+      _sortAscending = true; // Nearest first
+    });
+    _applyFiltersAndSearch();
+  }
+
+  // ============================================================================
+  // ROUTING & NAVIGATION METHODS
+  // ============================================================================
+
+  /// Fetches route from the routing service and displays it on the map
+  Future<void> _getAndDisplayRoute(ReportEntity report) async {
+    if (!mounted || _isRouteLoading) return;
+
+    setState(() {
+      _isRouteLoading = true;
+      _routePolyline = []; // Clear previous route
+    });
+
+    try {
+      final routeResult = await RoutingService.getRoute(
+        _currentPosition,
+        LatLng(report.latitude, report.longitude),
+      );
+
+      if (routeResult.isValid && mounted) {
+        setState(() {
+          _routePolyline = routeResult.geometry;
+        });
+
+        // Fit map to show the entire route with some padding
+        _mapController.fitCamera(
+          CameraFit.bounds(
+            bounds: LatLngBounds.fromPoints(_routePolyline),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 40.0, vertical: 60.0),
+          ),
+        );
+      } else {
+        _showErrorSnackBar(
+            routeResult.errorMessage ?? 'Could not find a valid route');
+      }
+    } catch (e) {
+      debugPrint("In-app routing error: $e");
+      if (e is RoutingException) {
+        _showErrorSnackBar(e.message);
+      } else {
+        _showErrorSnackBar('Failed to get directions. Check your connection.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isRouteLoading = false);
+      }
+    }
+  }
+
+  /// Clears the currently displayed route from the map
+  void _clearRoute() {
+    if (mounted) {
+      setState(() {
+        _routePolyline = [];
+      });
+      _showSuccessSnackBar("Route cleared");
+    }
+  }
+
+  // ============================================================================
+  // UI CONFIGURATION - SIMPLIFIED TO 3 TABS
+  // ============================================================================
+
+  bool _canPerformCitizenActions() => true;
+
+  bool _canPerformResponderActions() =>
+      widget.userType == UserType.responder ||
+      widget.userType == UserType.coordinator;
+
+  List<Tab> _getTabConfiguration() {
+    // All user types now have the same 3 tabs
+    return const [
+      Tab(icon: Icon(Icons.map_outlined), text: 'Map'),
+      Tab(icon: Icon(Icons.report_outlined), text: 'Reports'),
+      Tab(icon: Icon(Icons.chat_outlined), text: 'Chat'),
+    ];
   }
 
   List<Widget> _getTabViews() {
-    switch (widget.userType) {
-      case UserType.citizen:
-        return [
-          _buildCitizenMapTab(),
-          _buildReportsListTab(),
-          _buildChatTab(),
-        ];
-      case UserType.responder:
-        return [
-          _buildReportsListTab(),
-          _buildResponderMapTab(),
-          _buildChatTab(),
-        ];
-      case UserType.coordinator:
-        return [
-          _buildCoordinatorOverviewTab(),
-          _buildCoordinatorMapTab(),
-          _buildChatTab(),
-        ];
-      default:
-        return [_buildErrorTab()];
-    }
+    return [
+      _buildMapTab(),
+      _buildReportsTab(),
+      _buildChatTab(),
+    ];
   }
 
   Widget? _getFloatingActionButton() {
-    if (widget.userType == UserType.citizen) {
+    if (_canPerformCitizenActions()) {
       return FloatingActionButton(
-        onPressed: () {
-          _navigateToEmergencyChat();
-        },
+        onPressed: _navigateToEmergencyChat,
         backgroundColor: Colors.red,
         foregroundColor: Colors.white,
-        child: const Text('🚨', style: TextStyle(fontSize: 24)),
+        elevation: 8,
+        child: const Icon(Icons.emergency, size: 28),
       );
     }
     return null;
@@ -316,7 +572,21 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   // TAB BUILDERS
   // ============================================================================
 
-  Widget _buildCitizenMapTab() {
+  Widget _buildMapTab() {
+    // Check if user has active assignment and is responder/coordinator
+    if (_canPerformResponderActions() && _activeAssignment != null) {
+      return _buildActiveAssignmentView();
+    }
+
+    // For citizens or users without active assignments
+    if (widget.userType == UserType.citizen) {
+      return _buildCitizenMapView();
+    } else {
+      return _buildResponderMapView();
+    }
+  }
+
+  Widget _buildCitizenMapView() {
     return RefreshIndicator(
       onRefresh: _handleManualRefresh,
       child: SingleChildScrollView(
@@ -324,8 +594,8 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            //_buildLocationCard(),
             _buildMapSection(),
-            //_buildActionButtonsSection(),
             _buildNearbyIncidentsSection(),
           ],
         ),
@@ -333,107 +603,290 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     );
   }
 
-  Widget _buildResponderMapTab() {
+  Widget _buildResponderMapView() {
     return Stack(
       children: [
         _buildFullScreenMap(),
         _buildMapOverlayControls(),
+        _buildZoomControls(),
       ],
     );
   }
 
-  Widget _buildCoordinatorOverviewTab() {
-    return RefreshIndicator(
-      onRefresh: _handleManualRefresh,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildOverviewHeader(),
-            const SizedBox(height: 16),
-            _buildStatisticsCards(),
-            const SizedBox(height: 24),
-            _buildActiveIncidentsList(),
-          ],
+  Widget _buildActiveAssignmentView() {
+    if (_activeAssignment == null) return _buildResponderMapView();
+
+    return Column(
+      children: [
+        _buildActiveAssignmentHeader(),
+        Expanded(
+          child: Stack(
+            children: [
+              _buildAssignmentMap(),
+              _buildMapOverlayControls(),
+              _buildZoomControls(),
+            ],
+          ),
         ),
+        _buildActiveAssignmentActions(),
+      ],
+    );
+  }
+
+  Widget _buildActiveAssignmentHeader() {
+    if (_activeAssignment == null) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        border: Border(bottom: BorderSide(color: Colors.blue.shade200)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade600,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'ACTIVE ASSIGNMENT',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              _buildSeverityIndicator(
+                  _activeAssignment!.state?.severity ?? 0.5),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _activeAssignment!.title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _activeAssignment!.fullAddress,
+            style: TextStyle(
+              color: Colors.grey[700],
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Distance: ${_calculateDistance(_currentPosition, LatLng(_activeAssignment!.latitude, _activeAssignment!.longitude)).toStringAsFixed(1)} km',
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 12,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildCoordinatorMapTab() {
-    return Stack(
+  Widget _buildAssignmentMap() {
+    if (_activeAssignment == null) return const SizedBox.shrink();
+
+    return FlutterMap(
+      mapController: _mapController,
+      options: MapOptions(
+        initialCenter:
+            LatLng(_activeAssignment!.latitude, _activeAssignment!.longitude),
+        initialZoom: _defaultZoom,
+        minZoom: 1,
+        maxZoom: 40,
+      ),
       children: [
-        _buildFullScreenMap(zoom: _coordinatorZoom),
-        _buildMapOverlayControls(),
+        TileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          userAgentPackageName: 'com.emergency.map',
+        ),
+        if (_routePolyline.isNotEmpty)
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: _routePolyline,
+                strokeWidth: 5.0,
+                color: Colors.deepPurpleAccent,
+                borderStrokeWidth: 2.0,
+                borderColor: Colors.white.withOpacity(0.8),
+              ),
+            ],
+          ),
+        MarkerLayer(markers: _buildAssignmentMarkers()),
       ],
     );
   }
 
-  Widget _buildReportsListTab() {
+  List<Marker> _buildAssignmentMarkers() {
+    if (_activeAssignment == null) return [];
+
+    return [
+      // User location marker
+      Marker(
+        width: 30,
+        height: 30,
+        alignment: Alignment.center,
+        point: _currentPosition,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.blue.shade600,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 3),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: const Icon(
+            Icons.person_pin_circle,
+            color: Colors.white,
+            size: 18,
+          ),
+        ),
+      ),
+      // Assignment location marker
+      Marker(
+        width: 50,
+        height: 50,
+        alignment: Alignment.center,
+        point:
+            LatLng(_activeAssignment!.latitude, _activeAssignment!.longitude),
+        child: Container(
+          decoration: BoxDecoration(
+            color: _getColorForEmergencyType(
+                _activeAssignment!.state?.emergencyType),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 3),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 6,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Icon(
+            _getIconForEmergencyType(_activeAssignment!.state?.emergencyType),
+            color: Colors.white,
+            size: 28,
+          ),
+        ),
+      ),
+    ];
+  }
+
+  Widget _buildActiveAssignmentActions() {
+    if (_activeAssignment == null) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Colors.grey.shade200)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          if (_routePolyline.isNotEmpty)
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _clearRoute,
+                icon: const Icon(Icons.clear_all),
+                label: const Text('Clear Route'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.blue.shade600,
+                  side: BorderSide(color: Colors.blue.shade600),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            )
+          else
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _isRouteLoading
+                    ? null
+                    : () => _getAndDisplayRoute(_activeAssignment!),
+                icon: _isRouteLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.directions),
+                label: const Text('Get Directions'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue.shade600,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: () => _updateAssignmentStatus('en_route'),
+              icon: const Icon(Icons.directions_run),
+              label: const Text('On My Way'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green.shade600,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReportsTab() {
     return RefreshIndicator(
       onRefresh: _handleManualRefresh,
       child: Column(
         children: [
-          _buildListHeader(),
-          Expanded(child: _buildIncidentsList()),
+          _buildReportsHeader(),
+          _buildSearchAndFilters(),
+          Expanded(
+            child: _buildScrollableReportsList(),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildChatTab() {
-    return BlocListener<AuthCubit, AuthState>(
-      listener: (context, state) {
-        if (state is AuthSuccess) {
-          Future.delayed(const Duration(milliseconds: 101), () {
-            if (mounted) {
-              setState(() {});
-            }
-          });
-        } else {
-          Future.delayed(const Duration(milliseconds: 101), () {
-            if (mounted) {
-              setState(() {});
-            }
-          });
+    return BlocBuilder<AuthCubit, AuthState>(
+      builder: (context, authState) {
+        if (context.read<AuthCubit>().isAuthenticated) {
+          return const ChatsListScreen();
         }
+        return _buildAuthRequiredMessage();
       },
-      child: BlocBuilder<AuthCubit, AuthState>(
-        builder: (context, authState) {
-          if (context.read<AuthCubit>().isAuthenticated) {
-            return const ChatsListScreen();
-          }
-
-          if (authState is AuthSuccess) {
-            return const ChatsListScreen();
-          }
-          Future.delayed(const Duration(milliseconds: 101), () {
-            if (mounted) {
-              setState(() {});
-            }
-          });
-          print("we have acgtivated this print statement auth: ${authState} ");
-          return _buildAuthRequiredMessage();
-        },
-      ),
-    );
-  }
-
-  Widget _buildErrorTab() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 64, color: Colors.red),
-          SizedBox(height: 16),
-          Text(
-            'Invalid User Role',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-          ),
-        ],
-      ),
     );
   }
 
@@ -463,9 +916,39 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
               _buildInteractiveMap(),
               if (_isLocationLoading) _buildLocationLoadingOverlay(),
               if (_locationError != null) _buildLocationErrorOverlay(),
+              // Add "Go to My Location" button for citizens
+              if (widget.userType == UserType.citizen)
+                Positioned(
+                  bottom: 16,
+                  right: 16,
+                  child: _buildGoToLocationButton(),
+                ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildGoToLocationButton() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: IconButton(
+        icon: const Icon(Icons.my_location),
+        onPressed: _centerMapOnCurrentLocation,
+        tooltip: 'Go to My Location',
+        iconSize: 20,
+        color: Colors.blue.shade600,
       ),
     );
   }
@@ -478,13 +961,39 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
         initialZoom: zoom ?? _defaultZoom,
         minZoom: 1,
         maxZoom: 40,
+        onPositionChanged: (position, hasGesture) {
+          if (hasGesture) {
+            final shouldShowMarkers = position.zoom >= _minZoomForMarkers;
+            if (_showMarkersAtCurrentZoom != shouldShowMarkers) {
+              setState(() => _showMarkersAtCurrentZoom = shouldShowMarkers);
+
+              if (shouldShowMarkers) {
+                _startPolling();
+              } else {
+                _stopPolling();
+              }
+            }
+          }
+        },
       ),
       children: [
         TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'com.emergency.map',
         ),
-        MarkerLayer(markers: _buildMapMarkers()),
+        if (_routePolyline.isNotEmpty)
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: _routePolyline,
+                strokeWidth: 5.0,
+                color: Colors.deepPurpleAccent,
+                borderStrokeWidth: 2.0,
+                borderColor: Colors.white.withOpacity(0.8),
+              ),
+            ],
+          ),
+        if (_showMarkersAtCurrentZoom) MarkerLayer(markers: _buildMapMarkers()),
       ],
     );
   }
@@ -509,6 +1018,38 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
             icon: Icons.my_location,
             onPressed: _centerMapOnCurrentLocation,
             tooltip: 'Center on Location',
+          ),
+          if (_canPerformResponderActions()) ...[
+            const SizedBox(height: 8),
+            _buildMapControlButton(
+              icon: Icons.filter_list,
+              onPressed: _showMapFilters,
+              tooltip: 'Filters',
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildZoomControls() {
+    return Positioned(
+      bottom: 100,
+      right: 16,
+      child: Column(
+        children: [
+          _buildMapControlButton(
+            icon: Icons.add,
+            onPressed: () => _mapController.move(
+                _mapController.camera.center, _mapController.camera.zoom + 1),
+            tooltip: 'Zoom In',
+          ),
+          const SizedBox(height: 8),
+          _buildMapControlButton(
+            icon: Icons.remove,
+            onPressed: () => _mapController.move(
+                _mapController.camera.center, _mapController.camera.zoom - 1),
+            tooltip: 'Zoom Out',
           ),
         ],
       ),
@@ -541,39 +1082,96 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     );
   }
 
-  Widget _buildActionButtonsSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
+  Widget _buildScrollableReportsList() {
+    final reportsToShow = _filteredReports.isEmpty &&
+            _searchQuery.isEmpty &&
+            _selectedCategory == null &&
+            _selectedStatus == null
+        ? _cachedReports
+        : _filteredReports;
+
+    if (reportsToShow.isEmpty && !_isRefreshing) {
+      return _buildEmptyState();
+    }
+
+    return ListView.builder(
+      controller: _reportsScrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
+      itemCount: reportsToShow.length,
+      itemBuilder: (context, index) => _buildIncidentCard(reportsToShow[index]),
+    );
+  }
+
+  Widget _buildSearchAndFilters() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.shade200),
+        ),
+      ),
+      child: Column(
         children: [
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: _isRefreshing ? null : _handleManualRefresh,
-              icon: _isRefreshing
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+          // Search bar
+          TextField(
+            onChanged: (value) {
+              setState(() => _searchQuery = value);
+              _applyFiltersAndSearch();
+            },
+            decoration: InputDecoration(
+              hintText: 'Search reports...',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        setState(() => _searchQuery = "");
+                        _applyFiltersAndSearch();
+                      },
                     )
-                  : const Icon(Icons.refresh, size: 18),
-              label: Text(_getRefreshButtonText()),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
               ),
+              filled: true,
+              fillColor: Colors.white,
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: _navigateToEmergencyChat,
-              icon: const Icon(Icons.report_problem_outlined, size: 18),
-              label: const Text('Report'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red.shade600,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                elevation: 2,
-              ),
+
+          const SizedBox(height: 12),
+
+          // Filter chips and sort
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildFilterChip(
+                  'Category',
+                  _selectedCategory,
+                  _emergencyCategories,
+                  (value) => setState(() => _selectedCategory = value),
+                ),
+                const SizedBox(width: 8),
+                _buildFilterChip(
+                  'Status',
+                  _selectedStatus,
+                  _statusOptions,
+                  (value) => setState(() => _selectedStatus = value),
+                ),
+                const SizedBox(width: 8),
+                _buildSortChip(),
+                const SizedBox(width: 8),
+                if (_selectedCategory != null ||
+                    _selectedStatus != null ||
+                    _searchQuery.isNotEmpty)
+                  ActionChip(
+                    avatar: const Icon(Icons.clear, size: 16),
+                    label: const Text('Clear'),
+                    onPressed: _clearFilters,
+                  ),
+              ],
             ),
           ),
         ],
@@ -581,7 +1179,76 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     );
   }
 
+  Widget _buildFilterChip(String label, String? selected, List<String> options,
+      Function(String?) onSelected) {
+    return PopupMenuButton<String>(
+      child: Chip(
+        avatar: Icon(
+          selected != null ? Icons.filter_alt : Icons.filter_alt_outlined,
+          size: 16,
+        ),
+        label: Text(
+            selected != null ? '$label: ${selected.toUpperCase()}' : label),
+        backgroundColor:
+            selected != null ? Colors.blue.shade100 : Colors.grey.shade100,
+      ),
+      onSelected: (value) {
+        onSelected(value == selected ? null : value);
+        _applyFiltersAndSearch();
+      },
+      itemBuilder: (context) => [
+        const PopupMenuItem(value: null, child: Text('All')),
+        ...options.map((option) => PopupMenuItem(
+              value: option,
+              child: Text(option.toUpperCase()),
+            )),
+      ],
+    );
+  }
+
+  Widget _buildSortChip() {
+    return PopupMenuButton<String>(
+      child: Chip(
+        avatar: Icon(_sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+            size: 16),
+        label: Text('Sort: ${_sortBy.toUpperCase()}'),
+        backgroundColor: Colors.green.shade100,
+      ),
+      onSelected: (value) {
+        if (value == _sortBy) {
+          setState(() => _sortAscending = !_sortAscending);
+        } else {
+          setState(() {
+            _sortBy = value;
+            _sortAscending = value == 'distance'
+                ? true
+                : false; // Nearest first for distance
+          });
+        }
+        _applyFiltersAndSearch();
+      },
+      itemBuilder: (context) => [
+        const PopupMenuItem(value: 'distance', child: Text('DISTANCE')),
+        const PopupMenuItem(value: 'date', child: Text('DATE')),
+        const PopupMenuItem(value: 'priority', child: Text('PRIORITY')),
+      ],
+    );
+  }
+
   Widget _buildNearbyIncidentsSection() {
+    // Sort nearby incidents by distance (nearest first)
+    final nearbyReports = List<ReportEntity>.from(_cachedReports);
+    nearbyReports.sort((a, b) {
+      final distanceA =
+          _calculateDistance(_currentPosition, LatLng(a.latitude, a.longitude));
+      final distanceB =
+          _calculateDistance(_currentPosition, LatLng(b.latitude, b.longitude));
+      return distanceA.compareTo(distanceB);
+    });
+
+    // Take only the nearest 5 incidents
+    final displayReports = nearbyReports.take(5).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -601,12 +1268,18 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
             ],
           ),
         ),
-        _buildIncidentsList(),
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: displayReports.length,
+          itemBuilder: (context, index) =>
+              _buildIncidentCard(displayReports[index]),
+        ),
       ],
     );
   }
 
-  Widget _buildListHeader() {
+  Widget _buildReportsHeader() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -624,7 +1297,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Active Reports',
+                'All Reports',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -644,151 +1317,11 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     );
   }
 
-  Widget _buildOverviewHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        const Text(
-          'Emergency Operations',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        _buildNetworkStatusIndicator(),
-      ],
-    );
-  }
-
-  Widget _buildStatisticsCards() {
-    final stats = _calculateStatistics();
-
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(
-                'Active Incidents',
-                stats.activeCount.toString(),
-                Icons.emergency,
-                Colors.red.shade600,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildStatCard(
-                'Critical',
-                stats.criticalCount.toString(),
-                Icons.warning_amber,
-                Colors.orange.shade600,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(
-                'Medical',
-                stats.medicalCount.toString(),
-                Icons.medical_services,
-                Colors.purple.shade600,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildStatCard(
-                'Fire',
-                stats.fireCount.toString(),
-                Icons.local_fire_department,
-                Colors.deepOrange.shade600,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(
-      String title, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 32),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActiveIncidentsList() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Recent Incidents',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 12),
-        _buildIncidentsList(),
-      ],
-    );
-  }
-
-  Widget _buildIncidentsList() {
-    if (_cachedReports.isEmpty && !_isRefreshing) {
-      return _buildEmptyState();
-    }
-
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: _cachedReports.length,
-      itemBuilder: (context, index) =>
-          _buildIncidentCard(_cachedReports[index]),
-    );
-  }
-
   Widget _buildIncidentCard(ReportEntity report) {
     final emergencyType = report.state?.emergencyType;
-    final severity = report.state?.severity ?? 5;
+    final severity = report.state?.severity ?? 0.5;
+    final distance = _calculateDistance(
+        _currentPosition, LatLng(report.latitude, report.longitude));
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -827,12 +1360,30 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      const SizedBox(height: 4),
+                      // Show geocoded address instead of coordinates
+                      Text(
+                        report.fullAddress,
+                        style: TextStyle(
+                          color: Colors.grey[500],
+                          fontSize: 12,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       const SizedBox(height: 8),
-                      _buildIncidentMetadata(report),
+                      _buildIncidentMetadata(report, distance),
                     ],
                   ),
                 ),
-                _buildSeverityIndicator(severity),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    _buildSeverityIndicator(severity),
+                    const SizedBox(height: 8),
+                    _buildQuickActions(report),
+                  ],
+                ),
               ],
             ),
           ),
@@ -841,7 +1392,30 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     );
   }
 
-  Widget _buildIncidentIcon(String? emergencyType, int severity) {
+  Widget _buildQuickActions(ReportEntity report) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.map, size: 20),
+          onPressed: () => _locateReportOnMap(report),
+          tooltip: 'View on Map',
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+        ),
+        if (_canPerformResponderActions())
+          IconButton(
+            icon: const Icon(Icons.chat, size: 20),
+            onPressed: () => _navigateToReportChat(report),
+            tooltip: 'Chat',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildIncidentIcon(String? emergencyType, double severity) {
     final color = _getColorForEmergencyType(emergencyType);
     final icon = _getIconForEmergencyType(emergencyType);
 
@@ -857,7 +1431,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     );
   }
 
-  Widget _buildIncidentMetadata(ReportEntity report) {
+  Widget _buildIncidentMetadata(ReportEntity report, double distance) {
     return Row(
       children: [
         Icon(Icons.access_time, size: 14, color: Colors.grey[500]),
@@ -869,18 +1443,33 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
             color: Colors.grey[500],
           ),
         ),
+        const Spacer(),
+        Icon(Icons.location_on, size: 14, color: Colors.grey[500]),
+        const SizedBox(width: 4),
+        Text(
+          '${distance.toStringAsFixed(1)} km',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[500],
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildSeverityIndicator(int severity) {
+  Widget _buildSeverityIndicator(double severity) {
     Color color;
-    if (severity >= 8)
+    String label;
+    if (severity >= 0.8) {
       color = Colors.red;
-    else if (severity >= 6)
+      label = 'HIGH';
+    } else if (severity >= 0.6) {
       color = Colors.orange;
-    else
+      label = 'MED';
+    } else {
       color = Colors.yellow.shade700;
+      label = 'LOW';
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -890,39 +1479,62 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
         border: Border.all(color: color.withOpacity(0.5)),
       ),
       child: Text(
-        severity.toString(),
+        label,
         style: TextStyle(
           color: color,
           fontWeight: FontWeight.w600,
-          fontSize: 12,
+          fontSize: 11,
         ),
       ),
     );
   }
 
   Widget _buildEmptyState() {
+    String message = 'No incidents found';
+    if (_searchQuery.isNotEmpty ||
+        _selectedCategory != null ||
+        _selectedStatus != null) {
+      message = 'No incidents match your filters';
+    }
+
     return Container(
       padding: const EdgeInsets.all(32),
       child: Center(
         child: Column(
           children: [
             Icon(
-              Icons.check_circle_outline,
+              _searchQuery.isNotEmpty ||
+                      _selectedCategory != null ||
+                      _selectedStatus != null
+                  ? Icons.search_off
+                  : Icons.check_circle_outline,
               size: 64,
-              color: Colors.green.shade400,
+              color: _searchQuery.isNotEmpty ||
+                      _selectedCategory != null ||
+                      _selectedStatus != null
+                  ? Colors.grey.shade400
+                  : Colors.green.shade400,
             ),
             const SizedBox(height: 16),
             Text(
-              'All Clear',
+              _searchQuery.isNotEmpty ||
+                      _selectedCategory != null ||
+                      _selectedStatus != null
+                  ? 'No Results'
+                  : 'All Clear',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Colors.green.shade700,
+                color: _searchQuery.isNotEmpty ||
+                        _selectedCategory != null ||
+                        _selectedStatus != null
+                    ? Colors.grey.shade600
+                    : Colors.green.shade700,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'No active incidents in your area',
+              message,
               style: TextStyle(
                 color: Colors.grey[600],
                 fontSize: 14,
@@ -1079,7 +1691,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     final markers = <Marker>[
       // User location marker
       Marker(
-        width: 30, // must set width & height for centering to work
+        width: 30,
         height: 30,
         alignment: Alignment.center,
         point: _currentPosition,
@@ -1096,22 +1708,21 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
               ),
             ],
           ),
-          child: CircleAvatar(
-            radius: 12,
-            child: Icon(
-              Icons.person_pin_circle,
-              color: Colors.white,
-              size: 24,
-            ),
+          child: const Icon(
+            Icons.person_pin_circle,
+            color: Colors.white,
+            size: 18,
           ),
         ),
       ),
 
-      // Report markers
+      // Regular report markers
       ..._cachedReports.map((report) {
+        final isActiveAssignment = _activeAssignment?.id == report.id;
+
         return Marker(
-          width: 40, // must set width & height for centering to work
-          height: 40,
+          width: isActiveAssignment ? 50 : 40,
+          height: isActiveAssignment ? 50 : 40,
           alignment: Alignment.center,
           point: LatLng(report.latitude, report.longitude),
           child: GestureDetector(
@@ -1120,7 +1731,10 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
               decoration: BoxDecoration(
                 color: _getColorForEmergencyType(report.state?.emergencyType),
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
+                border: Border.all(
+                  color: isActiveAssignment ? Colors.yellow : Colors.white,
+                  width: isActiveAssignment ? 3 : 2,
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.2),
@@ -1129,15 +1743,10 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
                   ),
                 ],
               ),
-              child: CircleAvatar(
-                backgroundColor:
-                    _getColorForEmergencyType(report.state?.emergencyType),
-                radius: 24, // controls size of circle
-                child: Icon(
-                  _getIconForEmergencyType(report.state?.emergencyType),
-                  color: Colors.white,
-                  size: 24,
-                ),
+              child: Icon(
+                _getIconForEmergencyType(report.state?.emergencyType),
+                color: Colors.white,
+                size: isActiveAssignment ? 28 : 24,
               ),
             ),
           ),
@@ -1173,6 +1782,10 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
         return Icons.medical_services;
       case 'rescue':
         return Icons.search;
+      case 'natural_disaster':
+        return Icons.warning;
+      case 'traffic':
+        return Icons.traffic;
       default:
         return Icons.emergency;
     }
@@ -1188,17 +1801,13 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
         return Colors.purple.shade600;
       case 'rescue':
         return Colors.green.shade600;
+      case 'natural_disaster':
+        return Colors.brown.shade600;
+      case 'traffic':
+        return Colors.amber.shade700;
       default:
         return Colors.grey.shade600;
     }
-  }
-
-  String _getRefreshButtonText() {
-    if (_isRefreshing) return 'Updating...';
-    if (_lastSuccessfulRefresh != null) {
-      return 'Refresh - ${_formatTime(_lastSuccessfulRefresh!)}';
-    }
-    return 'Refresh';
   }
 
   String _formatTime(DateTime dateTime) {
@@ -1215,27 +1824,8 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     return 'Unable to get location';
   }
 
-  EmergencyStatistics _calculateStatistics() {
-    final activeCount = _cachedReports.length;
-    final criticalCount =
-        _cachedReports.where((r) => (r.state?.severity ?? 0) >= 8).length;
-    final medicalCount = _cachedReports
-        .where((r) => (r.state?.emergencyType ?? '').toLowerCase() == 'medical')
-        .length;
-    final fireCount = _cachedReports
-        .where((r) => (r.state?.emergencyType ?? '').toLowerCase() == 'fire')
-        .length;
-
-    return EmergencyStatistics(
-      activeCount: activeCount,
-      criticalCount: criticalCount,
-      medicalCount: medicalCount,
-      fireCount: fireCount,
-    );
-  }
-
   // ============================================================================
-  // EVENT HANDLERS
+  // EVENT HANDLERS AND NAVIGATION
   // ============================================================================
 
   void _navigateToEmergencyChat() {
@@ -1245,11 +1835,114 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     );
   }
 
+  void _navigateToReportChat(ReportEntity report) {
+    final conversationId = report.conversation?.id;
+    if (conversationId == null) {
+      _showErrorSnackBar("No chat available for this report");
+      return;
+    }
+
+    final authCubit = context.read<AuthCubit>();
+    if (!authCubit.isAuthenticated || authCubit.userId == null) {
+      _showErrorSnackBar("Please log in to access chat");
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BlocProvider.value(
+          value: context.read<ChatCubit>(),
+          child: ChatConversationScreen(
+            chatId: conversationId,
+            chatTitle: 'Emergency Report #${report.id}',
+            currentUserId: authCubit.userId!,
+            participants: const [], // Will be loaded by the screen
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _centerMapOnCurrentLocation() async {
     if (_isLocationLoading) return;
 
     _mapController.move(_currentPosition, _defaultZoom);
     await _fetchReports();
+  }
+
+  void _locateReportOnMap(ReportEntity report) {
+    final reportLocation = LatLng(report.latitude, report.longitude);
+
+    // Switch to map tab (always index 0)
+    _tabController.animateTo(0);
+
+    // Center map on report location
+    _mapController.move(reportLocation, _defaultZoom);
+
+    _showSuccessSnackBar("Report located on map");
+  }
+
+  Future<void> _updateAssignmentStatus(String status) async {
+    if (_activeAssignment == null) return;
+
+    try {
+      // Implement API call to update assignment status
+      debugPrint("Updating assignment status to: $status");
+      _showSuccessSnackBar("Status updated: ${status.replaceAll('_', ' ')}");
+    } catch (e) {
+      debugPrint("Error updating assignment status: $e");
+      _showErrorSnackBar("Failed to update status");
+    }
+  }
+
+  void _showMapFilters() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Map Filters',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _emergencyCategories.map((category) {
+                final isSelected = _selectedCategory == category;
+                return FilterChip(
+                  label: Text(category.toUpperCase()),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    setState(() {
+                      _selectedCategory = selected ? category : null;
+                    });
+                    _applyFiltersAndSearch();
+                    Navigator.pop(context);
+                  },
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  _clearFilters();
+                  Navigator.pop(context);
+                },
+                child: const Text('Clear All Filters'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showReportDetails(ReportEntity report) {
@@ -1288,12 +1981,12 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
+                  // Header with emergency type and severity
                   Row(
                     children: [
                       _buildIncidentIcon(
                         report.state?.emergencyType,
-                        report.state?.severity ?? 5,
+                        report.state?.severity ?? 0.5,
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -1315,10 +2008,18 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
                                 fontSize: 14,
                               ),
                             ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Distance: ${_calculateDistance(_currentPosition, LatLng(report.latitude, report.longitude)).toStringAsFixed(1)} km',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 14,
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                      _buildSeverityIndicator(report.state?.severity ?? 5),
+                      _buildSeverityIndicator(report.state?.severity ?? 0.5),
                     ],
                   ),
 
@@ -1340,9 +2041,13 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
 
                   const SizedBox(height: 24),
 
-                  // Action buttons for responders/coordinators
-                  if (widget.userType != UserType.citizen)
-                    _buildReportActionButtons(report),
+                  // Location section with geocoded address
+                  _buildLocationSection(report),
+
+                  const SizedBox(height: 24),
+
+                  // Action buttons based on user type
+                  _buildReportActionButtons(report),
                 ],
               ),
             ),
@@ -1352,36 +2057,150 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     );
   }
 
-  Widget _buildReportActionButtons(ReportEntity report) {
-    return Row(
+  Widget _buildLocationSection(ReportEntity report) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () {
-              Navigator.pop(context);
-              // Navigate to detailed view or assignment screen
-            },
-            icon: const Icon(Icons.info_outline),
-            label: const Text('Details'),
+        const Text(
+          'Location',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pop(context);
-              // Navigate to response/assignment screen
-            },
-            icon: const Icon(Icons.assignment_turned_in),
-            label: const Text('Respond'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue.shade600,
-              foregroundColor: Colors.white,
-            ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                report.fullAddress,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Coordinates: ${report.latitude.toStringAsFixed(4)}, ${report.longitude.toStringAsFixed(4)}',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 12,
+                ),
+              ),
+            ],
           ),
         ),
       ],
     );
+  }
+
+  Widget _buildReportActionButtons(ReportEntity report) {
+    List<Widget> actionButtons = [];
+
+    // Universal actions for all users
+    actionButtons.addAll([
+      Expanded(
+        child: OutlinedButton.icon(
+          onPressed: () {
+            Navigator.pop(context);
+            _locateReportOnMap(report);
+          },
+          icon: const Icon(Icons.map_outlined),
+          label: const Text('View on Map'),
+        ),
+      ),
+      const SizedBox(width: 12),
+    ]);
+
+    // Responder-specific actions
+    if (_canPerformResponderActions()) {
+      actionButtons.addAll([
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              //_assignToSelf(report);
+            },
+            icon: const Icon(Icons.assignment_turned_in),
+            label: Text(widget.userType == UserType.responder
+                ? 'Respond'
+                : 'Assign'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green.shade600,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ),
+      ]);
+    }
+
+    // Second row of actions
+    List<Widget> secondRowActions = [];
+
+    if (_canPerformResponderActions()) {
+      secondRowActions.addAll([
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              _getAndDisplayRoute(report);
+            },
+            icon: const Icon(Icons.directions),
+            label: const Text('Directions'),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              _navigateToReportChat(report);
+            },
+            icon: const Icon(Icons.chat_outlined),
+            label: const Text('Chat'),
+          ),
+        ),
+      ]);
+    }
+
+    return Column(
+      children: [
+        Row(children: actionButtons),
+        if (secondRowActions.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Row(children: secondRowActions),
+        ],
+      ],
+    );
+  }
+
+  // ============================================================================
+  // ASSIGNMENT MANAGEMENT
+  // ============================================================================
+
+  Future<void> _assignToSelf(ReportEntity report) async {
+    try {
+      // Implement API call to assign report to current user
+      debugPrint("Assigning report ${report.id} to current user");
+
+      setState(() {
+        _activeAssignment = report;
+      });
+
+      _showSuccessSnackBar("Report assigned successfully");
+
+      // Switch to map tab to show assignment
+      _tabController.animateTo(0);
+    } catch (e) {
+      debugPrint("Error assigning report: $e");
+      _showErrorSnackBar("Failed to assign report");
+    }
   }
 
   // ============================================================================
@@ -1407,7 +2226,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
           children: [
             const Icon(Icons.error_outline, color: Colors.white),
             const SizedBox(width: 8),
-            Text(message),
+            Expanded(child: Text(message)),
           ],
         ),
         backgroundColor: Colors.red.shade600,
@@ -1427,11 +2246,12 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
           children: [
             const Icon(Icons.check_circle, color: Colors.white),
             const SizedBox(width: 8),
-            Text(message),
+            Expanded(child: Text(message)),
           ],
         ),
         backgroundColor: Colors.green.shade600,
         duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -1442,7 +2262,9 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
 
   void _cleanup() {
     _stopPolling();
+    _stopLocationPolling();
     _tabController.dispose();
+    _reportsScrollController.dispose();
   }
 
   // ============================================================================
@@ -1470,6 +2292,23 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
             icon: Icon(Icons.signal_wifi_off, color: Colors.orange[700]),
             onPressed: _handleManualRefresh,
             tooltip: 'Connection Issues - Tap to Retry',
+          ),
+        if (_activeAssignment != null && _canPerformResponderActions())
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade600,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Text(
+              'ACTIVE',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         IconButton(
           icon: const Icon(Icons.person_outline),
@@ -1547,8 +2386,6 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
         return 'Emergency Response';
       case UserType.coordinator:
         return 'Emergency Operations';
-      default:
-        return 'Emergency App';
     }
   }
 
@@ -1560,10 +2397,24 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
         _cachedReports = state.reports;
         _networkError = null;
         _lastSuccessfulRefresh = DateTime.now();
+
+        // Update active assignment for responders/coordinators
+        if (_canPerformResponderActions()) {
+          // Check if user has an active assignment
+          final assignedReport = state.reports
+              .where((report) => report.state?.assigned == 1)
+              .firstOrNull;
+          if (assignedReport != null) {
+            _activeAssignment = assignedReport;
+          }
+        }
       });
+
+      // Apply current filters to the new data
+      _applyFiltersAndSearch();
     } else if (state is ReportsFailure) {
       setState(() {
-        _networkError = state.message ?? "Failed to fetch reports";
+        _networkError = state.message;
       });
     }
   }
@@ -1572,21 +2423,6 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
 // ============================================================================
 // HELPER CLASSES
 // ============================================================================
-
-/// Statistics model for coordinator overview
-class EmergencyStatistics {
-  final int activeCount;
-  final int criticalCount;
-  final int medicalCount;
-  final int fireCount;
-
-  const EmergencyStatistics({
-    required this.activeCount,
-    required this.criticalCount,
-    required this.medicalCount,
-    required this.fireCount,
-  });
-}
 
 /// Custom exception for location-related errors
 class LocationException implements Exception {
