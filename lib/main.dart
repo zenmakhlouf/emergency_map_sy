@@ -23,11 +23,12 @@ void main() async {
         BlocProvider(create: (_) => AuthCubit()),
         BlocProvider(create: (_) => ReportsCubit(ReportService())),
         BlocProvider(create: (_) => ChatCubit(ChatRepository())),
-BlocProvider(
-  create: (_) => UsersLocationCubit(
-    locationService: LocationService(dio: Network.dio, baseUrl: Urls.baseUrl),
-  ),
-)
+        BlocProvider(
+          create: (_) => UsersLocationCubit(
+            locationService:
+                LocationService(dio: Network.dio, baseUrl: Urls.baseUrl),
+          ),
+        ),
       ],
       child: const MyApp(),
     ),
@@ -52,7 +53,7 @@ class MyApp extends StatelessWidget {
         ),
       ),
       home: FutureBuilder<Widget>(
-        future: _getStartScreen(),
+        future: _getStartScreen(context), // Pass context here
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             print(snapshot.error);
@@ -67,7 +68,8 @@ class MyApp extends StatelessWidget {
   }
 }
 
-Future<Widget> _getStartScreen() async {
+Future<Widget> _getStartScreen(BuildContext context) async {
+  // Accept context
   final prefs = await SharedPreferences.getInstance();
   final token = prefs.getString('auth_token');
   final userType = prefs.getString('user_type');
@@ -76,6 +78,10 @@ Future<Widget> _getStartScreen() async {
   if (token == null || token.isEmpty || userType == null || userType.isEmpty) {
     return const UserTypeSelectorScreen();
   }
+
+  // Ensure UsersLocationCubit is available before building UnifiedDashboardScreen
+  // This ensures the context used to build UnifiedDashboardScreen has access to UsersLocationCubit
+  BlocProvider.of<UsersLocationCubit>(context);
 
   return UnifiedDashboardScreen(
       userType: UserType.values.firstWhere(

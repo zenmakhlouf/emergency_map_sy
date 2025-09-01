@@ -11,8 +11,8 @@ class UsersLocationCubit extends Cubit<UsersLocationState> {
   Timer? _locationPollTimer;
 
   // Configuration
-  static const Duration _usersPollingInterval = Duration(seconds: 2);
-  static const Duration _locationPollingInterval = Duration(seconds: 7);
+  static const Duration _usersPollingInterval = Duration(seconds: 20);
+  static const Duration _locationPollingInterval = Duration(seconds: 20);
 
   UsersLocationCubit({
     required LocationService locationService,
