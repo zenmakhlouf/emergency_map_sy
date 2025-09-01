@@ -47,7 +47,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
 
   // Configuration constants
   static const Duration _pollInterval = Duration(seconds: 20);
-  static const Duration _networkTimeout = Duration(seconds: 10);
+  static const Duration _networkTimeout = Duration(seconds: 20);
   static const double _defaultZoom = 14.0;
   static const double _coordinatorZoom = 10.0;
 
@@ -1079,6 +1079,9 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     final markers = <Marker>[
       // User location marker
       Marker(
+        width: 30, // must set width & height for centering to work
+        height: 30,
+        alignment: Alignment.center,
         point: _currentPosition,
         child: Container(
           decoration: BoxDecoration(
@@ -1093,10 +1096,13 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
               ),
             ],
           ),
-          child: Icon(
-            Icons.person_pin_circle,
-            color: Colors.white,
-            size: 24,
+          child: CircleAvatar(
+            radius: 12,
+            child: Icon(
+              Icons.person_pin_circle,
+              color: Colors.white,
+              size: 24,
+            ),
           ),
         ),
       ),
@@ -1104,11 +1110,13 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
       // Report markers
       ..._cachedReports.map((report) {
         return Marker(
+          width: 40, // must set width & height for centering to work
+          height: 40,
+          alignment: Alignment.center,
           point: LatLng(report.latitude, report.longitude),
           child: GestureDetector(
             onTap: () => _showReportDetails(report),
             child: Container(
-              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: _getColorForEmergencyType(report.state?.emergencyType),
                 shape: BoxShape.circle,
@@ -1121,10 +1129,15 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
                   ),
                 ],
               ),
-              child: Icon(
-                _getIconForEmergencyType(report.state?.emergencyType),
-                color: Colors.white,
-                size: 24,
+              child: CircleAvatar(
+                backgroundColor:
+                    _getColorForEmergencyType(report.state?.emergencyType),
+                radius: 24, // controls size of circle
+                child: Icon(
+                  _getIconForEmergencyType(report.state?.emergencyType),
+                  color: Colors.white,
+                  size: 24,
+                ),
               ),
             ),
           ),
@@ -1419,7 +1432,6 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
         ),
         backgroundColor: Colors.green.shade600,
         duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
       ),
     );
   }

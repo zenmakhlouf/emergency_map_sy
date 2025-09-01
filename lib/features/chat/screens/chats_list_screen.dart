@@ -14,7 +14,7 @@ class ChatsListScreen extends StatefulWidget {
 }
 
 class _ChatsListScreenState extends State<ChatsListScreen> {
-  final Duration _pollInterval = const Duration(seconds: 20);
+  final Duration _pollInterval = const Duration(seconds: 5);
   Timer? _poller;
   List<ConversationSummary> _cachedChats = [];
 
@@ -130,6 +130,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                               chatId: chat.id,
                               chatTitle: chat.getChatTitle(currentUserId),
                               currentUserId: currentUserId,
+                              participants: chat.participants,
                             ),
                           ),
                         ),
