@@ -1,5 +1,8 @@
 import 'package:emergency_map_sy/features/auth/models/user_type.dart';
+import 'package:emergency_map_sy/features/users_location/cubit/userslocation_cubit.dart';
+import 'package:emergency_map_sy/features/users_location/repo/locationservice.dart';
 import 'package:emergency_map_sy/screens/unified_dashboard.dart';
+import 'package:emergency_map_sy/utils/urls.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,6 +23,11 @@ void main() async {
         BlocProvider(create: (_) => AuthCubit()),
         BlocProvider(create: (_) => ReportsCubit(ReportService())),
         BlocProvider(create: (_) => ChatCubit(ChatRepository())),
+BlocProvider(
+  create: (_) => UsersLocationCubit(
+    locationService: LocationService(dio: Network.dio, baseUrl: Urls.baseUrl),
+  ),
+)
       ],
       child: const MyApp(),
     ),

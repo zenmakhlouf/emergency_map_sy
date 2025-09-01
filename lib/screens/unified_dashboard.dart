@@ -17,7 +17,9 @@ import '../features/chat/screens/chats_list_screen.dart';
 import '../features/chat/screens/chat_conversation_screen.dart';
 import '../features/chat/cubit/chat_cubit.dart';
 
-// Please ensure the path to your routing_service.dart file is correct.
+// --- NEW IMPORTS ---
+import '../features/users_location/cubit/userslocation_cubit.dart';
+import '../features/users_location/repo/locationservice.dart';
 
 /// A unified dashboard that adapts its interface based on user type
 /// Provides real-time emergency reporting and monitoring capabilities
@@ -39,7 +41,6 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   final MapController _mapController = MapController();
   late TabController _tabController;
   Timer? _reportPoller;
-  Timer? _locationPoller;
   final ScrollController _reportsScrollController = ScrollController();
 
   // Location and data state
@@ -49,6 +50,9 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   List<ReportEntity> _filteredReports = <ReportEntity>[];
   ReportEntity? _activeAssignment; // Single active assignment
   DateTime? _lastSuccessfulRefresh;
+
+  // --- NEW ---: User locations state
+  List<UserLocationEntity> _otherUsers = [];
 
   // Filter and search state
   String _searchQuery = "";
@@ -61,7 +65,6 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   bool _isInitializing = true;
   bool _isLocationLoading = false;
   bool _isRefreshing = false;
-  bool _showMarkersAtCurrentZoom = true;
   String? _locationError;
   String? _networkError;
 
@@ -69,12 +72,17 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   List<LatLng> _routePolyline = [];
   bool _isRouteLoading = false;
 
+  // --- NEW ---: Zoom level visibility flags
+  bool _showReportMarkersAtCurrentZoom = true;
+  bool _showUserMarkersAtCurrentZoom = false;
+
   // Configuration constants
   static const Duration _pollInterval = Duration(seconds: 20);
-  static const Duration _locationPollInterval = Duration(seconds: 30);
   static const Duration _networkTimeout = Duration(seconds: 20);
   static const double _defaultZoom = 14.0;
-  static const double _minZoomForMarkers = 8.0;
+  static const double _minZoomForReportMarkers = 8.0;
+  // --- NEW ---: Users will only show up at a closer zoom level to prevent clutter
+  static const double _minZoomForUserMarkers = 13.0;
 
   // Emergency type categories for filtering
   static const List<String> _emergencyCategories = [
@@ -114,12 +122,14 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     switch (state) {
       case AppLifecycleState.resumed:
         _startPolling();
-        _startLocationPolling();
+        // --- NEW ---: Restart user polling if conditions are met
+        _manageUserPolling();
         break;
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
         _stopPolling();
-        _stopLocationPolling();
+        // --- NEW ---: Stop user polling when app is paused
+        context.read<UsersLocationCubit>().stopUsersPolling();
         break;
       default:
         break;
@@ -140,9 +150,10 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     try {
       await _initializeAuth();
       await _initializeLocation();
-      _startLocationPolling();
       await _loadInitialReports();
       _startPolling();
+      // --- NEW ---: Conditionally start polling for other users' locations
+      _manageUserPolling();
     } catch (e) {
       debugPrint("Initialization error: $e");
       _handleInitializationError(e);
@@ -195,7 +206,14 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
         });
 
         await _updateAddressFromCoordinates(newPosition);
-        await _sendLocationToBackend(newPosition);
+        // --- NEW ---: Start sending our own location to the backend
+        if (mounted) {
+          context.read<UsersLocationCubit>().startLocationPolling(
+                lat: newPosition.latitude,
+                lon: newPosition.longitude,
+                address: _currentAddress,
+              );
+        }
       }
     } catch (e) {
       debugPrint("Location error: $e");
@@ -258,24 +276,6 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     }
   }
 
-  /// Send current location to backend ensuring address is a string
-  Future<void> _sendLocationToBackend(LatLng position) async {
-    try {
-      final locationData = {
-        'location': {
-          'lat': position.latitude,
-          'lon': position.longitude,
-          'address': _currentAddress.toString(), // Ensure it's a string
-        }
-      };
-
-      debugPrint("Sending location to backend: $locationData");
-      // Implement your backend location update API call here
-    } catch (e) {
-      debugPrint("Failed to send location to backend: $e");
-    }
-  }
-
   Future<void> _loadInitialReports() async {
     await _fetchReports();
   }
@@ -321,8 +321,11 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
 
     try {
       await _fetchReports();
+      // --- NEW ---: Also refresh users if they are visible
+      if (_canViewOtherUsers()) {
+        await context.read<UsersLocationCubit>().fetchUsersLocations();
+      }
       await _initializeLocation();
-      _clearRoute();
       _showSuccessSnackBar("Reports and location updated successfully");
     } catch (e) {
       _showErrorSnackBar("Failed to refresh data");
@@ -338,11 +341,11 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   // ============================================================================
 
   void _startPolling() {
-    if (!_showMarkersAtCurrentZoom) return;
+    if (!_showReportMarkersAtCurrentZoom) return;
 
     _stopPolling();
     _reportPoller = Timer.periodic(_pollInterval, (_) {
-      if (mounted && _showMarkersAtCurrentZoom) _fetchReports();
+      if (mounted && _showReportMarkersAtCurrentZoom) _fetchReports();
     });
   }
 
@@ -351,31 +354,13 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     _reportPoller = null;
   }
 
-  void _startLocationPolling() {
-    _stopLocationPolling();
-    _locationPoller = Timer.periodic(_locationPollInterval, (_) async {
-      if (mounted) {
-        try {
-          final position = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.best,
-          );
-          final newPosition = LatLng(position.latitude, position.longitude);
-
-          if (_calculateDistance(_currentPosition, newPosition) > 0.01) {
-            setState(() => _currentPosition = newPosition);
-            await _updateAddressFromCoordinates(newPosition);
-            await _sendLocationToBackend(newPosition);
-          }
-        } catch (e) {
-          debugPrint("Location polling error: $e");
-        }
-      }
-    });
-  }
-
-  void _stopLocationPolling() {
-    _locationPoller?.cancel();
-    _locationPoller = null;
+  /// --- NEW ---: Manages starting/stopping of user location polling based on permissions and zoom
+  void _manageUserPolling() {
+    if (_canViewOtherUsers() && _showUserMarkersAtCurrentZoom) {
+      context.read<UsersLocationCubit>().startUsersPolling();
+    } else {
+      context.read<UsersLocationCubit>().stopUsersPolling();
+    }
   }
 
   double _calculateDistance(LatLng pos1, LatLng pos2) {
@@ -529,7 +514,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   }
 
   // ============================================================================
-  // UI CONFIGURATION - SIMPLIFIED TO 3 TABS
+  // UI CONFIGURATION & PERMISSIONS
   // ============================================================================
 
   bool _canPerformCitizenActions() => true;
@@ -537,6 +522,19 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   bool _canPerformResponderActions() =>
       widget.userType == UserType.responder ||
       widget.userType == UserType.coordinator;
+
+  /// --- NEW ---: Determines if the current user has permission to see other users' locations
+  bool _canViewOtherUsers() {
+    // Coordinators can always see other users
+    if (widget.userType == UserType.coordinator) {
+      return true;
+    }
+    // Responders can only see others when actively assigned to a report
+    if (widget.userType == UserType.responder && _activeAssignment != null) {
+      return true;
+    }
+    return false;
+  }
 
   List<Tab> _getTabConfiguration() {
     // All user types now have the same 3 tabs
@@ -562,7 +560,21 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
         backgroundColor: Colors.red,
         foregroundColor: Colors.white,
         elevation: 8,
-        child: const Icon(Icons.emergency, size: 28),
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: Colors.red,
+            shape: BoxShape.circle,
+          ),
+          alignment: Alignment.center,
+          child: const Text(
+            '🚨',
+            style: TextStyle(
+              fontSize: 24,
+            ),
+          ),
+        ),
       );
     }
     return null;
@@ -707,6 +719,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
         initialZoom: _defaultZoom,
         minZoom: 1,
         maxZoom: 40,
+        onPositionChanged: _onMapPositionChanged,
       ),
       children: [
         TileLayer(
@@ -725,7 +738,8 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
               ),
             ],
           ),
-        MarkerLayer(markers: _buildAssignmentMarkers()),
+        MarkerLayer(
+            markers: _buildAssignmentMarkers() + _buildUserMarkers(context)),
       ],
     );
   }
@@ -961,20 +975,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
         initialZoom: zoom ?? _defaultZoom,
         minZoom: 1,
         maxZoom: 40,
-        onPositionChanged: (position, hasGesture) {
-          if (hasGesture) {
-            final shouldShowMarkers = position.zoom >= _minZoomForMarkers;
-            if (_showMarkersAtCurrentZoom != shouldShowMarkers) {
-              setState(() => _showMarkersAtCurrentZoom = shouldShowMarkers);
-
-              if (shouldShowMarkers) {
-                _startPolling();
-              } else {
-                _stopPolling();
-              }
-            }
-          }
-        },
+        onPositionChanged: _onMapPositionChanged,
       ),
       children: [
         TileLayer(
@@ -993,7 +994,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
               ),
             ],
           ),
-        if (_showMarkersAtCurrentZoom) MarkerLayer(markers: _buildMapMarkers()),
+        MarkerLayer(markers: _buildAllMapMarkers(context)),
       ],
     );
   }
@@ -1687,9 +1688,42 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   // MAP MARKERS AND INTERACTIONS
   // ============================================================================
 
-  List<Marker> _buildMapMarkers() {
-    final markers = <Marker>[
-      // User location marker
+  /// --- NEW ---: Handles map view changes to show/hide markers based on zoom level
+  void _onMapPositionChanged(MapCamera camera, bool hasGesture) {
+    if (hasGesture) {
+      bool needsRebuild = false;
+
+      // Check for report markers visibility
+      final shouldShowReportMarkers = camera.zoom >= _minZoomForReportMarkers;
+      if (_showReportMarkersAtCurrentZoom != shouldShowReportMarkers) {
+        _showReportMarkersAtCurrentZoom = shouldShowReportMarkers;
+        needsRebuild = true;
+      }
+
+      // Check for user markers visibility
+      final shouldShowUserMarkers = camera.zoom >= _minZoomForUserMarkers;
+      if (_showUserMarkersAtCurrentZoom != shouldShowUserMarkers) {
+        _showUserMarkersAtCurrentZoom = shouldShowUserMarkers;
+        needsRebuild = true;
+      }
+
+      if (needsRebuild) {
+        setState(() {}); // Rebuild to add/remove markers
+        // Manage polling based on new visibility
+        _manageUserPolling();
+        if (_showReportMarkersAtCurrentZoom) {
+          _startPolling();
+        } else {
+          _stopPolling();
+        }
+      }
+    }
+  }
+
+  /// Builds a combined list of all markers to be displayed on the map
+  List<Marker> _buildAllMapMarkers(BuildContext context) {
+    return [
+      // Current user's location marker (always visible)
       Marker(
         width: 30,
         height: 30,
@@ -1697,7 +1731,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
         point: _currentPosition,
         child: Container(
           decoration: BoxDecoration(
-            color: _getUserLocationColor(),
+            color: _getUserRoleColor(widget.userType.name),
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 3),
             boxShadow: [
@@ -1708,67 +1742,123 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
               ),
             ],
           ),
-          child: const Icon(
-            Icons.person_pin_circle,
-            color: Colors.white,
-            size: 18,
-          ),
+          child: const Icon(Icons.person_pin_circle,
+              color: Colors.white, size: 18),
         ),
       ),
 
-      // Regular report markers
-      ..._cachedReports.map((report) {
-        final isActiveAssignment = _activeAssignment?.id == report.id;
+      // Incident report markers
+      ..._buildReportMarkers(),
 
-        return Marker(
-          width: isActiveAssignment ? 50 : 40,
-          height: isActiveAssignment ? 50 : 40,
-          alignment: Alignment.center,
-          point: LatLng(report.latitude, report.longitude),
-          child: GestureDetector(
-            onTap: () => _showReportDetails(report),
-            child: Container(
-              decoration: BoxDecoration(
-                color: _getColorForEmergencyType(report.state?.emergencyType),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isActiveAssignment ? Colors.yellow : Colors.white,
-                  width: isActiveAssignment ? 3 : 2,
-                ),
-                boxShadow: [
-                  BoxShadow(
+      // Other users' location markers
+      ..._buildUserMarkers(context),
+    ];
+  }
+
+  /// Builds markers for incident reports
+  List<Marker> _buildReportMarkers() {
+    if (!_showReportMarkersAtCurrentZoom) return [];
+
+    return _cachedReports.map((report) {
+      final isActiveAssignment = _activeAssignment?.id == report.id;
+      return Marker(
+        width: isActiveAssignment ? 50 : 40,
+        height: isActiveAssignment ? 50 : 40,
+        alignment: Alignment.center,
+        point: LatLng(report.latitude, report.longitude),
+        child: GestureDetector(
+          onTap: () => _showReportDetails(report),
+          child: Container(
+            decoration: BoxDecoration(
+              color: _getColorForEmergencyType(report.state?.emergencyType),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isActiveAssignment ? Colors.yellow : Colors.white,
+                width: isActiveAssignment ? 3 : 2,
+              ),
+              boxShadow: [
+                BoxShadow(
                     color: Colors.black.withOpacity(0.2),
                     blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Icon(
-                _getIconForEmergencyType(report.state?.emergencyType),
-                color: Colors.white,
-                size: isActiveAssignment ? 28 : 24,
-              ),
+                    offset: const Offset(0, 2)),
+              ],
+            ),
+            child: Icon(
+              _getIconForEmergencyType(report.state?.emergencyType),
+              color: Colors.white,
+              size: isActiveAssignment ? 28 : 24,
             ),
           ),
-        );
-      }),
-    ];
+        ),
+      );
+    }).toList();
+  }
 
-    return markers;
+  /// --- NEW ---: Builds markers for other users' locations
+  List<Marker> _buildUserMarkers(BuildContext context) {
+    // Return empty list if user doesn't have permission or is zoomed out
+    if (!_canViewOtherUsers() || !_showUserMarkersAtCurrentZoom) return [];
+
+    // Ensure the current user is not drawn again from the list
+    final currentUserId = context.read<AuthCubit>().userId;
+
+    return _otherUsers
+        .where((user) => user.id.toString() != currentUserId)
+        .map((user) {
+      return Marker(
+        width: 25,
+        height: 25,
+        alignment: Alignment.center,
+        point: LatLng(user.location!.lat, user.location!.lon),
+        child: GestureDetector(
+          onTap: () => _showUserDetails(user),
+          child: Container(
+            decoration: BoxDecoration(
+              color: _getUserRoleColor(user.primaryRole),
+              shape: BoxShape.rectangle,
+              border: Border.all(color: Colors.white, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.25),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Icon(
+              _getUserRoleIcon(user.primaryRole),
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+        ),
+      );
+    }).toList();
   }
 
   // ============================================================================
   // HELPER METHODS
   // ============================================================================
 
-  Color _getUserLocationColor() {
-    switch (widget.userType) {
-      case UserType.responder:
+  Color _getUserRoleColor(String? role) {
+    switch (role) {
+      case 'responder':
         return Colors.blue.shade600;
-      case UserType.coordinator:
+      case 'coordinator':
         return Colors.green.shade600;
       default:
         return Colors.teal.shade600;
+    }
+  }
+
+  IconData _getUserRoleIcon(String? role) {
+    switch (role) {
+      case 'responder':
+        return Icons.emergency;
+      case 'coordinator':
+        return Icons.support_agent;
+      default:
+        return Icons.person;
     }
   }
 
@@ -1787,7 +1877,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
       case 'traffic':
         return Icons.traffic;
       default:
-        return Icons.emergency;
+        return Icons.report;
     }
   }
 
@@ -2057,6 +2147,110 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     );
   }
 
+  /// --- NEW ---: Shows a bottom sheet with details for the selected user
+  void _showUserDetails(UserLocationEntity user) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        margin: const EdgeInsets.only(top: 80),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: _getUserRoleColor(user.primaryRole)
+                              .withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          _getUserRoleIcon(user.primaryRole),
+                          color: _getUserRoleColor(user.primaryRole),
+                          size: 32,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              user.name,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              user.primaryRole.toUpperCase(),
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 14,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 32),
+                  const Text(
+                    'Last Known Location',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    user.location?.address ?? 'Address not available',
+                    style: const TextStyle(fontSize: 16, height: 1.5),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        // TODO: Implement contact functionality (e.g., chat, call)
+                        Navigator.pop(context);
+                      },
+                      icon: const Icon(Icons.chat_bubble_outline),
+                      label: const Text('Contact User'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildLocationSection(ReportEntity report) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2125,12 +2319,12 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
           child: ElevatedButton.icon(
             onPressed: () {
               Navigator.pop(context);
-              //_assignToSelf(report);
+              _assignToSelf(report);
             },
             icon: const Icon(Icons.assignment_turned_in),
             label: Text(widget.userType == UserType.responder
                 ? 'Respond'
-                : 'Assign'),
+                : 'Assign to Me'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green.shade600,
               foregroundColor: Colors.white,
@@ -2194,6 +2388,9 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
       });
 
       _showSuccessSnackBar("Report assigned successfully");
+
+      // --- NEW ---: Start polling for user locations now that we have an assignment
+      _manageUserPolling();
 
       // Switch to map tab to show assignment
       _tabController.animateTo(0);
@@ -2262,7 +2459,9 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
 
   void _cleanup() {
     _stopPolling();
-    _stopLocationPolling();
+    // --- NEW ---: Ensure all cubit timers are cancelled
+    context.read<UsersLocationCubit>().stopUsersPolling();
+    context.read<UsersLocationCubit>().stopLocationPolling();
     _tabController.dispose();
     _reportsScrollController.dispose();
   }
@@ -2323,8 +2522,25 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   }
 
   Widget _buildBody() {
-    return BlocListener<ReportsCubit, ReportsState>(
-      listener: _handleReportsStateChange,
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<ReportsCubit, ReportsState>(
+          listener: _handleReportsStateChange,
+        ),
+        // --- NEW ---: Listener for the UsersLocationCubit
+        BlocListener<UsersLocationCubit, UsersLocationState>(
+          listener: (context, state) {
+            if (state is UsersLocationSuccess) {
+              setState(() {
+                _otherUsers = state.users;
+              });
+            } else if (state is UsersLocationError) {
+              // Optionally show a non-intrusive error for user location fetching
+              debugPrint("Error fetching user locations: ${state.message}");
+            }
+          },
+        ),
+      ],
       child: _isInitializing
           ? _buildInitializationScreen()
           : TabBarView(
@@ -2393,24 +2609,29 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     if (!mounted) return;
 
     if (state is ReportsSuccess) {
+      final previousAssignmentStatus = _activeAssignment != null;
+
       setState(() {
         _cachedReports = state.reports;
         _networkError = null;
         _lastSuccessfulRefresh = DateTime.now();
 
-        // Update active assignment for responders/coordinators
         if (_canPerformResponderActions()) {
-          // Check if user has an active assignment
-          final assignedReport = state.reports
-              .where((report) => report.state?.assigned == 1)
-              .firstOrNull;
-          if (assignedReport != null) {
-            _activeAssignment = assignedReport;
-          }
+          // final assignedReport = state.reports
+          //     .where((report) =>
+          //         report.state?.assignedTo ==
+          //         int.tryParse(context.read<AuthCubit>().userId ?? ''))
+          //     .firstOrNull;
+
+          // _activeAssignment = assignedReport;
         }
       });
 
-      // Apply current filters to the new data
+      // --- NEW ---: Check if assignment status changed to manage user polling
+      if (previousAssignmentStatus != (_activeAssignment != null)) {
+        _manageUserPolling();
+      }
+
       _applyFiltersAndSearch();
     } else if (state is ReportsFailure) {
       setState(() {
