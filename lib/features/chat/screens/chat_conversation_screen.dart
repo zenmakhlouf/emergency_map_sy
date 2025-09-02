@@ -210,17 +210,43 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
           Map<int, PendingMessage>.from(_pendingMessages);
 
       updatedPendingMessages.removeWhere((tempId, pending) {
+        final pendingText = pending.message.text.trim();
         final pendingTime = DateTime.tryParse(pending.message.createdAt ?? '');
-        if (pendingTime == null) return false;
-
-        return newMessages.any((confirmed) {
+        
+        final isConfirmed = newMessages.any((confirmed) {
+          // Must be from the current user
+          if (confirmed.sender?.user.id != widget.currentUserId) return false;
+          
+          final confirmedText = confirmed.text.trim();
           final confirmedTime = DateTime.tryParse(confirmed.createdAt ?? '');
-          if (confirmedTime == null) return false;
-
-          return confirmed.sender?.user.id == widget.currentUserId &&
-              confirmed.text.trim() == pending.message.text.trim() &&
-              confirmedTime.difference(pendingTime).abs().inSeconds < 30;
+          
+          // Primary matching: exact text match
+          if (confirmedText == pendingText) {
+            // If we have valid timestamps, ensure they're reasonably close (2 minutes)
+            if (pendingTime != null && confirmedTime != null) {
+              final timeDiff = confirmedTime.difference(pendingTime).abs();
+              return timeDiff.inMinutes < 2;
+            }
+            // If no valid timestamps, rely on text match alone
+            return true;
+          }
+          
+          // Secondary matching: handle cases where server might modify the text slightly
+          // This is more conservative - only match if text similarity is high
+          if (confirmedText.contains(pendingText) && pendingText.length > 10) {
+            if (pendingTime != null && confirmedTime != null) {
+              final timeDiff = confirmedTime.difference(pendingTime).abs();
+              return timeDiff.inSeconds < 30; // Stricter time window for fuzzy matches
+            }
+          }
+          
+          return false;
         });
+        
+        if (isConfirmed) {
+          debugPrint('[ChatConversation] Removing confirmed pending message: "${pendingText.substring(0, pendingText.length > 50 ? 50 : pendingText.length)}"');
+        }
+        return isConfirmed;
       });
 
       setState(() {
@@ -268,13 +294,14 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
     _messageController.clear();
 
     // --- OPTIMISTIC UI ---
-    // 1. Create a temporary message with a unique local ID.
-    final tempId = DateTime.now().millisecondsSinceEpoch;
+    // 1. Create a temporary message with a unique negative ID to avoid conflicts.
+    final tempId = -DateTime.now().millisecondsSinceEpoch;
+    final now = DateTime.now();
     final pending = PendingMessage(
       message: ChatMessageEntity(
         id: tempId,
         text: text,
-        createdAt: DateTime.now().toIso8601String(),
+        createdAt: now.toIso8601String(),
         sender: _getSelfParticipant(),
         conversationId: widget.chatId,
       ),
@@ -300,6 +327,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
             lat: position.latitude,
             lon: position.longitude,
             address: "Location",
+            currentUserId: widget.currentUserId,
           )
           .timeout(_networkTimeout);
       // On success, the next poll will pick it up and reconcile the state.
@@ -505,13 +533,40 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
           return const Center(child: CircularProgressIndicator());
         }
 
-        final allMessages = [
-          ..._confirmedMessages,
-          ..._pendingMessages.values.map((p) => p.message)
-        ];
+        // Combine confirmed and pending messages, avoiding duplicates
+        final allMessages = <ChatMessageEntity>[];
+        
+        // Add all confirmed messages first
+        allMessages.addAll(_confirmedMessages);
+        
+        // Add only pending messages that aren't already confirmed
+        for (final pendingMessage in _pendingMessages.values.map((p) => p.message)) {
+          final pendingText = pendingMessage.text.trim();
+          
+          // Check if this pending message text already exists in confirmed messages
+          final isDuplicate = _confirmedMessages.any((confirmed) =>
+            confirmed.sender?.user.id == widget.currentUserId &&
+            confirmed.text.trim() == pendingText
+          );
+          
+          if (!isDuplicate) {
+            allMessages.add(pendingMessage);
+          } else {
+            debugPrint('[ChatConversation] Skipping duplicate pending message in display: "${pendingText.substring(0, pendingText.length > 30 ? 30 : pendingText.length)}"');
+          }
+        }
+        
         // Sort by date to ensure proper order
-        allMessages.sort((a, b) => DateTime.parse(a.createdAt!)
-            .compareTo(DateTime.parse(b.createdAt!)));
+        allMessages.sort((a, b) {
+          final aTime = DateTime.tryParse(a.createdAt ?? '');
+          final bTime = DateTime.tryParse(b.createdAt ?? '');
+          
+          if (aTime == null && bTime == null) return a.id.compareTo(b.id);
+          if (aTime == null) return 1;
+          if (bTime == null) return -1;
+          
+          return aTime.compareTo(bTime);
+        });
 
         if (allMessages.isEmpty) return _buildEmptyState();
 

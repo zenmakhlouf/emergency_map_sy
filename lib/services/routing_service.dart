@@ -59,7 +59,7 @@ class RoutingService {
       }
     }
 
-    throw lastError ?? RoutingException('All routing servers failed');
+    throw lastError ?? const RoutingException('All routing servers failed');
   }
 
   /// Open directions in browser using OpenStreetMap
@@ -78,7 +78,7 @@ class RoutingService {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
-        throw RoutingException('Cannot open browser for directions');
+        throw const RoutingException('Cannot open browser for directions');
       }
     } catch (e) {
       throw RoutingException('Failed to open directions: $e');

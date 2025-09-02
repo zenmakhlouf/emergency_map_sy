@@ -122,7 +122,7 @@ class _EmergencyChatScreenState extends State<EmergencyChatScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(widget.incidentTitle),
-            Text(
+            const Text(
               'Active Chat',
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
             ),

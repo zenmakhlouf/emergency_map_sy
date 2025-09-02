@@ -78,8 +78,8 @@ class ChatParticipant {
 
   factory ChatParticipant.fromJson(Map<String, dynamic>? json) {
     if (json == null) {
-      return ChatParticipant(
-          id: 0, user: const ChatUser(id: 0, name: 'Unknown User'));
+      return const ChatParticipant(
+          id: 0, user: ChatUser(id: 0, name: 'Unknown User'));
     }
     int id = 0;
     if (json['id'] is num) {
@@ -175,7 +175,7 @@ class ConversationSummary {
 
   factory ConversationSummary.fromJson(Map<String, dynamic>? json) {
     if (json == null) {
-      return ConversationSummary(id: 0, topic: const ChatTopic(id: 0));
+      return const ConversationSummary(id: 0, topic: ChatTopic(id: 0));
     }
     int id = 0;
     if (json['id'] is num) {
@@ -243,7 +243,7 @@ class ConversationSummary {
         .where((p) => p.user.id != currentUserId)
         .map((p) => p.user.name)
         .toList();
-    if (names.isEmpty) return 'Chat #${id}';
+    if (names.isEmpty) return 'Chat #$id';
     return names.join(', ');
   }
 

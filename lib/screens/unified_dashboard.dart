@@ -180,7 +180,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        throw LocationException('Location services are disabled');
+        throw const LocationException('Location services are disabled');
       }
 
       LocationPermission permission = await Geolocator.checkPermission();
@@ -190,7 +190,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
 
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
-        throw LocationException('Location permission denied');
+        throw const LocationException('Location permission denied');
       }
 
       final position = await Geolocator.getCurrentPosition(
@@ -563,7 +563,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
         child: Container(
           width: 48,
           height: 48,
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: Colors.red,
             shape: BoxShape.circle,
           ),

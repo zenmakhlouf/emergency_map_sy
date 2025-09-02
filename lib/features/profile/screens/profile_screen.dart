@@ -85,7 +85,7 @@ class ProfileScreen extends StatelessWidget {
                           context.read<AuthCubit>().logout();
                           Navigator.of(context).pushAndRemoveUntil(
                             MaterialPageRoute(
-                                builder: (_) => UserTypeSelectorScreen()),
+                                builder: (_) => const UserTypeSelectorScreen()),
                             (Route<dynamic> route) =>
                                 false, // remove ALL previous routes
                           );

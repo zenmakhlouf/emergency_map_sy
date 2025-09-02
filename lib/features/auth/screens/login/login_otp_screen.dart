@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pinput/pinput.dart';
 
-import '../../../../screens/coordinator_dashboard_screen.dart';
-import '../../../../screens/responder_dashboard_screen.dart';
 import '../../../../widgets/loading_ui.dart';
 import '../../cubit/auth_cubit.dart';
 import '../../models/user_type.dart';

@@ -61,7 +61,7 @@ class GeocodingService {
       }
     } catch (e) {
       if (e is TimeoutException) {
-        throw GeocodingException('Request timed out');
+        throw const GeocodingException('Request timed out');
       } else if (e is GeocodingException) {
         rethrow;
       } else {
@@ -104,7 +104,7 @@ class GeocodingService {
       }
     } catch (e) {
       if (e is TimeoutException) {
-        throw GeocodingException('Request timed out');
+        throw const GeocodingException('Request timed out');
       } else if (e is GeocodingException) {
         rethrow;
       } else {
@@ -187,8 +187,9 @@ class GeocodingResult {
     List<String> parts = [];
 
     if (road != null) parts.add(road!);
-    if (neighbourhood != null && neighbourhood != road)
+    if (neighbourhood != null && neighbourhood != road) {
       parts.add(neighbourhood!);
+    }
     if (city != null) parts.add(city!);
 
     if (parts.isEmpty && displayName.isNotEmpty) {
@@ -212,8 +213,9 @@ class GeocodingResult {
       parts.add(road!);
     }
 
-    if (neighbourhood != null && neighbourhood != road)
+    if (neighbourhood != null && neighbourhood != road) {
       parts.add(neighbourhood!);
+    }
     if (city != null) parts.add(city!);
     if (state != null && state != city) parts.add(state!);
 

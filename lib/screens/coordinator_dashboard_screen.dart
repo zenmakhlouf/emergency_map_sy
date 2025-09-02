@@ -23,7 +23,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
   DateTime? _lastRefreshed;
   final Duration _pollInterval = const Duration(seconds: 5);
   Timer? _poller;
-  LatLng _currentPosition = const LatLng(31.9539, 35.9106);
+  final LatLng _currentPosition = const LatLng(31.9539, 35.9106);
 
   @override
   void initState() {
@@ -130,7 +130,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
     return BlocBuilder<ReportsCubit, ReportsState>(
       builder: (context, state) {
         if (state is ReportsFailure) {
-          return Center(child: Text('Failed to load reports'));
+          return const Center(child: Text('Failed to load reports'));
         }
 
         if (state is ReportsSuccess) {

@@ -5,8 +5,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../cubit/auth_cubit.dart';
 import '../../models/user_type.dart';
 import '../../../../widgets/loading_ui.dart';
-import '../../../../screens/responder_dashboard_screen.dart';
-import '../../../../screens/coordinator_dashboard_screen.dart';
 import 'register_otp_screen.dart';
 
 class RegisterScreen extends StatelessWidget {

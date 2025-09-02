@@ -46,6 +46,7 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
   bool _showConfirmDialog = false;
   bool _showLocationSelector = false;
   bool _hasText = false;
+  DateTime? _lastSubmissionTime; // Prevent rapid duplicate submissions
 
   // Data State
   Position? _currentPosition;
@@ -170,7 +171,9 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
         permission = await Geolocator.requestPermission();
       }
       if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) return;
+          permission == LocationPermission.deniedForever) {
+        return;
+      }
 
       _currentPosition = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high);
@@ -200,10 +203,19 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
   }
 
   Future<void> _handleSendMessage({String? promptText}) async {
+    // Prevent duplicate submissions within 2 seconds
+    final now = DateTime.now();
+    if (_lastSubmissionTime != null && 
+        now.difference(_lastSubmissionTime!).inSeconds < 2) {
+      debugPrint('[AIEmergencyChat] Ignoring rapid duplicate submission');
+      return;
+    }
+    
     if (_isSubmitting) return;
     final message = promptText ?? _messageController.text.trim();
     if (message.isEmpty) return;
 
+    _lastSubmissionTime = now;
     if (promptText == null) _messageController.clear();
     _startCountdown(message);
   }
@@ -268,6 +280,7 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
             address:
                 _selectedLocation != null ? 'Custom Location' : 'Live Location',
             text: _pendingMessage!,
+            currentUserId: authCubit.userId,
           );
     } catch (e) {
       if (mounted) {
