@@ -1,27 +1,83 @@
-import 'package:emergency_map_sy/screens/unified_dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 import '../../cubit/auth_cubit.dart';
-import '../../models/user_type.dart';
 import '../../../../widgets/loading_ui.dart';
 import 'register_otp_screen.dart';
 
-class RegisterScreen extends StatelessWidget {
-  final UserType userType;
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
 
-  RegisterScreen({super.key, required this.userType});
+  @override
+  State<RegisterScreen> createState() => _RegisterScreenState();
+}
 
+class _RegisterScreenState extends State<RegisterScreen> {
   final formKey = GlobalKey<FormState>();
+  File? _selectedImage;
+  final ImagePicker _picker = ImagePicker();
 
-  void _navigateToDashboard(BuildContext context) {
-    Widget dashboard;
-    dashboard = UnifiedDashboardScreen(userType: userType);
-
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => dashboard),
-      (route) => false,
+  Future<void> _pickImage() async {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Camera'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final XFile? image = await _picker.pickImage(
+                    source: ImageSource.camera,
+                    maxWidth: 800,
+                    maxHeight: 800,
+                    imageQuality: 85,
+                  );
+                  if (image != null) {
+                    setState(() {
+                      _selectedImage = File(image.path);
+                    });
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Gallery'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final XFile? image = await _picker.pickImage(
+                    source: ImageSource.gallery,
+                    maxWidth: 800,
+                    maxHeight: 800,
+                    imageQuality: 85,
+                  );
+                  if (image != null) {
+                    setState(() {
+                      _selectedImage = File(image.path);
+                    });
+                  }
+                },
+              ),
+              if (_selectedImage != null)
+                ListTile(
+                  leading: const Icon(Icons.delete),
+                  title: const Text('Remove Photo'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    setState(() {
+                      _selectedImage = null;
+                    });
+                  },
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -44,7 +100,6 @@ class RegisterScreen extends StatelessWidget {
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => RegisterOtpScreen(
-                  userType: userType,
                   cubit: cubit,
                 ),
               ),
@@ -95,13 +150,59 @@ class RegisterScreen extends StatelessWidget {
                                 const SizedBox(height: 8),
       
                                 // Subtitle
-                                Text(
-                                  'Verify your identity as a ${userType.name}',
-                                  style: const TextStyle(
+                                const Text(
+                                  'Create your account to get started',
+                                  style: TextStyle(
                                     fontSize: 14,
                                     color: Colors.grey,
                                   ),
                                   textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 24),
+
+                                // Profile Image Picker
+                                GestureDetector(
+                                  onTap: _pickImage,
+                                  child: Container(
+                                    width: 100,
+                                    height: 100,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.grey.shade200,
+                                      border: Border.all(
+                                        color: Colors.red.shade300,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    child: _selectedImage != null
+                                        ? ClipRRect(
+                                            borderRadius: BorderRadius.circular(50),
+                                            child: Image.file(
+                                              _selectedImage!,
+                                              width: 100,
+                                              height: 100,
+                                              fit: BoxFit.cover,
+                                            ),
+                                          )
+                                        : Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.camera_alt,
+                                                color: Colors.grey.shade600,
+                                                size: 30,
+                                              ),
+                                              const SizedBox(height: 5),
+                                              Text(
+                                                'Add Photo',
+                                                style: TextStyle(
+                                                  color: Colors.grey.shade600,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                  ),
                                 ),
                                 const SizedBox(height: 24),
                                 TextFormField(
@@ -109,7 +210,8 @@ class RegisterScreen extends StatelessWidget {
                                   keyboardType: TextInputType.name,
                                   decoration: const InputDecoration(
                                     prefixStyle: TextStyle(color: Colors.black),
-                                    labelText: 'name',
+                                    labelText: 'Full Name',
+                                    hintText: 'Enter your full name',
                                     border: OutlineInputBorder(),
                                     contentPadding: EdgeInsets.symmetric(
                                       horizontal: 16,
@@ -119,8 +221,33 @@ class RegisterScreen extends StatelessWidget {
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
                                       return 'This field is required';
-                                    } else {
-                                      return null;
+                                    }
+                                    
+                                    // Trim whitespace
+                                    final trimmedValue = value.trim();
+                                    
+                                    if (trimmedValue.length < 2) {
+                                      return 'Name must be at least 2 characters long';
+                                    }
+                                    
+                                    if (trimmedValue.length > 50) {
+                                      return 'Name must be less than 50 characters long';
+                                    }
+                                    
+                                    // Check for invalid characters (allow letters, spaces, hyphens, apostrophes)
+                                    if (!RegExp(r"^[a-zA-Z\u0621-\u064A\u0660-\u0669\s\-'\.]+$").hasMatch(trimmedValue)) {
+                                      return 'Name contains invalid characters';
+                                    }
+                                    
+                                    return null;
+                                  },
+                                  onChanged: (value) {
+                                    // Auto-trim and clean input
+                                    if (value != value.trim()) {
+                                      cubit.nameController.text = value.trim();
+                                      cubit.nameController.selection = TextSelection.fromPosition(
+                                        TextPosition(offset: cubit.nameController.text.length),
+                                      );
                                     }
                                   },
                                 ),
@@ -162,6 +289,8 @@ class RegisterScreen extends StatelessWidget {
                                                 context.read<AuthCubit>();
                                             if (formKey.currentState!
                                                 .validate()) {
+                                              // Set the profile image in cubit
+                                              cubit.setProfileImage(_selectedImage);
                                               cubit.sendOtp(
                                                   'phone_number_register');
                                             }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:emergency_map_sy/features/profile/screens/profile_screen.dart';
 import 'package:emergency_map_sy/services/routing_service.dart';
+import '../services/map_navigation_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -42,6 +43,9 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   late TabController _tabController;
   Timer? _reportPoller;
   final ScrollController _reportsScrollController = ScrollController();
+  
+  // Cubit references to avoid context access in dispose
+  late UsersLocationCubit _usersLocationCubit;
 
   // Location and data state
   LatLng _currentPosition = const LatLng(33.5138, 36.2765); // Damascus default
@@ -58,6 +62,8 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   String _searchQuery = "";
   String? _selectedCategory;
   String? _selectedStatus;
+  String? _priorityFilter;
+  double _maxDistance = 10.0;
   String _sortBy = "distance"; // Changed default to distance
   bool _sortAscending = true; // Changed to true for nearest first
 
@@ -106,6 +112,13 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    
+    // Initialize cubit reference to avoid context access in dispose
+    _usersLocationCubit = context.read<UsersLocationCubit>();
+    
+    // Register map center callback for navigation from chats
+    MapNavigationService().registerMapCenterCallback(_centerMapOnReportId);
+    
     _initializeTabController();
     _initializeApp();
   }
@@ -113,6 +126,9 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    
+    // Clear map navigation callback
+    MapNavigationService().clearMapCenterCallback();
     _cleanup();
     super.dispose();
   }
@@ -447,10 +463,133 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
       _searchQuery = "";
       _selectedCategory = null;
       _selectedStatus = null;
+      _priorityFilter = null;
+      _maxDistance = 10.0;
       _sortBy = "distance"; // Default to distance
       _sortAscending = true; // Nearest first
     });
     _applyFiltersAndSearch();
+  }
+
+  void _applyAdvancedFilters() {
+    List<ReportEntity> filtered = List.from(_cachedReports);
+
+    // Apply basic filters first
+    if (_searchQuery.isNotEmpty) {
+      filtered = filtered
+          .where((report) =>
+              report.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+              report.description
+                  .toLowerCase()
+                  .contains(_searchQuery.toLowerCase()) ||
+              (report.fullAddress
+                  .toLowerCase()
+                  .contains(_searchQuery.toLowerCase())))
+          .toList();
+    }
+
+    if (_selectedCategory != null && _selectedCategory!.isNotEmpty) {
+      filtered = filtered
+          .where((report) =>
+              (report.state?.emergencyType ?? '').toLowerCase() ==
+              _selectedCategory!.toLowerCase())
+          .toList();
+    }
+
+    if (_selectedStatus != null && _selectedStatus!.isNotEmpty) {
+      filtered = filtered
+          .where((report) =>
+              (report.state?.status ?? 'pending').toLowerCase() ==
+              _selectedStatus!.toLowerCase())
+          .toList();
+    }
+
+    // Apply priority filter
+    if (_priorityFilter != null) {
+      filtered = filtered.where((report) {
+        final severity = report.state?.severity ?? 0.0;
+        switch (_priorityFilter) {
+          case 'high':
+            return severity >= 0.7;
+          case 'medium':
+            return severity >= 0.4 && severity < 0.7;
+          case 'low':
+            return severity < 0.4;
+          default:
+            return true;
+        }
+      }).toList();
+    }
+
+    // Apply distance filter
+    if (_currentPosition != null) {
+      filtered = filtered.where((report) {
+        final distance = _calculateDistance(
+          _currentPosition,
+          LatLng(report.latitude, report.longitude),
+        );
+        return distance <= _maxDistance;
+      }).toList();
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) {
+      int comparison = 0;
+      switch (_sortBy) {
+        case "priority":
+          comparison =
+              (b.state?.severity ?? 0.0).compareTo(a.state?.severity ?? 0.0);
+          break;
+        case "distance":
+          final distanceA = _calculateDistance(
+              _currentPosition, LatLng(a.latitude, a.longitude));
+          final distanceB = _calculateDistance(
+              _currentPosition, LatLng(b.latitude, b.longitude));
+          comparison = distanceA.compareTo(distanceB);
+          break;
+        case "date":
+        default:
+          comparison = b.createdAt.compareTo(a.createdAt);
+          break;
+      }
+      return _sortAscending ? comparison : -comparison;
+    });
+
+    setState(() {
+      _filteredReports = filtered;
+    });
+  }
+
+  Color _getCategoryColor(String category) {
+    switch (category.toLowerCase()) {
+      case 'medical':
+        return Colors.red;
+      case 'fire':
+        return Colors.deepOrange;
+      case 'police':
+        return Colors.blue;
+      case 'accident':
+        return Colors.purple;
+      case 'natural disaster':
+        return Colors.brown;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'active':
+        return Colors.blue;
+      case 'resolved':
+        return Colors.green;
+      case 'cancelled':
+        return Colors.grey;
+      default:
+        return Colors.grey;
+    }
   }
 
   // ============================================================================
@@ -522,6 +661,36 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   bool _canPerformResponderActions() =>
       widget.userType == UserType.responder ||
       widget.userType == UserType.coordinator;
+
+  /// Check if current user can access chat for a specific report
+  bool _canAccessReportChat(ReportEntity report) {
+    final authCubit = context.read<AuthCubit>();
+    final currentUserId = authCubit.userId;
+    
+    if (currentUserId == null) return false;
+    
+    // Coordinators can access any chat
+    if (widget.userType == UserType.coordinator) return true;
+    
+    // Citizens can access chats for their own reports
+    if (widget.userType == UserType.citizen) {
+      return report.initiatorId == currentUserId;
+    }
+    
+    // Responders can access chats for:
+    if (widget.userType == UserType.responder) {
+      // 1. Reports they initiated
+      if (report.initiatorId == currentUserId) return true;
+      
+      // 2. Reports they are assigned to (if we have assignment data)
+      if (report.state?.assigned == currentUserId) return true;
+      
+      // 3. Their active assignment (if this is their active assignment)
+      if (_activeAssignment?.id == report.id) return true;
+    }
+    
+    return false;
+  }
 
   /// --- NEW ---: Determines if the current user has permission to see other users' locations
   bool _canViewOtherUsers() {
@@ -1404,7 +1573,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
         ),
-        if (_canPerformResponderActions())
+        if (_canAccessReportChat(report))
           IconButton(
             icon: const Icon(Icons.chat, size: 20),
             onPressed: () => _navigateToReportChat(report),
@@ -1973,6 +2142,21 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     _showSuccessSnackBar("Report located on map");
   }
 
+  /// Center map on report by ID from chat navigation
+  void _centerMapOnReportId(int reportId) {
+    // Find the report in cached reports
+    final report = _cachedReports.where((r) => r.id == reportId).firstOrNull;
+    
+    if (report != null) {
+      // Use the existing _locateReportOnMap method which handles everything
+      _locateReportOnMap(report);
+    } else {
+      // Report not found in cache - show message and try to refresh
+      _showErrorSnackBar("Report not found. Refreshing reports...");
+      _handleManualRefresh();
+    }
+  }
+
   Future<void> _updateAssignmentStatus(String status) async {
     if (_activeAssignment == null) return;
 
@@ -1989,44 +2173,203 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   void _showMapFilters() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (context) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.7,
+        ),
         padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Map Filters',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Map Filters',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _emergencyCategories.map((category) {
-                final isSelected = _selectedCategory == category;
-                return FilterChip(
-                  label: Text(category.toUpperCase()),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    setState(() {
-                      _selectedCategory = selected ? category : null;
-                    });
-                    _applyFiltersAndSearch();
-                    Navigator.pop(context);
-                  },
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  _clearFilters();
-                  Navigator.pop(context);
-                },
-                child: const Text('Clear All Filters'),
+            
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Emergency Categories
+                    const Text(
+                      'Emergency Type',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: _emergencyCategories.map((category) {
+                        final isSelected = _selectedCategory == category;
+                        return FilterChip(
+                          label: Text(category.toUpperCase()),
+                          selected: isSelected,
+                          selectedColor: _getCategoryColor(category).withOpacity(0.2),
+                          checkmarkColor: _getCategoryColor(category),
+                          onSelected: (selected) {
+                            setState(() {
+                              _selectedCategory = selected ? category : null;
+                            });
+                            _applyFiltersAndSearch();
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    
+                    if (_canPerformResponderActions()) ...[
+                      const SizedBox(height: 24),
+                      
+                      // Status Filters (for responders/coordinators)
+                      const Text(
+                        'Status',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: ['pending', 'active', 'resolved', 'cancelled'].map((status) {
+                          final isSelected = _selectedStatus == status;
+                          return FilterChip(
+                            label: Text(status.toUpperCase()),
+                            selected: isSelected,
+                            selectedColor: _getStatusColor(status).withOpacity(0.2),
+                            checkmarkColor: _getStatusColor(status),
+                            onSelected: (selected) {
+                              setState(() {
+                                _selectedStatus = selected ? status : null;
+                              });
+                              _applyFiltersAndSearch();
+                            },
+                          );
+                        }).toList(),
+                      ),
+                      
+                      const SizedBox(height: 24),
+                      
+                      // Priority/Severity Filters
+                      const Text(
+                        'Priority Level',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          FilterChip(
+                            label: const Text('HIGH PRIORITY'),
+                            selected: _priorityFilter == 'high',
+                            selectedColor: Colors.red.withOpacity(0.2),
+                            checkmarkColor: Colors.red,
+                            onSelected: (selected) {
+                              setState(() {
+                                _priorityFilter = selected ? 'high' : null;
+                              });
+                              _applyAdvancedFilters();
+                            },
+                          ),
+                          FilterChip(
+                            label: const Text('MEDIUM PRIORITY'),
+                            selected: _priorityFilter == 'medium',
+                            selectedColor: Colors.orange.withOpacity(0.2),
+                            checkmarkColor: Colors.orange,
+                            onSelected: (selected) {
+                              setState(() {
+                                _priorityFilter = selected ? 'medium' : null;
+                              });
+                              _applyAdvancedFilters();
+                            },
+                          ),
+                          FilterChip(
+                            label: const Text('LOW PRIORITY'),
+                            selected: _priorityFilter == 'low',
+                            selectedColor: Colors.green.withOpacity(0.2),
+                            checkmarkColor: Colors.green,
+                            onSelected: (selected) {
+                              setState(() {
+                                _priorityFilter = selected ? 'low' : null;
+                              });
+                              _applyAdvancedFilters();
+                            },
+                          ),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 24),
+                      
+                      // Distance Filter
+                      const Text(
+                        'Max Distance',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Slider(
+                              value: _maxDistance,
+                              min: 1.0,
+                              max: 50.0,
+                              divisions: 49,
+                              label: '${_maxDistance.round()} km',
+                              onChanged: (value) {
+                                setState(() {
+                                  _maxDistance = value;
+                                });
+                              },
+                              onChangeEnd: (value) {
+                                _applyAdvancedFilters();
+                              },
+                            ),
+                          ),
+                          Text(
+                            '${_maxDistance.round()} km',
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    ],
+                    
+                    const SizedBox(height: 24),
+                    
+                    // Action buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              _clearFilters();
+                            },
+                            child: const Text('Clear All'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            child: const Text('Apply Filters'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -2337,8 +2680,9 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     // Second row of actions
     List<Widget> secondRowActions = [];
 
+    // Add directions button for responders/coordinators
     if (_canPerformResponderActions()) {
-      secondRowActions.addAll([
+      secondRowActions.add(
         Expanded(
           child: OutlinedButton.icon(
             onPressed: () {
@@ -2349,7 +2693,15 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
             label: const Text('Directions'),
           ),
         ),
-        const SizedBox(width: 12),
+      );
+    }
+    
+    // Add chat button only if user can access this report's chat
+    if (_canAccessReportChat(report)) {
+      if (secondRowActions.isNotEmpty) {
+        secondRowActions.add(const SizedBox(width: 12));
+      }
+      secondRowActions.add(
         Expanded(
           child: OutlinedButton.icon(
             onPressed: () {
@@ -2360,7 +2712,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
             label: const Text('Chat'),
           ),
         ),
-      ]);
+      );
     }
 
     return Column(
@@ -2459,9 +2811,9 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
 
   void _cleanup() {
     _stopPolling();
-    // --- NEW ---: Ensure all cubit timers are cancelled
-    context.read<UsersLocationCubit>().stopUsersPolling();
-    context.read<UsersLocationCubit>().stopLocationPolling();
+    // Stop location cubit timers using stored reference to avoid context access
+    _usersLocationCubit.stopUsersPolling();
+    _usersLocationCubit.stopLocationPolling();
     _tabController.dispose();
     _reportsScrollController.dispose();
   }

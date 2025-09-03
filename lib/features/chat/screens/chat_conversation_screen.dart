@@ -14,9 +14,21 @@ import 'package:uuid/uuid.dart';
 // Local imports from your project structure
 import '../cubit/chat_cubit.dart';
 import '../models/chat_models.dart';
+import '../../auth/cubit/auth_cubit.dart';
+import '../../../widgets/report_card.dart';
+import '../../../widgets/user_profile_modal.dart';
+import '../../../services/map_navigation_service.dart';
 
 // A unique identifier generator for pending messages
 const uuid = Uuid();
+
+// Extension to capitalize strings
+extension StringExtension on String {
+  String capitalize() {
+    if (isEmpty) return this;
+    return '${this[0].toUpperCase()}${substring(1).toLowerCase()}';
+  }
+}
 
 /// Represents the state of a message being sent.
 enum MessageStatus { pending, sent, failed }
@@ -70,7 +82,6 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
   List<ChatMessageEntity> _confirmedMessages = [];
   Map<int, PendingMessage> _pendingMessages = {};
   List<ChatParticipant> _filteredParticipants = [];
-  DateTime? _lastSuccessfulRefresh;
 
   // --- UI & UX STATE ---
   bool _isInitializing = true;
@@ -142,10 +153,11 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
       final hasText = _messageController.text.trim().isNotEmpty;
       if (_hasText != hasText) {
         setState(() => _hasText = hasText);
-        if (hasText)
+        if (hasText) {
           _sendButtonAnimationController.forward();
-        else
+        } else {
           _sendButtonAnimationController.reverse();
+        }
       }
     });
   }
@@ -161,10 +173,9 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
       await _recorder.openRecorder();
 
       final tempDir = await getTemporaryDirectory();
-      final isIOS = Platform.isIOS;
 
       // Use a container iOS actually supports
-      final ext = 'wav';
+      const ext = 'wav';
       _pathToAudioFile = p.join(tempDir.path, 'emergency_record.$ext');
 
       await _recorder
@@ -190,7 +201,6 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
       if (mounted) {
         setState(() {
           _networkError = null;
-          _lastSuccessfulRefresh = DateTime.now();
         });
       }
     } catch (e) {
@@ -253,11 +263,10 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
         _confirmedMessages = newMessages;
         _pendingMessages = updatedPendingMessages;
         _networkError = null;
-        _lastSuccessfulRefresh = DateTime.now();
       });
       _scrollToBottom(isNewMessage: true);
     } else if (state is ChatError) {
-      setState(() => _networkError = state.message ?? "An error occurred");
+      setState(() => _networkError = state.message);
     }
   }
 
@@ -319,17 +328,19 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
         desiredAccuracy: LocationAccuracy.high,
         timeLimit: _locationTimeout,
       );
-      await context
-          .read<ChatCubit>()
-          .sendMessage(
-            chatId: widget.chatId,
-            text: text,
+      if (mounted) {
+        await context
+            .read<ChatCubit>()
+            .sendMessage(
+              chatId: widget.chatId,
+              text: text,
             lat: position.latitude,
             lon: position.longitude,
             address: "Location",
             currentUserId: widget.currentUserId,
           )
           .timeout(_networkTimeout);
+      }
       // On success, the next poll will pick it up and reconcile the state.
     } catch (e) {
       // 4. If sending fails, update the message state to 'failed'.
@@ -359,7 +370,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
 
   Future<void> _startRecording() async {
     try {
-      final codec = Codec.pcm16WAV;
+      const codec = Codec.pcm16WAV;
       await _recorder.startRecorder(
         toFile: _pathToAudioFile,
         codec: codec,
@@ -420,7 +431,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
           await request.send().timeout(const Duration(seconds: 20));
       //final respStr = await response.stream.bytesToString();
 
-      print("Status code: ${response.statusCode}");
+      debugPrint("Status code: ${response.statusCode}");
       // print("Response body: $respStr");
       if (response.statusCode == 200) {
         final body = await response.stream.bytesToString();
@@ -472,54 +483,191 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
       backgroundColor: Colors.white,
       foregroundColor: Colors.black87,
       centerTitle: true,
-    );
-  }
-
-  Widget _buildHighPriorityHeader() {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-            color: const Color(0xFFFEF3F2),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.red.shade200)),
-        child: Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.red.shade700),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      actions: [
+        // Show report button if this conversation has an emergency report
+        BlocBuilder<ChatCubit, ChatState>(
+          buildWhen: (previous, current) {
+            // Only rebuild when we actually get new chat list data
+            return current is ChatListLoaded;
+          },
+          builder: (context, state) {
+            // Try to find the conversation and check if it has a report
+            ConversationSummary? conversation;
+            
+            if (state is ChatListLoaded) {
+              conversation = state.chats
+                  .where((chat) => chat.id == widget.chatId)
+                  .firstOrNull;
+            } else {
+              // Check if we have a cached conversation from previous state
+              final chatCubit = context.read<ChatCubit>();
+              if (chatCubit.state is ChatListLoaded) {
+                final cachedState = chatCubit.state as ChatListLoaded;
+                conversation = cachedState.chats
+                    .where((chat) => chat.id == widget.chatId)
+                    .firstOrNull;
+              }
+            }
+            
+            if (conversation?.topic.report?.hasEmergencyData == true) {
+              return IconButton(
+                icon: const Icon(Icons.emergency, color: Colors.red),
+                tooltip: 'View Emergency Report',
+                onPressed: () => _showEmergencyReport(conversation!.topic.report!),
+              );
+            }
+            return const SizedBox.shrink();
+          },
+        ),
+        // Participants menu
+        PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert),
+          onSelected: (value) {
+            switch (value) {
+              case 'participants':
+                _showParticipants();
+                break;
+            }
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'participants',
+              child: Row(
                 children: [
-                  Text("High Priority Emergency",
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red.shade900)),
-                  Text("Response time: 2 min • 123 Main St",
-                      style:
-                          TextStyle(color: Colors.red.shade700, fontSize: 12)),
+                  Icon(Icons.people),
+                  SizedBox(width: 8),
+                  Text('View Participants'),
                 ],
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.red.shade600,
-                borderRadius: BorderRadius.circular(20),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _showEmergencyReport(EmergencyReport report) {
+    final authCubit = context.read<AuthCubit>();
+    final userType = authCubit.userType;
+    
+    showReportCard(
+      context,
+      report: report,
+      userType: userType,
+      onViewOnMap: () {
+        Navigator.of(context).pop();
+        _viewReportOnMap(report);
+      },
+    );
+  }
+
+  /// Navigate back to dashboard and view report on map
+  void _viewReportOnMap(EmergencyReport report) {
+    // Get the chat ID from the current conversation
+    final reportId = widget.chatId;
+    
+    // Set the report ID to be shown on map using the navigation service
+    MapNavigationService().setPendingReportId(reportId);
+    
+    // Pop back to dashboard
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    
+    // Show confirmation snackbar
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Viewing report #$reportId on map'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+  
+  /// Navigate to map with specific location from message
+  void _viewLocationOnMap(LocationData location) {
+    _navigateToMapWithLocation(location);
+  }
+  
+  /// Handle viewing location from individual messages
+  void _navigateToMapWithLocation(LocationData location) {
+    // For individual message locations, we can show coordinates
+    // but since we don't have a report ID, we'll just copy coordinates
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Location: ${location.address}'),
+        duration: const Duration(seconds: 3),
+        action: SnackBarAction(
+          label: 'Copy Coordinates',
+          onPressed: () {
+            Clipboard.setData(ClipboardData(
+              text: '${location.lat}, ${location.lon}',
+            ));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Coordinates copied to clipboard')),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showParticipants() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Participants (${widget.participants.length})',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
               ),
-              child: const Text("ACTIVE",
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12)),
-            )
+            ),
+            const SizedBox(height: 16),
+            ...widget.participants.map((participant) => ListTile(
+              leading: CircleAvatar(
+                backgroundColor: _getColorForType(participant.type?.toLowerCase() ?? 'user'),
+                backgroundImage: participant.user.profileImage?.publicPath != null
+                    ? NetworkImage(participant.user.profileImage!.publicPath)
+                    : null,
+                child: participant.user.profileImage == null
+                    ? Text(
+                        participant.user.name.isNotEmpty
+                            ? participant.user.name[0].toUpperCase()
+                            : '?',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      )
+                    : null,
+              ),
+              title: Text(participant.user.name),
+              subtitle: Text(participant.type?.capitalize() ?? 'User'),
+              onTap: () {
+                Navigator.of(context).pop();
+                showUserProfile(
+                  context,
+                  user: participant.user,
+                  onMessage: () {
+                    Navigator.of(context).pop();
+                    // Focus message input (already on this screen)
+                    _messageController.selection = TextSelection.fromPosition(
+                      TextPosition(offset: _messageController.text.length),
+                    );
+                  },
+                );
+              },
+            )),
+            const SizedBox(height: 16),
           ],
         ),
       ),
     );
   }
+
 
   // ============================================================================
   // BUILD METHODS: Message Display
@@ -593,6 +741,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
                 isCurrentUser: isCurrentUser,
                 showHeader: showHeader,
                 status: status,
+                onViewLocation: _viewLocationOnMap,
               );
             },
           ),
@@ -719,9 +868,10 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
   // ============================================================================
 
   ChatParticipant _findParticipant(int? userId) {
-    if (userId == null)
+    if (userId == null) {
       return const ChatParticipant(
           id: -1, user: ChatUser(id: -1, name: 'Unknown'));
+    }
     return _filteredParticipants.firstWhere(
       (p) => p.user.id == userId,
       orElse: () {
@@ -811,6 +961,7 @@ class _MessageBubble extends StatelessWidget {
   final bool isCurrentUser;
   final bool showHeader;
   final MessageStatus? status;
+  final Function(LocationData)? onViewLocation;
 
   const _MessageBubble({
     super.key,
@@ -819,6 +970,7 @@ class _MessageBubble extends StatelessWidget {
     required this.isCurrentUser,
     required this.showHeader,
     this.status,
+    this.onViewLocation,
   });
 
   @override
@@ -832,7 +984,20 @@ class _MessageBubble extends StatelessWidget {
         mainAxisAlignment:
             isCurrentUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
-          if (!isCurrentUser) _UserAvatar(participant: participant),
+          if (!isCurrentUser) 
+            GestureDetector(
+              onTap: () {
+                showUserProfile(
+                  context,
+                  user: participant.user,
+                  onMessage: () {
+                    Navigator.of(context).pop();
+                    // Could focus the message input or scroll to it
+                  },
+                );
+              },
+              child: _UserAvatar(participant: participant),
+            ),
           const SizedBox(width: 8),
           Flexible(
             child: Column(
@@ -870,15 +1035,156 @@ class _MessageBubble extends StatelessWidget {
     final bubbleColor = isCurrentUser ? Colors.red.shade600 : Colors.white;
     final textColor = isCurrentUser ? Colors.white : Colors.black87;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-          color: bubbleColor,
-          borderRadius: BorderRadius.circular(18),
-          border:
-              isCurrentUser ? null : Border.all(color: Colors.grey.shade300)),
-      child: Text(message.text,
-          style: TextStyle(color: textColor, fontSize: 16, height: 1.4)),
+    return GestureDetector(
+      onTap: () => _showMessageOptions(context),
+      onLongPress: () => _showMessageOptions(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+            color: bubbleColor,
+            borderRadius: BorderRadius.circular(18),
+            border:
+                isCurrentUser ? null : Border.all(color: Colors.grey.shade300)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message.text,
+                style: TextStyle(color: textColor, fontSize: 16, height: 1.4)),
+            
+            // Show location if available
+            if (message.location != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isCurrentUser ? Colors.red.shade500 : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.location_on,
+                      size: 16,
+                      color: isCurrentUser ? Colors.white : Colors.red,
+                    ),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        message.location!.address,
+                        style: TextStyle(
+                          color: isCurrentUser ? Colors.white : Colors.black87,
+                          fontSize: 12,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            
+            // Show voice record indicator if available
+            if (message.voiceRecord != null || message.voiceRecordText != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isCurrentUser ? Colors.red.shade500 : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.mic,
+                      size: 16,
+                      color: isCurrentUser ? Colors.white : Colors.blue,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Voice Message',
+                      style: TextStyle(
+                        color: isCurrentUser ? Colors.white : Colors.black87,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+  
+  void _showMessageOptions(BuildContext context) {
+    final options = <Widget>[];
+    
+    // Copy message option
+    options.add(
+      ListTile(
+        leading: const Icon(Icons.copy),
+        title: const Text('Copy Message'),
+        onTap: () {
+          Navigator.of(context).pop();
+          Clipboard.setData(ClipboardData(text: message.text));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Message copied to clipboard')),
+          );
+        },
+      ),
+    );
+    
+    // View location option
+    if (message.location != null) {
+      options.add(
+        ListTile(
+          leading: const Icon(Icons.location_on),
+          title: const Text('View Location'),
+          onTap: () {
+            Navigator.of(context).pop();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Location: ${message.location!.address}'),
+                action: SnackBarAction(
+                  label: 'Open Map',
+                  onPressed: () {
+                    if (onViewLocation != null) {
+                      onViewLocation!(message.location!);
+                    }
+                  },
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    }
+    
+    // View sender profile option (for other users)
+    if (!isCurrentUser) {
+      options.add(
+        ListTile(
+          leading: const Icon(Icons.person),
+          title: const Text('View Profile'),
+          onTap: () {
+            Navigator.of(context).pop();
+            // Import the user profile modal widget
+            // showUserProfile(context, user: participant.user);
+          },
+        ),
+      );
+    }
+    
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: options,
+      ),
     );
   }
 
@@ -947,8 +1253,8 @@ class _UserAvatar extends StatelessWidget {
       backgroundColor: color,
       child: Icon(iconData, color: Colors.white, size: 22),
     );
-  }
-}
+  }}
+
 
 // Helper function to assign consistent colors to responder types
 MaterialColor _getColorForType(String type) {
