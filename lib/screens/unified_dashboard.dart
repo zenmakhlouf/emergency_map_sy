@@ -903,7 +903,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
                 strokeWidth: 5.0,
                 color: Colors.deepPurpleAccent,
                 borderStrokeWidth: 2.0,
-                borderColor: Colors.white.withOpacity(0.8),
+                borderColor: Colors.white.withValues(alpha: 0.8),
               ),
             ],
           ),
@@ -930,7 +930,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
             border: Border.all(color: Colors.white, width: 3),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.2),
+                color: Colors.black.withValues(alpha: 0.2),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -958,7 +958,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
             border: Border.all(color: Colors.white, width: 3),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
                 blurRadius: 6,
                 offset: const Offset(0, 3),
               ),
@@ -984,7 +984,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
         border: Border(top: BorderSide(color: Colors.grey.shade200)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, -2),
           ),
@@ -1084,7 +1084,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -1120,7 +1120,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -1159,7 +1159,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
                 strokeWidth: 5.0,
                 color: Colors.deepPurpleAccent,
                 borderStrokeWidth: 2.0,
-                borderColor: Colors.white.withOpacity(0.8),
+                borderColor: Colors.white.withValues(alpha: 0.8),
               ),
             ],
           ),
@@ -1237,7 +1237,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -1456,7 +1456,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
         color: Theme.of(context).colorScheme.surface,
         border: Border(
           bottom: BorderSide(
-            color: Theme.of(context).dividerColor.withOpacity(0.3),
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.3),
           ),
         ),
       ),
@@ -1487,75 +1487,413 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     );
   }
 
+  /// Format address to show only street name and area (not full address)
+  String _formatShortAddress(String fullAddress) {
+    if (fullAddress.isEmpty || fullAddress.toLowerCase().contains('live location') || fullAddress.contains('موقع')) {
+      return 'موقع مباشر'; // "Live Location" in Arabic
+    }
+    
+    // Split the address by commas and take the first 2-3 meaningful parts
+    final parts = fullAddress.split(',').map((part) => part.trim()).where((part) => part.isNotEmpty).toList();
+    
+    if (parts.isEmpty) return 'موقع غير محدد';
+    
+    // For Arabic addresses, usually the first part is street/area, second is district
+    // For mixed addresses, filter out country and generic terms
+    final filteredParts = parts.where((part) => 
+      !part.toLowerCase().contains('syria') && 
+      !part.toLowerCase().contains('سوريا') &&
+      !part.toLowerCase().contains('syrian arab republic') &&
+      !part.contains('محافظة') && // Province
+      part.length > 2 // Avoid single letters or numbers
+    ).take(2).toList();
+    
+    return filteredParts.isEmpty 
+      ? (parts.isNotEmpty ? parts[0] : 'موقع غير محدد')
+      : filteredParts.join(' - ');
+  }
+
   Widget _buildIncidentCard(ReportEntity report) {
     final emergencyType = report.state?.emergencyType;
     final severity = report.state?.severity ?? 0.5;
     final distance = _calculateDistance(
         _currentPosition, LatLng(report.latitude, report.longitude));
+    
+    // Role-based rendering
+    switch (widget.userType) {
+      case UserType.citizen:
+        return _buildCitizenReportCard(report, emergencyType, severity, distance);
+      case UserType.responder:
+        return _buildResponderReportCard(report, emergencyType, severity, distance);
+      case UserType.coordinator:
+        return _buildCoordinatorReportCard(report, emergencyType, severity, distance);
+    }
+  }
 
+  /// Minimalist card for citizens - focuses on basic info
+  Widget _buildCitizenReportCard(ReportEntity report, String? emergencyType, double severity, double distance) {
+    final reportName = report.state?.report?.split('\n').firstWhere(
+      (line) => line.startsWith('🚨') || line.contains('نوع'), 
+      orElse: () => report.title
+    ).replaceAll(RegExp(r'^🚨[^:]*:?\s*'), '') ?? report.title;
+    
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 1,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: InkWell(
           onTap: () => _showReportDetails(report),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                _buildIncidentIcon(emergencyType, severity),
-                const SizedBox(width: 16),
+                // Simplified icon
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: _getColorForEmergencyType(emergencyType).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    _getIconForEmergencyType(emergencyType), 
+                    color: _getColorForEmergencyType(emergencyType),
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        report.title,
+                        reportName,
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
-                          fontSize: 16,
+                          fontSize: 15,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        report.description,
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 14,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                      Row(
+                        children: [
+                          Icon(Icons.location_on_outlined, size: 14, color: Colors.grey[600]),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              _formatShortAddress(report.fullAddress),
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 13,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Text(
+                            '${distance.toStringAsFixed(1)} km',
+                            style: TextStyle(
+                              color: Colors.grey[500],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      // Show geocoded address instead of coordinates
-                      Text(
-                        report.fullAddress,
-                        style: TextStyle(
-                          color: Colors.grey[500],
-                          fontSize: 12,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 8),
-                      _buildIncidentMetadata(report, distance),
                     ],
                   ),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                // Simple severity indicator
+                if (severity >= 0.7)
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: severity >= 0.8 ? Colors.red : Colors.orange,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Detailed card for responders - shows relevant operational info
+  Widget _buildResponderReportCard(ReportEntity report, String? emergencyType, double severity, double distance) {
+    final authCubit = context.read<AuthCubit>();
+    final isAssigned = report.state?.assigned == authCubit.userId;
+    final isActiveAssignment = _activeAssignment?.id == report.id;
+    
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Card(
+        elevation: isActiveAssignment ? 4 : 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: isActiveAssignment 
+            ? BorderSide(color: Colors.blue.shade300, width: 2)
+            : BorderSide.none,
+        ),
+        child: InkWell(
+          onTap: () => _showReportDetails(report),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    _buildSeverityIndicator(severity),
-                    const SizedBox(height: 8),
+                    _buildIncidentIcon(emergencyType, severity),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  report.title,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              _buildSeverityIndicator(severity),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${report.state?.emergencySubType ?? 'غير محدد'} • ${report.formattedTime}',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _formatShortAddress(report.fullAddress),
+                  style: TextStyle(
+                    color: Colors.grey[700],
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Icon(Icons.near_me, size: 14, color: Colors.grey[600]),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${distance.toStringAsFixed(1)} km away',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                          ),
+                          if (isAssigned) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade100,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'ASSIGNED',
+                                style: TextStyle(
+                                  color: Colors.blue.shade700,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                     _buildQuickActions(report),
                   ],
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Comprehensive card for coordinators - shows all available information
+  Widget _buildCoordinatorReportCard(ReportEntity report, String? emergencyType, double severity, double distance) {
+    final assignedUserId = report.state?.assigned;
+    
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Card(
+        elevation: 3,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: InkWell(
+          onTap: () => _showReportDetails(report),
+          borderRadius: BorderRadius.circular(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header with status and priority
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: _getColorForEmergencyType(emergencyType).withValues(alpha: 0.05),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    topRight: Radius.circular(12),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    _buildIncidentIcon(emergencyType, severity),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Report #${report.id} • ${report.title}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              _buildSeverityIndicator(severity),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Type: ${report.state?.emergencySubType ?? 'Unspecified'} • ${report.formattedTime}',
+                            style: TextStyle(
+                              color: Colors.grey[700],
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Main content
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Description
+                    if (report.description.isNotEmpty && report.description != 'No description')
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Text(
+                          report.description,
+                          style: TextStyle(
+                            color: Colors.grey[800],
+                            fontSize: 14,
+                            height: 1.4,
+                          ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    
+                    // Location
+                    Row(
+                      children: [
+                        Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _formatShortAddress(report.fullAddress),
+                            style: TextStyle(
+                              color: Colors.grey[700],
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '${distance.toStringAsFixed(1)} km',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 12),
+                    
+                    // Status and assignment row
+                    Row(
+                      children: [
+                        // Assignment status
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Icon(
+                                assignedUserId != null && assignedUserId > 0
+                                  ? Icons.assignment_ind
+                                  : Icons.person_outline,
+                                size: 16,
+                                color: assignedUserId != null && assignedUserId > 0
+                                  ? Colors.green[600]
+                                  : Colors.grey[600],
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                assignedUserId != null && assignedUserId > 0
+                                  ? 'Assigned to: User #$assignedUserId'
+                                  : 'Unassigned',
+                                style: TextStyle(
+                                  color: assignedUserId != null && assignedUserId > 0
+                                    ? Colors.green[700]
+                                    : Colors.grey[600],
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        
+                        // Quick actions
+                        _buildQuickActions(report),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -1593,39 +1931,14 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
       width: 48,
       height: 48,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Icon(icon, color: color, size: 24),
     );
   }
 
-  Widget _buildIncidentMetadata(ReportEntity report, double distance) {
-    return Row(
-      children: [
-        Icon(Icons.access_time, size: 14, color: Colors.grey[500]),
-        const SizedBox(width: 4),
-        Text(
-          '${report.formattedDate} - ${report.formattedTime}',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[500],
-          ),
-        ),
-        const Spacer(),
-        Icon(Icons.location_on, size: 14, color: Colors.grey[500]),
-        const SizedBox(width: 4),
-        Text(
-          '${distance.toStringAsFixed(1)} km',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[500],
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildSeverityIndicator(double severity) {
     Color color;
@@ -1644,9 +1957,9 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.5)),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
       child: Text(
         label,
@@ -1757,7 +2070,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
 
   Widget _buildLocationLoadingOverlay() {
     return Container(
-      color: Colors.white.withOpacity(0.9),
+      color: Colors.white.withValues(alpha: 0.9),
       child: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1776,7 +2089,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
 
   Widget _buildLocationErrorOverlay() {
     return Container(
-      color: Colors.white.withOpacity(0.9),
+      color: Colors.white.withValues(alpha: 0.9),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1905,7 +2218,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
             border: Border.all(color: Colors.white, width: 3),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.2),
+                color: Colors.black.withValues(alpha: 0.2),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -1947,7 +2260,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
               ),
               boxShadow: [
                 BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha: 0.2),
                     blurRadius: 4,
                     offset: const Offset(0, 2)),
               ],
@@ -1972,7 +2285,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     final currentUserId = context.read<AuthCubit>().userId;
 
     return _otherUsers
-        .where((user) => user.id.toString() != currentUserId)
+        .where((user) => user.id.toString() != currentUserId.toString())
         .map((user) {
       return Marker(
         width: 25,
@@ -1988,7 +2301,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
               border: Border.all(color: Colors.white, width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.25),
+                  color: Colors.black.withValues(alpha: 0.25),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -2217,7 +2530,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
                         return FilterChip(
                           label: Text(category.toUpperCase()),
                           selected: isSelected,
-                          selectedColor: _getCategoryColor(category).withOpacity(0.2),
+                          selectedColor: _getCategoryColor(category).withValues(alpha: 0.2),
                           checkmarkColor: _getCategoryColor(category),
                           onSelected: (selected) {
                             setState(() {
@@ -2246,7 +2559,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
                           return FilterChip(
                             label: Text(status.toUpperCase()),
                             selected: isSelected,
-                            selectedColor: _getStatusColor(status).withOpacity(0.2),
+                            selectedColor: _getStatusColor(status).withValues(alpha: 0.2),
                             checkmarkColor: _getStatusColor(status),
                             onSelected: (selected) {
                               setState(() {
@@ -2273,7 +2586,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
                           FilterChip(
                             label: const Text('HIGH PRIORITY'),
                             selected: _priorityFilter == 'high',
-                            selectedColor: Colors.red.withOpacity(0.2),
+                            selectedColor: Colors.red.withValues(alpha: 0.2),
                             checkmarkColor: Colors.red,
                             onSelected: (selected) {
                               setState(() {
@@ -2285,7 +2598,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
                           FilterChip(
                             label: const Text('MEDIUM PRIORITY'),
                             selected: _priorityFilter == 'medium',
-                            selectedColor: Colors.orange.withOpacity(0.2),
+                            selectedColor: Colors.orange.withValues(alpha: 0.2),
                             checkmarkColor: Colors.orange,
                             onSelected: (selected) {
                               setState(() {
@@ -2297,7 +2610,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
                           FilterChip(
                             label: const Text('LOW PRIORITY'),
                             selected: _priorityFilter == 'low',
-                            selectedColor: Colors.green.withOpacity(0.2),
+                            selectedColor: Colors.green.withValues(alpha: 0.2),
                             checkmarkColor: Colors.green,
                             onSelected: (selected) {
                               setState(() {
@@ -2525,7 +2838,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: _getUserRoleColor(user.primaryRole)
-                              .withOpacity(0.1),
+                              .withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -2836,7 +3149,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     return AppBar(
       title: Text(_getAppTitle()),
       elevation: 2,
-      shadowColor: Colors.black.withOpacity(0.1),
+      shadowColor: Colors.black.withValues(alpha: 0.1),
       actions: [
         if (_networkError != null)
           IconButton(
