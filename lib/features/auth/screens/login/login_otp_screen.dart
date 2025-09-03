@@ -5,13 +5,11 @@ import 'package:pinput/pinput.dart';
 
 import '../../../../widgets/loading_ui.dart';
 import '../../cubit/auth_cubit.dart';
-import '../../models/user_type.dart';
 
 class LoginOtpScreen extends StatelessWidget {
-  final UserType userType;
   final AuthCubit cubit;
 
-  LoginOtpScreen({super.key, required this.userType, required this.cubit});
+  LoginOtpScreen({super.key, required this.cubit});
 
   final formKey = GlobalKey<FormState>();
 
@@ -38,7 +36,7 @@ class LoginOtpScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print("user type ${userType.toString()} we are in login");
+    debugPrint("Login OTP screen loaded");
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -55,17 +53,19 @@ class LoginOtpScreen extends StatelessWidget {
             final cubit = context.read<AuthCubit>();
 
             if (state is VerifyCodeSuccess) {
-              cubit.login(userType);
+              cubit.login();
             }
 
             if (state is AuthSuccess) {
-              Widget dashboard;
-              dashboard = UnifiedDashboardScreen(userType: userType);
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => dashboard),
-                (route) => false,
-              );
+              final userType = cubit.userType;
+              if (userType != null) {
+                Widget dashboard = UnifiedDashboardScreen(userType: userType);
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => dashboard),
+                  (route) => false,
+                );
+              }
             }
           },
           builder: (context, state) {
@@ -174,7 +174,7 @@ class LoginOtpScreen extends StatelessWidget {
                                                 .validate()) {
                                               // You can use either checkOtp or the login method depending on your flow.
                                               // The login() method is designed for this purpose in the cubit.
-                                              cubit.login(userType);
+                                              cubit.login();
                                             }
                                           },
                                           style: ElevatedButton.styleFrom(

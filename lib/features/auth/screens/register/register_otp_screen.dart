@@ -5,13 +5,11 @@ import 'package:pinput/pinput.dart';
 
 import '../../../../widgets/loading_ui.dart';
 import '../../cubit/auth_cubit.dart';
-import '../../models/user_type.dart';
 
 class RegisterOtpScreen extends StatelessWidget {
-  final UserType userType;
   final AuthCubit cubit;
 
-  RegisterOtpScreen({super.key, required this.userType, required this.cubit});
+  RegisterOtpScreen({super.key, required this.cubit});
 
   final formKey = GlobalKey<FormState>();
 
@@ -54,18 +52,19 @@ class RegisterOtpScreen extends StatelessWidget {
             final cubit = context.read<AuthCubit>();
 
             if (state is VerifyCodeSuccess) {
-              cubit.register(userType);
+              cubit.register();
             }
 
             if (state is AuthSuccess) {
-              Widget dashboard;
-              dashboard = UnifiedDashboardScreen(userType: userType);
-
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => dashboard),
-                (route) => false,
-              );
+              final userType = cubit.userType;
+              if (userType != null) {
+                Widget dashboard = UnifiedDashboardScreen(userType: userType);
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => dashboard),
+                  (route) => false,
+                );
+              }
             }
           },
           builder: (context, state) {
@@ -172,7 +171,7 @@ class RegisterOtpScreen extends StatelessWidget {
                                             if (formKey.currentState!
                                                 .validate()) {
                                               // The register() method in the cubit is designed for this step.
-                                              cubit.register(userType);
+                                              cubit.register();
                                             }
                                           },
                                           style: ElevatedButton.styleFrom(

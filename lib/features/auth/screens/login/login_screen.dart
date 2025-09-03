@@ -2,29 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../cubit/auth_cubit.dart';
-import '../../models/user_type.dart';
 import '../../../../widgets/loading_ui.dart';
 import '../register/register_screen.dart';
 import 'login_otp_screen.dart';
 
 class LoginScreen extends StatelessWidget {
-  final UserType userType;
-
-  LoginScreen({super.key, required this.userType});
+  LoginScreen({super.key});
 
   final formKey = GlobalKey<FormFieldState>();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back, color: Colors.red),
-        ),
-      ),
       body: BlocConsumer<AuthCubit, AuthState>(
         listener: (context, state) {
           final cubit = context.read<AuthCubit>();
@@ -33,7 +22,6 @@ class LoginScreen extends StatelessWidget {
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => LoginOtpScreen(
-                  userType: userType,
                   cubit: cubit,
                 ),
               ),
@@ -99,9 +87,9 @@ class LoginScreen extends StatelessWidget {
                               const SizedBox(height: 8),
       
                               // Subtitle
-                              Text(
-                                'Verify your identity as a ${userType.name}',
-                                style: const TextStyle(
+                              const Text(
+                                'Enter your phone number to sign in',
+                                style: TextStyle(
                                   fontSize: 14,
                                   color: Colors.grey,
                                 ),
@@ -163,9 +151,7 @@ class LoginScreen extends StatelessWidget {
                               TextButton(
                                 onPressed: () => Navigator.of(context).push(
                                   MaterialPageRoute(
-                                    builder: (context) => RegisterScreen(
-                                      userType: userType,
-                                    ),
+                                    builder: (context) => RegisterScreen(),
                                   ),
                                 ),
                                 child: const Text(
