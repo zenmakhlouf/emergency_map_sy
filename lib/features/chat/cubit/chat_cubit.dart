@@ -11,15 +11,13 @@ class ChatCubit extends Cubit<ChatState> {
   final ChatRepository _repo;
   
   // Track conversations to prevent duplicates
-  List<ConversationSummary> _cachedChats = [];
-  Map<int, bool> _pendingConversations = {}; // userId -> isPending
+  final Map<int, bool> _pendingConversations = {}; // userId -> isPending
   int? _activeEmergencyConversationId; // Track active emergency conversation
 
   Future<void> loadChats() async {
     emit(ChatLoading());
     try {
       final chats = await _repo.fetchChats();
-      _cachedChats = chats;
       
       // Find active emergency conversation (most recent with submitted status)
       _activeEmergencyConversationId = _findActiveEmergencyConversation(chats);
@@ -146,32 +144,71 @@ class ChatCubit extends Cubit<ChatState> {
   /// Find the most recent active emergency conversation for the current user
   int? _findActiveEmergencyConversation(List<ConversationSummary> chats) {
     try {
-      // Look for recent conversations that could be active emergencies
-      // Since the ChatTopic model doesn't include status/report, we'll look for recent chats
-      // that are likely to be emergency conversations (created within last 24 hours)
-      final now = DateTime.now();
-      final oneDayAgo = now.subtract(const Duration(days: 1));
-      
-      final recentChats = chats.where((chat) {
-        if (chat.createdAt == null) return false;
-        try {
-          final createdAt = DateTime.parse(chat.createdAt!);
-          return createdAt.isAfter(oneDayAgo);
-        } catch (e) {
-          return false;
+      // Look for conversations with active emergency status and reports
+      final activeEmergencies = chats.where((chat) {
+        // Must have a topic with status and report
+        if (chat.topic.latestStatus == null || chat.topic.report == null) return false;
+        
+        // Must be an active emergency status
+        if (!chat.topic.latestStatus!.isActive) return false;
+        
+        // Must have emergency report data
+        if (!chat.topic.report!.hasEmergencyData) return false;
+        
+        // Must be recent (within 24 hours)
+        if (chat.createdAt != null) {
+          try {
+            final createdAt = DateTime.parse(chat.createdAt!);
+            final oneDayAgo = DateTime.now().subtract(const Duration(days: 1));
+            return createdAt.isAfter(oneDayAgo);
+          } catch (e) {
+            return false;
+          }
         }
+        
+        return false;
       }).toList();
       
-      if (recentChats.isNotEmpty) {
+      if (activeEmergencies.isNotEmpty) {
         // Sort by creation date and return the most recent one
-        recentChats.sort((a, b) => 
+        activeEmergencies.sort((a, b) => 
           DateTime.parse(b.createdAt ?? '').compareTo(
             DateTime.parse(a.createdAt ?? '')
           )
         );
-        debugPrint('[ChatCubit] Found recent conversation: ${recentChats.first.id}');
-        return recentChats.first.id;
+        final activeChat = activeEmergencies.first;
+        debugPrint('[ChatCubit] Found active emergency conversation: ${activeChat.id} with status: ${activeChat.topic.latestStatus?.status}');
+        return activeChat.id;
       }
+      
+      // Fallback: Look for any recent conversations with reports (less strict)
+      final emergencyChats = chats.where((chat) {
+        if (chat.topic.report == null || !chat.topic.report!.hasEmergencyData) return false;
+        
+        if (chat.createdAt != null) {
+          try {
+            final createdAt = DateTime.parse(chat.createdAt!);
+            final oneDayAgo = DateTime.now().subtract(const Duration(days: 1));
+            return createdAt.isAfter(oneDayAgo);
+          } catch (e) {
+            return false;
+          }
+        }
+        
+        return false;
+      }).toList();
+      
+      if (emergencyChats.isNotEmpty) {
+        emergencyChats.sort((a, b) => 
+          DateTime.parse(b.createdAt ?? '').compareTo(
+            DateTime.parse(a.createdAt ?? '')
+          )
+        );
+        final emergencyChat = emergencyChats.first;
+        debugPrint('[ChatCubit] Found emergency conversation (fallback): ${emergencyChat.id}');
+        return emergencyChat.id;
+      }
+      
     } catch (e) {
       debugPrint('[ChatCubit] Error finding active emergency conversation: $e');
     }
