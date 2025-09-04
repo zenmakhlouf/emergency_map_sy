@@ -1,7 +1,9 @@
+import 'package:emergency_map_sy/features/assignments/cubit/assignments_cubit.dart';
 import 'package:emergency_map_sy/features/auth/models/user_type.dart';
+import 'package:emergency_map_sy/features/dashboard/unififed_dashboard.dart';
 import 'package:emergency_map_sy/features/users_location/cubit/userslocation_cubit.dart';
 import 'package:emergency_map_sy/features/users_location/repo/locationservice.dart';
-import 'package:emergency_map_sy/screens/unified_dashboard.dart';
+//import 'package:emergency_map_sy/screens/unified_dashboard.dart';
 import 'package:emergency_map_sy/utils/urls.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -28,6 +30,8 @@ void main() async {
                 LocationService(dio: Network.dio, baseUrl: Urls.baseUrl),
           ),
         ),
+        BlocProvider(create: (_) => AssignmentsCubit()),
+
       ],
       child: const MyApp(),
     ),
