@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:dio/io.dart';
 import 'package:dio/dio.dart';
-
+import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import 'server_exception.dart';
 
 class Network {
@@ -21,18 +21,18 @@ class Network {
     );
 
    // Debugging interceptor (optional, enable for dev builds only)
-    // dio.interceptors.add(
-    //   PrettyDioLogger(
-    //     requestHeader: false,
-    //     requestBody: true,
-    //     responseBody: true,
-    //     responseHeader: false,
-    //     error: true,
-    //     request: true,
-    //     compact: true,
-    //     maxWidth: 1000,
-    //   ),
-    // );
+    dio.interceptors.add(
+      PrettyDioLogger(
+        requestHeader: false,
+        requestBody: true,
+        responseBody: true,
+        responseHeader: false,
+        error: true,
+        request: true,
+        compact: true,
+        maxWidth: 1000,
+      ),
+    );
 
     // Global error interceptor
     dio.interceptors.add(
