@@ -4,6 +4,8 @@ enum EmergencyTypeApi {
   fire,
   police,
   medical,
+  civil,
+  traffic,
   other,
 }
 
@@ -32,10 +34,124 @@ class ReportLocation {
   }
 }
 
+class UserRole {
+  final int id;
+  final String name;
+  final String guardName;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  const UserRole({
+    required this.id,
+    required this.name,
+    required this.guardName,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory UserRole.fromJson(Map<String, dynamic> json) {
+    return UserRole(
+      id: json['id'] as int,
+      name: json['name'] as String,
+      guardName: json['guard_name'] as String,
+      createdAt: DateTime.parse(json['created_at']),
+      updatedAt: DateTime.parse(json['updated_at']),
+    );
+  }
+}
+
+class User {
+  final int id;
+  final String name;
+  final String? email;
+  final String? password;
+  final String? lastActiveAt;
+  final String? lastLoginAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final List<UserRole> roles;
+
+  const User({
+    required this.id,
+    required this.name,
+    this.email,
+    this.password,
+    this.lastActiveAt,
+    this.lastLoginAt,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.roles,
+  });
+
+  factory User.fromJson(Map<String, dynamic> json) {
+    return User(
+      id: json['id'] as int,
+      name: json['name'] as String,
+      email: json['email'] as String?,
+      password: json['password'] as String?,
+      lastActiveAt: json['last_active_at'] as String?,
+      lastLoginAt: json['last_login_at'] as String?,
+      createdAt: DateTime.parse(json['created_at']),
+      updatedAt: DateTime.parse(json['updated_at']),
+      roles: (json['roles'] as List<dynamic>?)
+              ?.map((role) => UserRole.fromJson(role))
+              .toList() ??
+          [],
+    );
+  }
+}
+
+class ParticipationRequest {
+  final int id;
+  final User initiator;
+  final User responder;
+  final String status;
+  final dynamic report; // Can be null or ReportEntity
+
+  const ParticipationRequest({
+    required this.id,
+    required this.initiator,
+    required this.responder,
+    required this.status,
+    this.report,
+  });
+
+  factory ParticipationRequest.fromJson(Map<String, dynamic> json) {
+    return ParticipationRequest(
+      id: json['id'] as int,
+      initiator: User.fromJson(json['initiator']),
+      responder: User.fromJson(json['responder']),
+      status: json['status'] as String,
+      report: json['report'], // Keep as dynamic for now
+    );
+  }
+}
+
+class ReportDetails {
+  final String? name;
+  final String? description;
+  final String? text;
+
+  const ReportDetails({
+    this.name,
+    this.description,
+    this.text,
+  });
+
+  factory ReportDetails.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const ReportDetails();
+    return ReportDetails(
+      name: json['name']?.toString(),
+      description: json['discription']?.toString(), // Note: API uses "discription"
+      text: json['text']?.toString(),
+    );
+  }
+}
+
 class ReportStateApi {
-  final String? report;
-  final double? severity; // severity is now a decimal from API
-  final String? emergencyType; // raw string from backend, may be upper/lower
+  final ReportDetails? report;
+  final double? severity;
+  final String? emergencyType;
   final String? emergencySubType;
   final String? status;
   final String? priority;
@@ -61,32 +177,16 @@ class ReportStateApi {
     } else if (rawSeverity is num) {
       parsedSeverity = rawSeverity.toDouble();
     } else {
-      final String s = rawSeverity.toString().trim().toLowerCase();
-      // Map common words to numeric scale temporarily until backend fixes to double
-      switch (s) {
-        case 'critical':
-          parsedSeverity = 0.9;
-          break;
-        case 'high':
-          parsedSeverity = 0.7;
-          break;
-        case 'medium':
-          parsedSeverity = 0.5;
-          break;
-        case 'low':
-          parsedSeverity = 0.3;
-          break;
-        default:
-          parsedSeverity = double.tryParse(s);
-          if (parsedSeverity == null) {
-            debugPrint(
-                '[reports] Bad severity value "$rawSeverity"; storing null and surfacing in UI');
-          }
+      final String s = rawSeverity.toString().trim();
+      parsedSeverity = double.tryParse(s);
+      if (parsedSeverity == null) {
+        debugPrint(
+            '[reports] Bad severity value "$rawSeverity"; storing null');
       }
     }
 
     return ReportStateApi(
-      report: json['report']?.toString(),
+      report: ReportDetails.fromJson(json['report'] as Map<String, dynamic>?),
       severity: parsedSeverity,
       emergencyType: json['emergency_type']?.toString(),
       emergencySubType: json['emergency_sub_type']?.toString(),
@@ -120,12 +220,16 @@ class ReportEntity {
   final ReportConversation? conversation;
   final ReportLocation location;
   final ReportStateApi? state;
+  final List<ParticipationRequest> participationRequests;
   final String? distance;
 
   // Convenience properties for UI
   String get title => state?.emergencyType ?? 'Emergency';
   String get description {
-    final String? raw = state?.report ?? location.address;
+    final String? raw = state?.report?.description ?? 
+                        state?.report?.name ?? 
+                        state?.report?.text ?? 
+                        location.address;
     if (raw == null || raw.trim().isEmpty) return 'No description';
     return raw;
   }
@@ -158,6 +262,7 @@ class ReportEntity {
     this.conversation,
     required this.location,
     required this.state,
+    required this.participationRequests,
     required this.distance,
   });
 
@@ -184,6 +289,10 @@ class ReportEntity {
       location:
           ReportLocation.fromJson(json['location'] as Map<String, dynamic>?),
       state: ReportStateApi.fromJson(json['state'] as Map<String, dynamic>?),
+      participationRequests: (json['participation_requests'] as List<dynamic>?)
+              ?.map((req) => ParticipationRequest.fromJson(req))
+              .toList() ??
+          [],
       distance: json['distance']?.toString(),
     );
   }

@@ -3,6 +3,7 @@ import '../../features/reports/models/report.dart';
 import '../../features/users_location/repo/locationservice.dart';
 import '../../features/assignments/cubit/assignments_cubit.dart';
 import '../../features/auth/models/user_type.dart';
+import '../../services/geocoding_service.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -12,7 +13,7 @@ import 'helpers.dart';
 // REPORT DETAILS SHEET
 // ============================================================================
 
-class ReportDetailsSheet extends StatelessWidget {
+class ReportDetailsSheet extends StatefulWidget {
   final ReportEntity report;
   final LatLng currentPosition;
   final Function(ReportEntity) onLocateOnMap;
@@ -25,6 +26,7 @@ class ReportDetailsSheet extends StatelessWidget {
   final UserType userType;
   final List<UserLocationEntity> availableResponders;
   final AssignmentsCubit? assignmentsCubit;
+  final int? currentUserId;
 
   const ReportDetailsSheet({
     super.key,
@@ -37,43 +39,478 @@ class ReportDetailsSheet extends StatelessWidget {
     required this.userType,
     this.availableResponders = const [],
     this.assignmentsCubit,
+    this.currentUserId,
   });
 
   @override
+  State<ReportDetailsSheet> createState() => _ReportDetailsSheetState();
+}
+
+class _ReportDetailsSheetState extends State<ReportDetailsSheet> {
+  String? geocodedAddress;
+  bool isGeocodingLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _geocodeAddress();
+  }
+
+  Future<void> _geocodeAddress() async {
+    if (mounted) {
+      setState(() => isGeocodingLoading = true);
+    }
+    
+    try {
+      final result = await GeocodingService.reverseGeocode(
+        LatLng(widget.report.latitude, widget.report.longitude),
+        language: 'ar',
+      );
+      
+      if (mounted) {
+        setState(() {
+          geocodedAddress = result.mediumAddress;
+          isGeocodingLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          geocodedAddress = 'موقع غير محدد';
+          isGeocodingLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: 80),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.75,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildDragHandle(),
+            _buildCompactHeader(),
+            _buildContent(),
+          ],
+        ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+    );
+  }
+
+  Widget _buildDragHandle() {
+    return Container(
+      margin: const EdgeInsets.only(top: 12, bottom: 8),
+      width: 40,
+      height: 4,
+      decoration: BoxDecoration(
+        color: Colors.grey[300],
+        borderRadius: BorderRadius.circular(2),
+      ),
+    );
+  }
+
+  Widget _buildCompactHeader() {
+    final emergencyColor = getColorForEmergencyType(widget.report.state?.emergencyType);
+    final severity = widget.report.state?.severity ?? 0.5;
+    
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: emergencyColor.withOpacity(0.1),
+        border: Border(
+          bottom: BorderSide(color: emergencyColor.withOpacity(0.3), width: 1),
+        ),
+      ),
+      child: Row(
         children: [
-          // Handle bar
           Container(
-            margin: const EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
+            width: 50,
+            height: 50,
             decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
+              color: emergencyColor.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              getIconForEmergencyType(widget.report.state?.emergencyType),
+              color: emergencyColor,
+              size: 28,
             ),
           ),
-          Flexible(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(report),
-                  const Divider(height: 32),
-                  _buildDescription(report),
-                  const SizedBox(height: 24),
-                  _buildLocationSection(report),
-                  const SizedBox(height: 24),
-                  _buildActionButtons(context, report),
-                ],
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.report.state?.report?.name ?? 
+                  _getEmergencyTypeArabic(widget.report.state?.emergencyType),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: emergencyColor,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Text(
+                      '${widget.report.formattedDate} • ${widget.report.formattedTime}',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 13,
+                      ),
+                    ),
+                    const Spacer(),
+                    _buildCompactSeverityBadge(severity),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactSeverityBadge(double severity) {
+    final color = _getSeverityColor(severity);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.5)),
+      ),
+      child: Text(
+        _getSeverityLabel(severity),
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w600,
+          fontSize: 11,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    return Flexible(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (widget.report.state?.report?.description != null ||
+                widget.report.state?.report?.text != null)
+              _buildDescriptionSection(),
+            const SizedBox(height: 16),
+            _buildLocationSection(),
+            const SizedBox(height: 16),
+            _buildCompactStatusSection(),
+            if (widget.userType == UserType.coordinator &&
+                widget.report.participationRequests.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _buildCompactParticipationSection(),
+            ],
+            const SizedBox(height: 20),
+            _buildActionButtons(context, widget.report),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDescriptionSection() {
+    final reportDetails = widget.report.state?.report;
+    if (reportDetails == null) return const SizedBox.shrink();
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (reportDetails.description != null && reportDetails.description!.isNotEmpty) ...[
+          Text(
+            reportDetails.description!,
+            style: const TextStyle(
+              fontSize: 15,
+              height: 1.4,
+              color: Colors.black87,
+            ),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ] else if (reportDetails.text != null && reportDetails.text!.isNotEmpty) ...[
+          Text(
+            reportDetails.text!
+                .split('\n')
+                .where((line) => line.trim().isNotEmpty && !line.startsWith('🚨') && !line.startsWith('⚠️'))
+                .join('\n')
+                .trim(),
+            style: const TextStyle(
+              fontSize: 15,
+              height: 1.4,
+              color: Colors.black87,
+            ),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildLocationSection() {
+    final distance = calculateDistance(
+      widget.currentPosition, 
+      LatLng(widget.report.latitude, widget.report.longitude)
+    );
+    
+    return Row(
+      children: [
+        Icon(Icons.location_on, color: Colors.blue.shade600, size: 18),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (isGeocodingLoading)
+                Row(
+                  children: [
+                    const SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'جاري تحديد الموقع...',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Text(
+                  geocodedAddress ?? 'موقع غير محدد',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                  ),
+                ),
+              const SizedBox(height: 2),
+              Text(
+                'المسافة: ${distance.toStringAsFixed(1)} كم',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCompactStatusSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.grey.shade700, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'حالة البلاغ',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildCompactInfoItem(
+                  'النوع',
+                  _getEmergencyTypeArabic(widget.report.state?.emergencyType),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildCompactInfoItem(
+                  'النوع الفرعي',
+                  _getEmergencySubTypeArabic(widget.report.state?.emergencySubType),
+                ),
+              ),
+            ],
+          ),
+          if (widget.userType == UserType.coordinator || 
+              widget.report.state?.assigned != null ||
+              widget.report.participationRequests.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildCompactInfoItem(
+                    'المكلفون',
+                    '${widget.report.state?.assigned ?? 0}',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildCompactInfoItem(
+                    'طلبات الاستجابة',
+                    '${widget.report.participationRequests.length}',
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactInfoItem(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCompactParticipationSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.people, color: Colors.orange.shade600, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'طلبات الاستجابة (${widget.report.participationRequests.length})',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.orange.shade800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...widget.report.participationRequests.take(3).map((request) => 
+            _buildCompactParticipationItem(request)),
+          if (widget.report.participationRequests.length > 3)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                '+ ${widget.report.participationRequests.length - 3} طلبات أخرى',
+                style: TextStyle(
+                  color: Colors.orange.shade700,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactParticipationItem(ParticipationRequest request) {
+    final statusColor = _getRequestStatusColor(request.status);
+    
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: Colors.blue.shade100,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.person, color: Colors.blue.shade600, size: 16),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              request.responder.name,
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: statusColor.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              _getRequestStatusArabic(request.status),
+              style: TextStyle(
+                color: statusColor,
+                fontWeight: FontWeight.w600,
+                fontSize: 11,
               ),
             ),
           ),
@@ -82,186 +519,320 @@ class ReportDetailsSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(ReportEntity report) {
-    return Row(
-      children: [
-        _buildIncidentIcon(
-          report.state?.emergencyType,
-          report.state?.severity ?? 0.5,
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                report.title,
-                style:
-                    const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${report.formattedDate} at ${report.formattedTime}',
-                style: TextStyle(color: Colors.grey[600], fontSize: 14),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Distance: ${calculateDistance(currentPosition, LatLng(report.latitude, report.longitude)).toStringAsFixed(1)} km',
-                style: TextStyle(color: Colors.grey[600], fontSize: 14),
-              ),
-            ],
+  Widget _buildParticipationRequestItem(ParticipationRequest request) {
+    final statusColor = _getRequestStatusColor(request.status);
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.blue.shade100,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.person, color: Colors.blue.shade600, size: 20),
           ),
-        ),
-        _buildSeverityIndicator(report.state?.severity ?? 0.5),
-      ],
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  request.responder.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
+                Text(
+                  'مستجيب • ${request.responder.roles.map((r) => r.name).join(', ')}',
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: statusColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: statusColor.withOpacity(0.3)),
+            ),
+            child: Text(
+              _getRequestStatusArabic(request.status),
+              style: TextStyle(
+                color: statusColor,
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildDescription(ReportEntity report) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Description',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+  Widget _buildInfoItem(IconData icon, String label, String value, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.3)),
         ),
-        const SizedBox(height: 8),
-        Text(
-          report.description,
-          style: const TextStyle(fontSize: 16, height: 1.5),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLocationSection(ReportEntity report) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Location',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                report.fullAddress,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: color, size: 16),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Coordinates: ${report.latitude.toStringAsFixed(4)}, ${report.longitude.toStringAsFixed(4)}',
-                style: TextStyle(color: Colors.grey[600], fontSize: 12),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
   Widget _buildActionButtons(BuildContext context, ReportEntity report) {
-    List<Widget> firstRow = [
-      Expanded(
-        child: OutlinedButton.icon(
-          onPressed: () {
-            Navigator.pop(context);
-            onLocateOnMap(report);
-          },
-          icon: const Icon(Icons.map_outlined),
-          label: const Text('View on Map'),
-        ),
-      ),
-    ];
-
-    if (onChat != null) {
-      // Different action based on user type
-      if (userType == UserType.coordinator) {
-        // Coordinators get "Assign Responders" button
-        firstRow.addAll([
-          const SizedBox(width: 12),
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: () => _showResponderAssignmentModal(context),
-              icon: const Icon(Icons.assignment_ind),
-              label: const Text('Assign'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue.shade600,
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ),
-        ]);
-      } else {
-        // Responders get regular "Respond" button
-        firstRow.addAll([
-          const SizedBox(width: 12),
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pop(context);
-                onAssignToSelf(report);
-              },
-              icon: const Icon(Icons.assignment_turned_in),
-              label: const Text('Respond'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green.shade600,
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ),
-        ]);
-      }
-    }
-
-    List<Widget> secondRow = [];
-    if (onChat != null) {
-      secondRow.add(
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () {
-              Navigator.pop(context);
-              onGetDirections(report);
-            },
-            icon: const Icon(Icons.directions),
-            label: const Text('Directions'),
-          ),
-        ),
-      );
-
-      if (onChat != null) {
-        secondRow.add(const SizedBox(width: 12));
-        secondRow.add(
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: () {
-                Navigator.pop(context);
-                onChat!(report);
-              },
-              icon: const Icon(Icons.chat_outlined),
-              label: const Text('Chat'),
-            ),
-          ),
-        );
-      }
-    }
-
+    // Check if current user is a citizen who owns this report
+    final isOwnedByCitizen = widget.userType == UserType.citizen && 
+                             widget.currentUserId != null && 
+                             report.initiatorId == widget.currentUserId;
+    
     return Column(
       children: [
-        Row(children: firstRow),
-        if (secondRow.isNotEmpty) ...[
+        // Primary Actions Row
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionButton(
+                icon: Icons.map_outlined,
+                label: 'عرض على الخريطة',
+                onPressed: () {
+                  Navigator.pop(context);
+                  widget.onLocateOnMap(report);
+                },
+                isPrimary: false,
+              ),
+            ),
+            const SizedBox(width: 12),
+            if (isOwnedByCitizen && widget.onChat != null)
+              Expanded(
+                child: _buildActionButton(
+                  icon: Icons.chat_bubble_outline,
+                  label: 'الدردشة',
+                  onPressed: () {
+                    Navigator.pop(context);
+                    widget.onChat!(report);
+                  },
+                  isPrimary: true,
+                  color: Colors.blue,
+                ),
+              )
+            else if (widget.userType == UserType.coordinator)
+              Expanded(
+                child: _buildActionButton(
+                  icon: Icons.assignment_ind,
+                  label: 'تكليف مستجيب',
+                  onPressed: () => _showResponderAssignmentModal(context),
+                  isPrimary: true,
+                  color: Colors.blue,
+                ),
+              )
+            else if (widget.onChat != null)
+              Expanded(
+                child: _buildActionButton(
+                  icon: Icons.assignment_turned_in,
+                  label: 'الاستجابة',
+                  onPressed: () {
+                    Navigator.pop(context);
+                    widget.onAssignToSelf(report);
+                  },
+                  isPrimary: true,
+                  color: Colors.green,
+                ),
+              ),
+          ],
+        ),
+        
+        // Secondary Actions Row (only for responders and coordinators)
+        if (!isOwnedByCitizen && widget.userType != UserType.citizen) ...[
           const SizedBox(height: 12),
-          Row(children: secondRow),
+          Row(
+            children: [
+              Expanded(
+                child: _buildActionButton(
+                  icon: Icons.directions,
+                  label: 'الاتجاهات',
+                  onPressed: () {
+                    Navigator.pop(context);
+                    widget.onGetDirections(report);
+                  },
+                  isPrimary: false,
+                ),
+              ),
+              if (widget.onChat != null) ...[
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildActionButton(
+                    icon: Icons.chat_bubble_outline,
+                    label: 'الدردشة',
+                    onPressed: () {
+                      Navigator.pop(context);
+                      widget.onChat!(report);
+                    },
+                    isPrimary: false,
+                  ),
+                ),
+              ],
+            ],
+          ),
         ],
       ],
     );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+    bool isPrimary = false,
+    Color? color,
+  }) {
+    // Get appropriate background color based on the provided color
+    Color getBackgroundColor() {
+      if (color == Colors.blue) return Colors.blue.shade600;
+      if (color == Colors.green) return Colors.green.shade600;
+      if (color == Colors.red) return Colors.red.shade600;
+      if (color == Colors.orange) return Colors.orange.shade600;
+      return Colors.blue.shade600; // default fallback
+    }
+    
+    return isPrimary 
+      ? ElevatedButton.icon(
+          onPressed: onPressed,
+          icon: Icon(icon, size: 20),
+          label: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: getBackgroundColor(),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 2,
+          ),
+        )
+      : OutlinedButton.icon(
+          onPressed: onPressed,
+          icon: Icon(icon, size: 20),
+          label: Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            side: BorderSide(color: Colors.grey.shade300),
+          ),
+        );
+  }
+
+  // Helper methods for UI elements
+  Color _getSeverityColor(double severity) {
+    if (severity >= 0.8) return Colors.red.shade600;
+    if (severity >= 0.6) return Colors.orange.shade600;
+    return Colors.yellow.shade700;
+  }
+
+  IconData _getSeverityIcon(double severity) {
+    if (severity >= 0.8) return Icons.warning;
+    if (severity >= 0.6) return Icons.priority_high;
+    return Icons.info_outline;
+  }
+
+  String _getSeverityLabel(double severity) {
+    if (severity >= 0.8) return 'عالي';
+    if (severity >= 0.6) return 'متوسط';
+    return 'منخفض';
+  }
+
+  String _getEmergencyTypeArabic(String? type) {
+    switch (type?.toUpperCase()) {
+      case 'MEDICAL': return 'طبي';
+      case 'FIRE': return 'حريق';
+      case 'POLICE': return 'شرطة';
+      case 'CIVIL': return 'مدني';
+      case 'TRAFFIC': return 'مرور';
+      default: return 'غير محدد';
+    }
+  }
+
+  String _getEmergencySubTypeArabic(String? subType) {
+    switch (subType?.toLowerCase()) {
+      case 'theft': return 'سرقة';
+      case 'murder': return 'قتل';
+      case 'body': return 'جثة';
+      case 'structure_fire': return 'حريق مبنى';
+      case 'major_accident': return 'حادث كبير';
+      case 'complaint': return 'شكوى';
+      case 'warning': return 'تحذير';
+      case 'explosion': return 'انفجار';
+      default: return subType ?? 'غير محدد';
+    }
+  }
+
+  Color _getRequestStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending': return Colors.orange.shade600;
+      case 'accept': return Colors.green.shade600;
+      case 'reject': return Colors.red.shade600;
+      case 'cancelled': return Colors.grey.shade600;
+      default: return Colors.grey.shade600;
+    }
+  }
+
+  String _getRequestStatusArabic(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending': return 'معلق';
+      case 'accept': return 'مقبول';
+      case 'reject': return 'مرفوض';
+      case 'cancelled': return 'ملغى';
+      default: return status;
+    }
   }
 
   // Helper widgets also used on cards, duplicated here for encapsulation
@@ -314,7 +885,7 @@ class ReportDetailsSheet extends StatelessWidget {
   }
 
   void _showResponderAssignmentModal(BuildContext context) {
-    if (assignmentsCubit == null) {
+    if (widget.assignmentsCubit == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Assignment functionality not available'),
@@ -329,10 +900,10 @@ class ReportDetailsSheet extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => ResponderAssignmentModal(
-        report: report,
-        currentPosition: currentPosition,
-        availableResponders: availableResponders,
-        assignmentsCubit: assignmentsCubit!,
+        report: widget.report,
+        currentPosition: widget.currentPosition,
+        availableResponders: widget.availableResponders,
+        assignmentsCubit: widget.assignmentsCubit!,
       ),
     );
   }

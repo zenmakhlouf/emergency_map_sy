@@ -401,312 +401,308 @@ class ReportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    switch (userType) {
-      case UserType.citizen:
-        return _buildCitizenCard();
-      case UserType.responder:
-        return _buildResponderCard(context);
-      case UserType.coordinator:
-        return _buildCoordinatorCard();
-    }
+    return _buildCompactCard(context);
   }
 
-  Widget _buildCitizenCard() {
-    final reportName = report.state?.report
-            ?.split('\n')
-            .firstWhere((line) => line.startsWith('🚨') || line.contains('نوع'),
-                orElse: () => report.title)
-            .replaceAll(RegExp(r'^🚨[^:]*:?\s*'), '') ??
-        report.title;
+  Widget _buildCompactCard(BuildContext context) {
+    final reportDetails = report.state?.report;
+    final reportName = reportDetails?.name?.trim() ?? _getEmergencyTypeArabic(report.state?.emergencyType);
+    final description = reportDetails?.description?.trim() ?? reportDetails?.text?.split('\n').where((line) => 
+        line.trim().isNotEmpty && 
+        !line.startsWith('🚨') && 
+        !line.startsWith('⚠️') && 
+        !line.startsWith('📝')).join(' ').trim();
     final emergencyType = report.state?.emergencyType;
+    final subType = _getEmergencySubTypeArabic(report.state?.emergencySubType);
     final severity = report.state?.severity ?? 0.0;
+    final severityColor = _getSeverityColor(severity);
+    final emergencyColor = getColorForEmergencyType(emergencyType);
+    final isAssigned = report.state?.assigned != null && report.state!.assigned! > 0;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Card(
-        elevation: 1,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: getColorForEmergencyType(emergencyType)
-                        .withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    getIconForEmergencyType(emergencyType),
-                    color: getColorForEmergencyType(emergencyType),
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(reportName,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 15),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.location_on_outlined,
-                              size: 14, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(formatShortAddress(report.fullAddress),
-                                style: TextStyle(
-                                    color: Colors.grey[600], fontSize: 13),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis),
-                          ),
-                          Text('${distance.toStringAsFixed(1)} km',
-                              style: TextStyle(
-                                  color: Colors.grey[500], fontSize: 12)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                if (severity >= 0.7)
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: severity >= 0.8 ? Colors.red : Colors.orange,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildResponderCard(BuildContext context) {
-    final emergencyType = report.state?.emergencyType;
-    final severity = report.state?.severity ?? 0.0;
-    final isAssigned =
-        report.state?.assigned == context.read<AuthCubit>().userId;
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Card(
-        elevation: isActiveAssignment ? 4 : 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: isActiveAssignment
-              ? BorderSide(color: Colors.blue.shade300, width: 2)
-              : BorderSide.none,
-        ),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [
-                  _IncidentIcon(emergencyType: emergencyType),
-                  const SizedBox(width: 12),
-                  Expanded(
-                      child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(children: [
-                        Expanded(
-                            child: Text(report.title,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w600, fontSize: 16),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis)),
-                        _SeverityIndicator(severity: severity),
-                      ]),
-                      const SizedBox(height: 4),
-                      Text(
-                          '${report.state?.emergencySubType ?? 'غير محدد'} • ${report.formattedTime}',
-                          style:
-                              TextStyle(color: Colors.grey[600], fontSize: 13)),
-                    ],
-                  )),
-                ]),
-                const SizedBox(height: 8),
-                Text(formatShortAddress(report.fullAddress),
-                    style: TextStyle(
-                        color: Colors.grey[700],
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500)),
-                const SizedBox(height: 8),
-                Row(children: [
-                  Expanded(
-                      child: Row(
-                    children: [
-                      Icon(Icons.near_me, size: 14, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Text('${distance.toStringAsFixed(1)} km away',
-                          style:
-                              TextStyle(color: Colors.grey[600], fontSize: 12)),
-                      if (isAssigned) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                              color: Colors.blue.shade100,
-                              borderRadius: BorderRadius.circular(8)),
-                          child: Text('ASSIGNED',
-                              style: TextStyle(
-                                  color: Colors.blue.shade700,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600)),
-                        ),
-                      ],
-                    ],
-                  )),
-                  _QuickActions(onLocateOnMap: onLocateOnMap, onChat: onChat),
-                ]),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCoordinatorCard() {
-    final emergencyType = report.state?.emergencyType;
-    final severity = report.state?.severity ?? 0.0;
-    final assignedUserId = report.state?.assigned;
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Card(
-        elevation: 3,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color:
-                      getColorForEmergencyType(emergencyType).withOpacity(0.05),
-                  borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(12),
-                      topRight: Radius.circular(12)),
-                ),
-                child: Row(children: [
-                  _IncidentIcon(emergencyType: emergencyType),
-                  const SizedBox(width: 12),
-                  Expanded(
-                      child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(children: [
-                        Expanded(
-                            child: Text(
-                                'Report #${report.id} • ${report.title}',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w700, fontSize: 16),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis)),
-                        _SeverityIndicator(severity: severity),
-                      ]),
-                      const SizedBox(height: 4),
-                      Text(
-                          'Type: ${report.state?.emergencySubType ?? 'Unspecified'} • ${report.formattedTime}',
-                          style:
-                              TextStyle(color: Colors.grey[700], fontSize: 13)),
-                    ],
-                  )),
-                ]),
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: Card(
+          elevation: isActiveAssignment ? 3 : 1,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: isActiveAssignment 
+                    ? Border.all(color: Colors.blue.shade400, width: 2)
+                    : Border.all(color: emergencyColor.withOpacity(0.2)),
               ),
-              Padding(
-                padding: const EdgeInsets.all(16),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (report.description.isNotEmpty &&
-                        report.description != 'No description')
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Text(report.description,
-                            style: TextStyle(
-                                color: Colors.grey[800],
-                                fontSize: 14,
-                                height: 1.4),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis),
-                      ),
-                    Row(children: [
-                      Icon(Icons.location_on,
-                          size: 16, color: Colors.grey[600]),
-                      const SizedBox(width: 8),
-                      Expanded(
-                          child: Text(formatShortAddress(report.fullAddress),
-                              style: TextStyle(
-                                  color: Colors.grey[700],
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500))),
-                      Text('${distance.toStringAsFixed(1)} km',
-                          style:
-                              TextStyle(color: Colors.grey[600], fontSize: 13)),
-                    ]),
-                    const SizedBox(height: 12),
-                    Row(children: [
-                      Expanded(
-                          child: Row(children: [
-                        Icon(
-                          assignedUserId != null && assignedUserId > 0
-                              ? Icons.assignment_ind
-                              : Icons.person_outline,
-                          size: 16,
-                          color: assignedUserId != null && assignedUserId > 0
-                              ? Colors.green[600]
-                              : Colors.grey[600],
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          assignedUserId != null && assignedUserId > 0
-                              ? 'Assigned to: User #$assignedUserId'
-                              : 'Unassigned',
-                          style: TextStyle(
-                            color: assignedUserId != null && assignedUserId > 0
-                                ? Colors.green[700]
-                                : Colors.grey[600],
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                    // Header row with icon, title info, and severity
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: emergencyColor.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: emergencyColor.withOpacity(0.3)),
+                          ),
+                          child: Icon(
+                            getIconForEmergencyType(emergencyType),
+                            color: emergencyColor,
+                            size: 22,
                           ),
                         ),
-                      ])),
-                      _QuickActions(
-                          onLocateOnMap: onLocateOnMap, onChat: onChat),
-                    ]),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Report name
+                              Text(
+                                reportName,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
+                                  color: emergencyColor,
+                                  height: 1.2,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              // Subtype and time
+                              Row(
+                                children: [
+                                  Text(
+                                    subType,
+                                    style: TextStyle(
+                                      color: Colors.grey[700],
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  Text(
+                                    ' • ${report.formattedTime}',
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Severity badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: severityColor.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: severityColor.withOpacity(0.5)),
+                          ),
+                          child: Text(
+                            _getSeverityLabel(severity),
+                            style: TextStyle(
+                              color: severityColor,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    
+                    // Description (if available and not empty)
+                    if (description != null && description.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        description,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          height: 1.3,
+                          color: Colors.black87,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    
+                    const SizedBox(height: 8),
+                    
+                    // Distance row
+                    Row(
+                      children: [
+                        Icon(Icons.near_me_outlined, size: 14, color: Colors.blue.shade600),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${distance.toStringAsFixed(1)} كم من موقعك',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 10),
+                    
+                    // Status and actions row
+                    Row(
+                      children: [
+                        // Assignment status (for coordinators and responders)
+                        if (userType != UserType.citizen && isAssigned) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade100,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.assignment_turned_in, size: 12, color: Colors.green.shade700),
+                                const SizedBox(width: 3),
+                                Text(
+                                  'مكلف',
+                                  style: TextStyle(
+                                    color: Colors.green.shade700,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        
+                        // Participation requests
+                        if (report.participationRequests.isNotEmpty) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade100,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.people, size: 12, color: Colors.orange.shade700),
+                                const SizedBox(width: 3),
+                                Text(
+                                  '${report.participationRequests.length}',
+                                  style: TextStyle(
+                                    color: Colors.orange.shade700,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+
+                        // Active assignment indicator
+                        if (isActiveAssignment) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade600,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              'مهمة نشطة',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        
+                        const Spacer(),
+                        
+                        // Action buttons
+                        IconButton(
+                          icon: const Icon(Icons.map_outlined, size: 18),
+                          onPressed: onLocateOnMap,
+                          tooltip: 'عرض على الخريطة',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                          color: Colors.blue.shade600,
+                        ),
+                        if (onChat != null)
+                          IconButton(
+                            icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                            onPressed: onChat,
+                            tooltip: 'الدردشة',
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                            color: Colors.green.shade600,
+                          ),
+                      ],
+                    ),
                   ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
+
+  String _getEmergencyTypeArabic(String? type) {
+    switch (type?.toUpperCase()) {
+      case 'MEDICAL': return 'حالة طبية';
+      case 'FIRE': return 'حريق';
+      case 'POLICE': return 'حالة أمنية';
+      case 'CIVIL': return 'حالة مدنية';
+      case 'TRAFFIC': return 'حادث مروري';
+      default: return 'حالة طوارئ';
+    }
+  }
+
+  String _getEmergencySubTypeArabic(String? subType) {
+    switch (subType?.toLowerCase()) {
+      case 'theft': return 'سرقة';
+      case 'murder': return 'قتل';
+      case 'body': return 'جثة';
+      case 'structure_fire': return 'حريق مبنى';
+      case 'major_accident': return 'حادث كبير';
+      case 'complaint': return 'شكوى';
+      case 'warning': return 'تحذير';
+      case 'explosion': return 'انفجار';
+      case 'violent_crime': return 'جريمة عنف';
+      case 'fight': return 'شجار';
+      case 'unknown_fire': return 'حريق';
+      default: return subType ?? 'غير محدد';
+    }
+  }
+
+  Color _getSeverityColor(double severity) {
+    if (severity >= 0.8) return Colors.red.shade600;
+    if (severity >= 0.6) return Colors.orange.shade600;
+    return Colors.green.shade600;
+  }
+
+  String _getSeverityLabel(double severity) {
+    if (severity >= 0.8) return 'عالي';
+    if (severity >= 0.6) return 'متوسط';
+    return 'منخفض';
+  }
+
 }
 
 // ============================================================================

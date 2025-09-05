@@ -15,7 +15,7 @@ import 'package:emergency_map_sy/features/dashboard/map_view.dart';
 import 'package:emergency_map_sy/features/dashboard/reports_view.dart';
 import 'package:emergency_map_sy/features/profile/screens/profile_screen.dart';
 import 'package:emergency_map_sy/features/reports/cubit/reports_cubit.dart';
-import 'package:emergency_map_sy/features/reports/models/report.dart';
+import 'package:emergency_map_sy/features/reports/models/report.dart' hide ParticipationRequest;
 import 'package:emergency_map_sy/features/users_location/cubit/userslocation_cubit.dart';
 import 'package:emergency_map_sy/features/users_location/repo/locationservice.dart';
 import 'package:emergency_map_sy/screens/helper_functions.dart'
@@ -542,6 +542,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
         userType: widget.userType,
         availableResponders: _otherUsers,
         assignmentsCubit: _assignmentsCubit,
+        currentUserId: context.read<AuthCubit>().userId,
       ),
     );
   }
