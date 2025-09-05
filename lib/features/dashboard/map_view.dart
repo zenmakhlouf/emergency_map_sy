@@ -39,6 +39,7 @@ class MapTabView extends StatelessWidget {
   final Function(ReportEntity) onGetDirections;
   final VoidCallback onClearRoute;
   final Function(String) onUpdateAssignmentStatus;
+  final VoidCallback? onMapReady;
 
   const MapTabView({
     super.key,
@@ -63,6 +64,7 @@ class MapTabView extends StatelessWidget {
     required this.onGetDirections,
     required this.onClearRoute,
     required this.onUpdateAssignmentStatus,
+    this.onMapReady,
   });
 
   @override
@@ -86,6 +88,7 @@ class MapTabView extends StatelessWidget {
         isRefreshing: isRefreshing,
         onCenterMap: onCenterMap,
         onShowFilters: onShowFilters,
+        onMapReady: onMapReady,
       );
     }
 
@@ -107,6 +110,7 @@ class MapTabView extends StatelessWidget {
       isRefreshing: isRefreshing,
       onCenterMap: onCenterMap,
       onShowFilters: onShowFilters,
+      onMapReady: onMapReady,
     );
   }
 }
@@ -133,6 +137,7 @@ class _ResponderMapView extends StatelessWidget {
   final bool isRefreshing;
   final VoidCallback onCenterMap;
   final VoidCallback onShowFilters;
+  final VoidCallback? onMapReady;
 
   const _ResponderMapView({
     required this.mapController,
@@ -152,6 +157,7 @@ class _ResponderMapView extends StatelessWidget {
     required this.isRefreshing,
     required this.onCenterMap,
     required this.onShowFilters,
+    this.onMapReady,
   });
 
   @override
@@ -166,6 +172,7 @@ class _ResponderMapView extends StatelessWidget {
             minZoom: 1,
             maxZoom: 40,
             onPositionChanged: onPositionChanged,
+            onMapReady: onMapReady,
           ),
           children: [
             TileLayer(
@@ -293,6 +300,7 @@ class _ActiveAssignmentView extends StatelessWidget {
   final bool isRefreshing;
   final VoidCallback onCenterMap;
   final VoidCallback onShowFilters;
+  final VoidCallback? onMapReady;
 
   const _ActiveAssignmentView({
     required this.mapController,
@@ -312,6 +320,7 @@ class _ActiveAssignmentView extends StatelessWidget {
     required this.isRefreshing,
     required this.onCenterMap,
     required this.onShowFilters,
+    this.onMapReady,
   });
 
   @override
@@ -332,6 +341,7 @@ class _ActiveAssignmentView extends StatelessWidget {
                 minZoom: 1,
                 maxZoom: 40,
                 onPositionChanged: onPositionChanged,
+                onMapReady: onMapReady,
               ),
               children: [
                 TileLayer(

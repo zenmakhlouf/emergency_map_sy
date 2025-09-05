@@ -5,9 +5,8 @@ import '../../auth/cubit/auth_cubit.dart';
 import '../cubit/chat_cubit.dart';
 import '../models/chat_models.dart';
 import 'chat_conversation_screen.dart';
-import '../../../widgets/report_card.dart';
 import '../../../widgets/user_profile_modal.dart';
-import '../../../services/map_navigation_service.dart';
+import '../../../services/report_details_service.dart';
 
 class ChatsListScreen extends StatefulWidget {
   const ChatsListScreen({super.key});
@@ -50,25 +49,26 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
     });
   }
 
-  /// Navigate back to dashboard and view report on map
-  void _viewReportOnMap(ConversationSummary chat) {
-    // Use the chat topic ID as the report ID
+  /// Show emergency report using the unified dashboard's singleton report sheet
+  void _showEmergencyReport(BuildContext context, ConversationSummary chat) {
+    // Use the chat topic ID as the report ID (they are the same)
     final reportId = chat.topic.id;
     
-    // Set the report ID to be shown on map using the navigation service
-    MapNavigationService().setPendingReportId(reportId);
+    // Try to show the report using the unified dashboard's method
+    final success = ReportDetailsService.showReport(reportId);
     
-    // Navigate back to dashboard 
-    Navigator.of(context).popUntil((route) => route.isFirst);
-    
-    // Show confirmation message
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Viewing report #$reportId on map'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    if (!success) {
+      // Fallback: Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to load report details. Please try again.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -228,12 +228,61 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              chat.lastMessageText ?? 'Tap to view conversation',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            if (chat.topic.createdAt != null)
+                            // Show emergency description if available, otherwise last message
+                            if (chat.topic.report?.description.isNotEmpty == true)
+                              Text(
+                                chat.topic.report!.description,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.red.shade700,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              )
+                            else
+                              Text(
+                                chat.lastMessageText ?? 'Tap to view conversation',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            const SizedBox(height: 4),
+                            // Emergency info row
+                            if (chat.topic.report != null || chat.topic.latestStatus != null)
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.emergency,
+                                    size: 14,
+                                    color: Colors.red.shade600,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Emergency',
+                                    style: TextStyle(
+                                      color: Colors.red.shade600,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  if (chat.topic.createdAt != null) ...[
+                                    Text(
+                                      ' • ',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    Text(
+                                      chat.topic.createdAt!,
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              )
+                            else if (chat.topic.createdAt != null)
                               Text(
                                 chat.topic.createdAt!,
                                 style: TextStyle(
@@ -262,23 +311,15 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                           );
                         },
                       ),
-                      // Report Card Button (if there's a report)
-                      if (chat.topic.report != null && chat.topic.report!.hasEmergencyData)
+                      // Emergency Report Button (show for any emergency-related chat)
+                      if (chat.topic.report != null || 
+                          chat.topic.latestStatus != null ||
+                          chat.participants.any((p) => p.user.roles.contains('ai-agent')))
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           child: OutlinedButton.icon(
-                            onPressed: () {
-                              showReportCard(
-                                context,
-                                report: chat.topic.report!,
-                                status: chat.topic.latestStatus,
-                                onViewOnMap: () {
-                                  Navigator.of(context).pop();
-                                  _viewReportOnMap(chat);
-                                },
-                              );
-                            },
+                            onPressed: () => _showEmergencyReport(context, chat),
                             icon: const Icon(Icons.emergency, size: 16, color: Colors.red),
                             label: Text(
                               'View Emergency Report',

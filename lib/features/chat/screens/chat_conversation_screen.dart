@@ -14,10 +14,8 @@ import 'package:uuid/uuid.dart';
 // Local imports from your project structure
 import '../cubit/chat_cubit.dart';
 import '../models/chat_models.dart';
-import '../../auth/cubit/auth_cubit.dart';
-import '../../../widgets/report_card.dart';
 import '../../../widgets/user_profile_modal.dart';
-import '../../../services/map_navigation_service.dart';
+import '../../../services/report_details_service.dart';
 
 // A unique identifier generator for pending messages
 const uuid = Uuid();
@@ -508,11 +506,15 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
               }
             }
             
-            if (conversation?.topic.report?.hasEmergencyData == true) {
+            // Show emergency button if there's any report data, status, or AI participant
+            // This handles cases where report data might be incomplete for different user types
+            if (conversation?.topic.report != null || 
+                conversation?.topic.latestStatus != null ||
+                conversation?.participants.any((p) => p.user.roles.contains('ai-agent')) == true) {
               return IconButton(
                 icon: const Icon(Icons.emergency, color: Colors.red),
                 tooltip: 'View Emergency Report',
-                onPressed: () => _showEmergencyReport(conversation!.topic.report!),
+                onPressed: () => _showEmergencyReport(conversation?.topic.report ?? const EmergencyReport(name: 'Emergency Report', description: '', text: '')),
               );
             }
             return const SizedBox.shrink();
@@ -546,39 +548,23 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
   }
 
   void _showEmergencyReport(EmergencyReport report) {
-    final authCubit = context.read<AuthCubit>();
-    final userType = authCubit.userType;
-    
-    showReportCard(
-      context,
-      report: report,
-      userType: userType,
-      onViewOnMap: () {
-        Navigator.of(context).pop();
-        _viewReportOnMap(report);
-      },
-    );
-  }
-
-  /// Navigate back to dashboard and view report on map
-  void _viewReportOnMap(EmergencyReport report) {
-    // Get the chat ID from the current conversation
+    // Use the chat ID as the report ID (they are the same)
     final reportId = widget.chatId;
     
-    // Set the report ID to be shown on map using the navigation service
-    MapNavigationService().setPendingReportId(reportId);
+    // Try to show the report using the unified dashboard's method
+    final success = ReportDetailsService.showReport(reportId);
     
-    // Pop back to dashboard
-    Navigator.of(context).popUntil((route) => route.isFirst);
-    
-    // Show confirmation snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Viewing report #$reportId on map'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    if (!success) {
+      // Fallback: Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to load report details. Please try again.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
   }
+
   
   /// Navigate to map with specific location from message
   void _viewLocationOnMap(LocationData location) {
@@ -607,6 +593,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
       ),
     );
   }
+
 
   void _showParticipants() {
     showModalBottomSheet(

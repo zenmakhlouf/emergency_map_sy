@@ -662,6 +662,12 @@ class ConversationSummary {
   }
 
   String getChatTitle(int currentUserId) {
+    // Show emergency report name if available and not empty
+    if (topic.report?.name.isNotEmpty == true) {
+      return topic.report!.name;
+    }
+    
+    // Fallback to participant name for regular chats
     final other = getOtherParticipant(currentUserId);
     if (other != null) return other.user.name;
 

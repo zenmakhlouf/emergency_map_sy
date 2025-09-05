@@ -22,6 +22,7 @@ import 'package:emergency_map_sy/screens/helper_functions.dart'
     hide getLocationErrorMessage;
 import 'package:emergency_map_sy/services/map_navigation_service.dart';
 import 'package:emergency_map_sy/services/routing_service.dart';
+import 'package:emergency_map_sy/services/report_details_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -45,7 +46,8 @@ class UnifiedDashboardScreen extends StatefulWidget {
 }
 
 class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver 
+    implements UnifiedDashboardActions {
   // --- STATE MANAGEMENT ---
   final MapController _mapController = MapController();
   late TabController _tabController;
@@ -113,6 +115,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     _usersLocationCubit = context.read<UsersLocationCubit>();
     _assignmentsCubit = context.read<AssignmentsCubit>();
     MapNavigationService().registerMapCenterCallback(_centerMapOnReportId);
+    ReportDetailsService.registerDashboard(this);
     _tabController = TabController(length: 3, vsync: this);
     _initializeApp();
   }
@@ -121,6 +124,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     MapNavigationService().clearMapCenterCallback();
+    ReportDetailsService.clearDashboard();
     _cleanup();
     super.dispose();
   }
@@ -604,21 +608,41 @@ context
     await _fetchReports();
   }
 
-  void _locateReportOnMap(ReportEntity report) {
+  void _locateReportOnMap(ReportEntity report, {double? zoom}) {
     _tabController.animateTo(0);
+    final targetZoom = zoom ?? 17.0; // Use higher default zoom for reports
     _mapController.move(
-        LatLng(report.latitude, report.longitude), _defaultZoom);
+        LatLng(report.latitude, report.longitude), targetZoom);
     _showSuccessSnackBar("Report located on map");
   }
 
-  void _centerMapOnReportId(int reportId) {
+  void _centerMapOnReportId(int reportId, {double zoom = 17.0}) {
     final report = _cachedReports.where((r) => r.id == reportId).firstOrNull;
     if (report != null) {
-      _locateReportOnMap(report);
+      _locateReportOnMap(report, zoom: zoom);
     } else {
       _showErrorSnackBar("Report not found. Refreshing reports...");
       _handleManualRefresh();
     }
+  }
+
+  void _onMapReady() {
+    // Notify MapNavigationService that map is ready
+    MapNavigationService().setMapReady();
+  }
+
+  // ============================================================================
+  // UNIFIED DASHBOARD ACTIONS INTERFACE
+  // ============================================================================
+
+  @override
+  ReportEntity? getCachedReport(int reportId) {
+    return _cachedReports.where((r) => r.id == reportId).firstOrNull;
+  }
+
+  @override
+  void showReportDetails(ReportEntity report) {
+    _showReportDetails(report);
   }
 
   Future<void> _updateAssignmentStatus(String status) async {
@@ -850,6 +874,7 @@ context
         onGetDirections: _getAndDisplayRoute,
         onClearRoute: _clearRoute,
         onUpdateAssignmentStatus: _updateAssignmentStatus,
+        onMapReady: _onMapReady,
       ),
       // REPORTS TAB
       ReportsTabView(
