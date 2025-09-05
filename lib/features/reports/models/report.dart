@@ -142,7 +142,8 @@ class ReportDetails {
     if (json == null) return const ReportDetails();
     return ReportDetails(
       name: json['name']?.toString(),
-      description: json['discription']?.toString(), // Note: API uses "discription"
+      description:
+          json['discription']?.toString(), // Note: API uses "discription"
       text: json['text']?.toString(),
     );
   }
@@ -180,8 +181,7 @@ class ReportStateApi {
       final String s = rawSeverity.toString().trim();
       parsedSeverity = double.tryParse(s);
       if (parsedSeverity == null) {
-        debugPrint(
-            '[reports] Bad severity value "$rawSeverity"; storing null');
+        debugPrint('[reports] Bad severity value "$rawSeverity"; storing null');
       }
     }
 
@@ -213,6 +213,45 @@ class ReportConversation {
   }
 }
 
+class LatestStatus {
+  final int id;
+  final String status;
+  final String statusDisplay;
+  final String statusColor;
+  final String? notes;
+  final DateTime createdAt;
+
+  const LatestStatus({
+    required this.id,
+    required this.status,
+    required this.statusDisplay,
+    required this.statusColor,
+    this.notes,
+    required this.createdAt,
+  });
+
+  factory LatestStatus.fromJson(Map<String, dynamic>? json) {
+    if (json == null) {
+      return LatestStatus(
+        id: 0,
+        status: 'unknown',
+        statusDisplay: 'Unknown',
+        statusColor: 'grey',
+        createdAt: DateTime.now(),
+        notes: 'Status data missing',
+      );
+    }
+    return LatestStatus(
+      id: json['id'] as int,
+      status: json['status'] as String,
+      statusDisplay: json['status_display'] as String,
+      statusColor: json['status_color'] as String,
+      notes: json['notes'] as String?,
+      createdAt: DateTime.parse(json['created_at']),
+    );
+  }
+}
+
 class ReportEntity {
   final int id;
   final int initiatorId;
@@ -220,19 +259,23 @@ class ReportEntity {
   final ReportConversation? conversation;
   final ReportLocation location;
   final ReportStateApi? state;
+  final LatestStatus? latestStatus;
   final List<ParticipationRequest> participationRequests;
   final String? distance;
 
   // Convenience properties for UI
   String get title => state?.emergencyType ?? 'Emergency';
   String get description {
-    final String? raw = state?.report?.description ?? 
-                        state?.report?.name ?? 
-                        state?.report?.text ?? 
-                        location.address;
+    final String? raw = state?.report?.description ??
+        state?.report?.name ??
+        state?.report?.text ??
+        location.address;
     if (raw == null || raw.trim().isEmpty) return 'No description';
     return raw;
   }
+
+  String get effectiveStatus =>
+      state?.status ?? latestStatus?.status ?? 'unknown';
 
   // Add fullAddress getter to fix linter errors
   String get fullAddress {
@@ -262,9 +305,35 @@ class ReportEntity {
     this.conversation,
     required this.location,
     required this.state,
+    this.latestStatus,
     required this.participationRequests,
     required this.distance,
   });
+
+  ReportEntity copyWith({
+    int? id,
+    int? initiatorId,
+    DateTime? createdAt,
+    ReportConversation? conversation,
+    ReportLocation? location,
+    ReportStateApi? state,
+    LatestStatus? latestStatus,
+    List<ParticipationRequest>? participationRequests,
+    String? distance,
+  }) {
+    return ReportEntity(
+      id: id ?? this.id,
+      initiatorId: initiatorId ?? this.initiatorId,
+      createdAt: createdAt ?? this.createdAt,
+      conversation: conversation ?? this.conversation,
+      location: location ?? this.location,
+      state: state ?? this.state,
+      latestStatus: latestStatus ?? this.latestStatus,
+      participationRequests:
+          participationRequests ?? this.participationRequests,
+      distance: distance ?? this.distance,
+    );
+  }
 
   factory ReportEntity.fromJson(Map<String, dynamic> json) {
     final createdAtStr = json['created_at']?.toString();
@@ -289,6 +358,8 @@ class ReportEntity {
       location:
           ReportLocation.fromJson(json['location'] as Map<String, dynamic>?),
       state: ReportStateApi.fromJson(json['state'] as Map<String, dynamic>?),
+      latestStatus:
+          LatestStatus.fromJson(json['latest_status'] as Map<String, dynamic>?),
       participationRequests: (json['participation_requests'] as List<dynamic>?)
               ?.map((req) => ParticipationRequest.fromJson(req))
               .toList() ??

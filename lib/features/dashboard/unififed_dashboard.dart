@@ -543,6 +543,18 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
         availableResponders: _otherUsers,
         assignmentsCubit: _assignmentsCubit,
         currentUserId: context.read<AuthCubit>().userId,
+        onCloseReport: (report) {
+      context
+          .read<ReportsCubit>()
+          .updateReportStatus(report.id, 'closed');
+    },
+        onDeleteReport: (report){
+
+context
+              .read<ReportsCubit>()
+              .updateReportStatus(report.id, 'deleted');
+        },
+      
       ),
     );
   }

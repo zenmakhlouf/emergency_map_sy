@@ -17,8 +17,6 @@ import 'package:path_provider/path_provider.dart';
 
 import 'chat_conversation_screen.dart';
 
-// --- MAIN WIDGET ---
-
 class AIEmergencyChatScreen extends StatefulWidget {
   const AIEmergencyChatScreen({super.key});
 
@@ -28,27 +26,23 @@ class AIEmergencyChatScreen extends StatefulWidget {
 
 class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
     with TickerProviderStateMixin {
-  // --- STATE MANAGEMENT ---
   final TextEditingController _messageController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   final MapController _mapController = MapController();
 
-  // Animation Controllers
   late AnimationController _fadeController;
   late AnimationController _slideController;
   late AnimationController _processingController;
   late AnimationController _countdownController;
   late AnimationController _markerPulseController;
 
-  // UI State
   bool _isSubmitting = false;
   bool _isProcessing = false;
   bool _showConfirmDialog = false;
   bool _showLocationSelector = false;
   bool _hasText = false;
-  DateTime? _lastSubmissionTime; // Prevent rapid duplicate submissions
+  DateTime? _lastSubmissionTime;
 
-  // Data State
   Position? _currentPosition;
   LatLng? _selectedLocation;
   String? _pendingMessage;
@@ -56,7 +50,6 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
   Timer? _countdownTimer;
   int _currentStageIndex = 0;
 
-  // Speech-to-Text State
   final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
   bool _isRecorderReady = false;
   bool _isRecording = false;
@@ -65,7 +58,6 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
   static const String _sttApiUrl =
       "https://help-map.saadalabyad.com/api/v1/ai/test-speech-to-text";
 
-  // --- CONFIGURATION ---
   final List<ProcessingStage> _processingStages = [
     ProcessingStage(
         icon: Icons.analytics_outlined,
@@ -119,7 +111,6 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
         ]),
   ];
 
-  // --- LIFECYCLE METHODS ---
   @override
   void initState() {
     super.initState();
@@ -143,7 +134,6 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
     super.dispose();
   }
 
-  // --- INITIALIZATION ---
   void _initializeAnimations() {
     _fadeController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 800))
@@ -194,7 +184,6 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
     }
   }
 
-  // --- UI EVENT HANDLERS ---
   void _onTextChanged() {
     final hasText = _messageController.text.trim().isNotEmpty;
     if (_hasText != hasText) {
@@ -203,14 +192,13 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
   }
 
   Future<void> _handleSendMessage({String? promptText}) async {
-    // Prevent duplicate submissions within 2 seconds
     final now = DateTime.now();
-    if (_lastSubmissionTime != null && 
+    if (_lastSubmissionTime != null &&
         now.difference(_lastSubmissionTime!).inSeconds < 2) {
       debugPrint('[AIEmergencyChat] Ignoring rapid duplicate submission');
       return;
     }
-    
+
     if (_isSubmitting) return;
     final message = promptText ?? _messageController.text.trim();
     if (message.isEmpty) return;
@@ -220,7 +208,6 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
     _startCountdown(message);
   }
 
-  // --- COUNTDOWN & SUBMISSION LOGIC ---
   void _startCountdown(String message) {
     setState(() {
       _showConfirmDialog = true;
@@ -273,15 +260,17 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
         throw Exception("Location is required but couldn't be determined.");
       }
 
-      await context.read<ChatCubit>().sendMessage(
-            chatId: null,
+      // --- THE FIX IS HERE ---
+      // Calling the new, specific method for starting a conversation
+      await context.read<ChatCubit>().startEmergencyConversation(
             lat: lat,
             lon: lon,
             address:
                 _selectedLocation != null ? 'Custom Location' : 'Live Location',
             text: _pendingMessage!,
-            currentUserId: authCubit.userId,
+            currentUserId: authCubit.userId!,
           );
+      // --- END OF FIX ---
     } catch (e) {
       if (mounted) {
         _showErrorMessage('Failed to send report: ${e.toString()}');
@@ -308,7 +297,6 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
     }
   }
 
-  // --- BUILD METHODS ---
   @override
   Widget build(BuildContext context) {
     return BlocListener<ChatCubit, ChatState>(
@@ -603,39 +591,35 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
               offset: const Offset(0, -2))
         ],
       ),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _messageController,
-                  focusNode: _focusNode,
-                  enabled: !_isSubmitting,
-                  maxLines: null,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
-                    hintText: _isRecording
-                        ? 'Recording audio...'
-                        : 'Or describe your emergency in detail...',
-                    hintStyle: const TextStyle(color: Colors.grey),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide(color: Colors.grey.shade300)),
-                    focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide(color: Colors.red.shade300)),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 16),
-                  ),
-                ),
+          Expanded(
+            child: TextField(
+              controller: _messageController,
+              focusNode: _focusNode,
+              enabled: !_isSubmitting,
+              maxLines: null,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                hintText: _isRecording
+                    ? 'Recording audio...'
+                    : 'Or describe your emergency in detail...',
+                hintStyle: const TextStyle(color: Colors.grey),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: BorderSide(color: Colors.grey.shade300)),
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: BorderSide(color: Colors.red.shade300)),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               ),
-              const SizedBox(width: 8),
-              _buildMicButton(),
-              const SizedBox(width: 8),
-              _buildSendButton(),
-            ],
+            ),
           ),
+          const SizedBox(width: 8),
+          _buildMicButton(),
+          const SizedBox(width: 8),
+          _buildSendButton(),
         ],
       ),
     );
@@ -656,8 +640,7 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
         child: _isTranscribing
             ? const Padding(
                 padding: EdgeInsets.all(14.0),
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
+                child: CircularProgressIndicator(strokeWidth: 2))
             : Icon(_isRecording ? Icons.stop : Icons.mic,
                 color: _isRecording ? Colors.red : Colors.grey.shade600,
                 size: 24),
@@ -667,7 +650,7 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
 
   Widget _buildSendButton() {
     return GestureDetector(
-      onTap: _hasText && !_isSubmitting ? _handleSendMessage : null,
+      onTap: _hasText && !_isSubmitting ? () => _handleSendMessage() : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         width: 48,
@@ -744,14 +727,12 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
                     overflow: TextOverflow.ellipsis),
               ),
               const SizedBox(height: 16),
-              // Location info with change option
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.shade200),
-                ),
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade200)),
                 child: Row(
                   children: [
                     Icon(Icons.location_on,
@@ -815,22 +796,20 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
                 alignment: Alignment.center,
                 children: [
                   SizedBox(
-                    width: 120,
-                    height: 120,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 3,
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(Colors.blue.shade400),
-                        backgroundColor: Colors.blue.shade100),
-                  ),
+                      width: 120,
+                      height: 120,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 3,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.blue.shade400),
+                          backgroundColor: Colors.blue.shade100)),
                   Container(
-                    width: 80,
-                    height: 80,
-                    decoration: const BoxDecoration(
-                        color: Colors.white, shape: BoxShape.circle),
-                    child: Icon(currentStage.icon,
-                        size: 36, color: Colors.blue.shade600),
-                  ),
+                      width: 80,
+                      height: 80,
+                      decoration: const BoxDecoration(
+                          color: Colors.white, shape: BoxShape.circle),
+                      child: Icon(currentStage.icon,
+                          size: 36, color: Colors.blue.shade600)),
                 ],
               ),
               const SizedBox(height: 32),
@@ -866,7 +845,6 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
     );
   }
 
-  // --- FIXED & ENHANCED LOCATION SELECTOR ---
   Widget _buildLocationSelector() {
     return Scaffold(
       backgroundColor: Colors.black87,
@@ -975,7 +953,6 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
     );
   }
 
-  // --- HELPER METHODS ---
   void _updateSelectedLocation(LatLng location) {
     setState(() => _selectedLocation = location);
     _mapController.move(location, _mapController.camera.zoom);
@@ -1098,8 +1075,6 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
       ));
   }
 }
-
-// --- DATA MODELS ---
 
 class EmergencyPromptCategory {
   final String title;

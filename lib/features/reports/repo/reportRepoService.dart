@@ -55,4 +55,25 @@ class ReportService {
       rethrow;
     }
   }
+
+  Future<void> updateReportStatus({
+    required int reportId,
+    required String status,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        'status': status,
+      });
+
+      final url = '${Urls.reports}/$reportId/status';
+
+      await Network.postData(
+        url: url,
+        body: formData,
+      );
+    } catch (e) {
+      debugPrint('[reports] updateReportStatus error: $e');
+      rethrow;
+    }
+  }
 }

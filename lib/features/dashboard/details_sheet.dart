@@ -19,8 +19,9 @@ class ReportDetailsSheet extends StatefulWidget {
   final Function(ReportEntity) onLocateOnMap;
   final Function(ReportEntity) onAssignToSelf;
   final Function(ReportEntity) onGetDirections;
-  final Function(ReportEntity)?
-      onChat; // Nullable for when chat is not available
+  final Function(ReportEntity)? onChat;
+  final Function(ReportEntity)? onCloseReport;
+  final Function(ReportEntity)? onDeleteReport;
 
   // New parameters for coordinator assignment functionality
   final UserType userType;
@@ -36,6 +37,8 @@ class ReportDetailsSheet extends StatefulWidget {
     required this.onAssignToSelf,
     required this.onGetDirections,
     this.onChat,
+    this.onCloseReport,
+    this.onDeleteReport,
     required this.userType,
     this.availableResponders = const [],
     this.assignmentsCubit,
@@ -60,13 +63,13 @@ class _ReportDetailsSheetState extends State<ReportDetailsSheet> {
     if (mounted) {
       setState(() => isGeocodingLoading = true);
     }
-    
+
     try {
       final result = await GeocodingService.reverseGeocode(
         LatLng(widget.report.latitude, widget.report.longitude),
         language: 'ar',
       );
-      
+
       if (mounted) {
         setState(() {
           geocodedAddress = result.mediumAddress;
@@ -102,14 +105,112 @@ class _ReportDetailsSheetState extends State<ReportDetailsSheet> {
             ),
           ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: Stack(
           children: [
-            _buildDragHandle(),
-            _buildCompactHeader(),
-            _buildContent(),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildDragHandle(),
+                _buildCompactHeader(),
+                _buildContent(),
+              ],
+            ),
+            // Position the options menu in the top-left (top-right in RTL)
+            if (widget.userType == UserType.coordinator)
+              Positioned(
+                top: 12,
+                left: 12,
+                child: _buildOptionsMenu(context),
+              ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildOptionsMenu(BuildContext context) {
+    return PopupMenuButton<String>(
+      onSelected: (value) {
+        if (value == 'closed') {
+          _confirmAndExecute(
+            context: context,
+            title: 'تأكيد الإغلاق',
+            content: 'هل أنت متأكد من رغبتك في إغلاق هذا البلاغ؟',
+            onConfirm: () {
+              if (widget.onCloseReport != null) {
+                widget.onCloseReport!(widget.report);
+              }
+            },
+          );
+        } else if (value == 'deleted') {
+          _confirmAndExecute(
+            context: context,
+            title: 'تأكيد الحذف',
+            content:
+                'هل أنت متأكد من رغبتك في حذف هذا البلاغ نهائياً؟ لا يمكن التراجع عن هذا الإجراء.',
+            confirmText: 'حذف',
+            confirmColor: Colors.red,
+            onConfirm: () {
+              if (widget.onDeleteReport != null) {
+                widget.onDeleteReport!(widget.report);
+              }
+            },
+          );
+        }
+      },
+      itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+        const PopupMenuItem<String>(
+          value: 'closed',
+          child: ListTile(
+            leading: Icon(Icons.check_circle_outline),
+            title: Text('إغلاق البلاغ'),
+          ),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem<String>(
+          value: 'deleted',
+          child: ListTile(
+            leading: Icon(Icons.delete_forever, color: Colors.red),
+            title: Text('حذف البلاغ', style: TextStyle(color: Colors.red)),
+          ),
+        ),
+      ],
+      icon: Icon(Icons.more_vert, color: Colors.grey.shade700),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    );
+  }
+
+  void _confirmAndExecute({
+    required BuildContext context,
+    required String title,
+    required String content,
+    required VoidCallback onConfirm,
+    String confirmText = 'تأكيد',
+    Color confirmColor = Colors.blue,
+  }) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(title),
+        content: Text(content),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        actions: [
+          TextButton(
+            child: const Text('إلغاء'),
+            onPressed: () => Navigator.of(dialogContext).pop(),
+          ),
+          TextButton(
+            child: Text(confirmText),
+            style: TextButton.styleFrom(
+              foregroundColor: confirmColor,
+            ),
+            onPressed: () {
+              Navigator.of(dialogContext).pop(); // Close dialog
+              Navigator.of(context).pop(); // Close sheet
+              onConfirm();
+            },
+          ),
+        ],
       ),
     );
   }
@@ -127,12 +228,13 @@ class _ReportDetailsSheetState extends State<ReportDetailsSheet> {
   }
 
   Widget _buildCompactHeader() {
-    final emergencyColor = getColorForEmergencyType(widget.report.state?.emergencyType);
+    final emergencyColor =
+        getColorForEmergencyType(widget.report.state?.emergencyType);
     final severity = widget.report.state?.severity ?? 0.5;
-    
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         color: emergencyColor.withOpacity(0.1),
         border: Border(
@@ -160,8 +262,9 @@ class _ReportDetailsSheetState extends State<ReportDetailsSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.report.state?.report?.name ?? 
-                  _getEmergencyTypeArabic(widget.report.state?.emergencyType),
+                  widget.report.state?.report?.name ??
+                      _getEmergencyTypeArabic(
+                          widget.report.state?.emergencyType),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -242,11 +345,12 @@ class _ReportDetailsSheetState extends State<ReportDetailsSheet> {
   Widget _buildDescriptionSection() {
     final reportDetails = widget.report.state?.report;
     if (reportDetails == null) return const SizedBox.shrink();
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (reportDetails.description != null && reportDetails.description!.isNotEmpty) ...[
+        if (reportDetails.description != null &&
+            reportDetails.description!.isNotEmpty) ...[
           Text(
             reportDetails.description!,
             style: const TextStyle(
@@ -257,11 +361,15 @@ class _ReportDetailsSheetState extends State<ReportDetailsSheet> {
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
           ),
-        ] else if (reportDetails.text != null && reportDetails.text!.isNotEmpty) ...[
+        ] else if (reportDetails.text != null &&
+            reportDetails.text!.isNotEmpty) ...[
           Text(
             reportDetails.text!
                 .split('\n')
-                .where((line) => line.trim().isNotEmpty && !line.startsWith('🚨') && !line.startsWith('⚠️'))
+                .where((line) =>
+                    line.trim().isNotEmpty &&
+                    !line.startsWith('🚨') &&
+                    !line.startsWith('⚠️'))
                 .join('\n')
                 .trim(),
             style: const TextStyle(
@@ -278,11 +386,9 @@ class _ReportDetailsSheetState extends State<ReportDetailsSheet> {
   }
 
   Widget _buildLocationSection() {
-    final distance = calculateDistance(
-      widget.currentPosition, 
-      LatLng(widget.report.latitude, widget.report.longitude)
-    );
-    
+    final distance = calculateDistance(widget.currentPosition,
+        LatLng(widget.report.latitude, widget.report.longitude));
+
     return Row(
       children: [
         Icon(Icons.location_on, color: Colors.blue.shade600, size: 18),
@@ -371,12 +477,13 @@ class _ReportDetailsSheetState extends State<ReportDetailsSheet> {
               Expanded(
                 child: _buildCompactInfoItem(
                   'النوع الفرعي',
-                  _getEmergencySubTypeArabic(widget.report.state?.emergencySubType),
+                  _getEmergencySubTypeArabic(
+                      widget.report.state?.emergencySubType),
                 ),
               ),
             ],
           ),
-          if (widget.userType == UserType.coordinator || 
+          if (widget.userType == UserType.coordinator ||
               widget.report.state?.assigned != null ||
               widget.report.participationRequests.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -454,8 +561,9 @@ class _ReportDetailsSheetState extends State<ReportDetailsSheet> {
             ],
           ),
           const SizedBox(height: 12),
-          ...widget.report.participationRequests.take(3).map((request) => 
-            _buildCompactParticipationItem(request)),
+          ...widget.report.participationRequests
+              .take(3)
+              .map((request) => _buildCompactParticipationItem(request)),
           if (widget.report.participationRequests.length > 3)
             Padding(
               padding: const EdgeInsets.only(top: 8),
@@ -475,7 +583,7 @@ class _ReportDetailsSheetState extends State<ReportDetailsSheet> {
 
   Widget _buildCompactParticipationItem(ParticipationRequest request) {
     final statusColor = _getRequestStatusColor(request.status);
-    
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -519,120 +627,12 @@ class _ReportDetailsSheetState extends State<ReportDetailsSheet> {
     );
   }
 
-  Widget _buildParticipationRequestItem(ParticipationRequest request) {
-    final statusColor = _getRequestStatusColor(request.status);
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.blue.shade100,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.person, color: Colors.blue.shade600, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  request.responder.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                  ),
-                ),
-                Text(
-                  'مستجيب • ${request.responder.roles.map((r) => r.name).join(', ')}',
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: statusColor.withOpacity(0.3)),
-            ),
-            child: Text(
-              _getRequestStatusArabic(request.status),
-              style: TextStyle(
-                color: statusColor,
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoItem(IconData icon, String label, String value, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: color, size: 16),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildActionButtons(BuildContext context, ReportEntity report) {
     // Check if current user is a citizen who owns this report
-    final isOwnedByCitizen = widget.userType == UserType.citizen && 
-                             widget.currentUserId != null && 
-                             report.initiatorId == widget.currentUserId;
-    
+    final isOwnedByCitizen = widget.userType == UserType.citizen &&
+        widget.currentUserId != null &&
+        report.initiatorId == widget.currentUserId;
+
     return Column(
       children: [
         // Primary Actions Row
@@ -688,7 +688,7 @@ class _ReportDetailsSheetState extends State<ReportDetailsSheet> {
               ),
           ],
         ),
-        
+
         // Secondary Actions Row (only for responders and coordinators)
         if (!isOwnedByCitizen && widget.userType != UserType.citizen) ...[
           const SizedBox(height: 12),
@@ -741,34 +741,36 @@ class _ReportDetailsSheetState extends State<ReportDetailsSheet> {
       if (color == Colors.orange) return Colors.orange.shade600;
       return Colors.blue.shade600; // default fallback
     }
-    
-    return isPrimary 
-      ? ElevatedButton.icon(
-          onPressed: onPressed,
-          icon: Icon(icon, size: 20),
-          label: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: getBackgroundColor(),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+
+    return isPrimary
+        ? ElevatedButton.icon(
+            onPressed: onPressed,
+            icon: Icon(icon, size: 20),
+            label: Text(label,
+                style: const TextStyle(fontWeight: FontWeight.w600)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: getBackgroundColor(),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 2,
             ),
-            elevation: 2,
-          ),
-        )
-      : OutlinedButton.icon(
-          onPressed: onPressed,
-          icon: Icon(icon, size: 20),
-          label: Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+          )
+        : OutlinedButton.icon(
+            onPressed: onPressed,
+            icon: Icon(icon, size: 20),
+            label: Text(label,
+                style: const TextStyle(fontWeight: FontWeight.w500)),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              side: BorderSide(color: Colors.grey.shade300),
             ),
-            side: BorderSide(color: Colors.grey.shade300),
-          ),
-        );
+          );
   }
 
   // Helper methods for UI elements
@@ -776,12 +778,6 @@ class _ReportDetailsSheetState extends State<ReportDetailsSheet> {
     if (severity >= 0.8) return Colors.red.shade600;
     if (severity >= 0.6) return Colors.orange.shade600;
     return Colors.yellow.shade700;
-  }
-
-  IconData _getSeverityIcon(double severity) {
-    if (severity >= 0.8) return Icons.warning;
-    if (severity >= 0.6) return Icons.priority_high;
-    return Icons.info_outline;
   }
 
   String _getSeverityLabel(double severity) {
@@ -792,96 +788,72 @@ class _ReportDetailsSheetState extends State<ReportDetailsSheet> {
 
   String _getEmergencyTypeArabic(String? type) {
     switch (type?.toUpperCase()) {
-      case 'MEDICAL': return 'طبي';
-      case 'FIRE': return 'حريق';
-      case 'POLICE': return 'شرطة';
-      case 'CIVIL': return 'مدني';
-      case 'TRAFFIC': return 'مرور';
-      default: return 'غير محدد';
+      case 'MEDICAL':
+        return 'طبي';
+      case 'FIRE':
+        return 'حريق';
+      case 'POLICE':
+        return 'شرطة';
+      case 'CIVIL':
+        return 'مدني';
+      case 'TRAFFIC':
+        return 'مرور';
+      default:
+        return 'غير محدد';
     }
   }
 
   String _getEmergencySubTypeArabic(String? subType) {
     switch (subType?.toLowerCase()) {
-      case 'theft': return 'سرقة';
-      case 'murder': return 'قتل';
-      case 'body': return 'جثة';
-      case 'structure_fire': return 'حريق مبنى';
-      case 'major_accident': return 'حادث كبير';
-      case 'complaint': return 'شكوى';
-      case 'warning': return 'تحذير';
-      case 'explosion': return 'انفجار';
-      default: return subType ?? 'غير محدد';
+      case 'theft':
+        return 'سرقة';
+      case 'murder':
+        return 'قتل';
+      case 'body':
+        return 'جثة';
+      case 'structure_fire':
+        return 'حريق مبنى';
+      case 'major_accident':
+        return 'حادث كبير';
+      case 'complaint':
+        return 'شكوى';
+      case 'warning':
+        return 'تحذير';
+      case 'explosion':
+        return 'انفجار';
+      default:
+        return subType ?? 'غير محدد';
     }
   }
 
   Color _getRequestStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'pending': return Colors.orange.shade600;
-      case 'accept': return Colors.green.shade600;
-      case 'reject': return Colors.red.shade600;
-      case 'cancelled': return Colors.grey.shade600;
-      default: return Colors.grey.shade600;
+      case 'pending':
+        return Colors.orange.shade600;
+      case 'accept':
+        return Colors.green.shade600;
+      case 'reject':
+        return Colors.red.shade600;
+      case 'cancelled':
+        return Colors.grey.shade600;
+      default:
+        return Colors.grey.shade600;
     }
   }
 
   String _getRequestStatusArabic(String status) {
     switch (status.toLowerCase()) {
-      case 'pending': return 'معلق';
-      case 'accept': return 'مقبول';
-      case 'reject': return 'مرفوض';
-      case 'cancelled': return 'ملغى';
-      default: return status;
+      case 'pending':
+        return 'معلق';
+      case 'accept':
+        return 'مقبول';
+      case 'reject':
+        return 'مرفوض';
+      case 'cancelled':
+        return 'ملغى';
+      default:
+        return status;
     }
-  }
-
-  // Helper widgets also used on cards, duplicated here for encapsulation
-  Widget _buildIncidentIcon(String? emergencyType, double severity) {
-    final color = getColorForEmergencyType(emergencyType);
-    final icon = getIconForEmergencyType(emergencyType);
-
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Icon(icon, color: color, size: 24),
-    );
-  }
-
-  Widget _buildSeverityIndicator(double severity) {
-    Color color;
-    String label;
-    if (severity >= 0.8) {
-      color = Colors.red;
-      label = 'HIGH';
-    } else if (severity >= 0.6) {
-      color = Colors.orange;
-      label = 'MED';
-    } else {
-      color = Colors.yellow.shade700;
-      label = 'LOW';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.5)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w600,
-          fontSize: 11,
-        ),
-      ),
-    );
   }
 
   void _showResponderAssignmentModal(BuildContext context) {
@@ -910,7 +882,7 @@ class _ReportDetailsSheetState extends State<ReportDetailsSheet> {
 }
 
 // ============================================================================
-// USER DETAILS SHEET
+// The rest of the file remains unchanged...
 // ============================================================================
 
 class UserDetailsSheet extends StatelessWidget {
@@ -1031,10 +1003,6 @@ class UserDetailsSheet extends StatelessWidget {
     );
   }
 }
-
-// ============================================================================
-// RESPONDER ASSIGNMENT MODAL
-// ============================================================================
 
 class ResponderAssignmentModal extends StatefulWidget {
   final ReportEntity report;

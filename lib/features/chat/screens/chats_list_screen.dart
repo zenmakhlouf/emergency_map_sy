@@ -99,7 +99,13 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
             _cachedChats = state.chats;
           }
 
-          if (_cachedChats.isEmpty) {
+          // Filter out DELETED and CLOSED status chats
+          final filteredChats = _cachedChats.where((chat) {
+            final status = chat.topic.latestStatus?.status.toLowerCase();
+            return status != 'deleted' && status != 'closed';
+          }).toList();
+
+          if (filteredChats.isEmpty) {
             if (state is ChatLoading) {
               return const Center(child: CircularProgressIndicator());
             }
@@ -114,9 +120,9 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
           return RefreshIndicator(
             onRefresh: _loadChats,
             child: ListView.builder(
-              itemCount: _cachedChats.length,
+              itemCount: filteredChats.length,
               itemBuilder: (context, index) {
-                final chat = _cachedChats[index];
+                final chat = filteredChats[index];
                 final otherParticipant =
                     chat.getOtherParticipant(currentUserId ?? 0);
 

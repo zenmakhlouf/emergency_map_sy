@@ -331,13 +331,12 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
       if (mounted) {
         await context
             .read<ChatCubit>()
-            .sendMessage(
+            .sendMessageToConversation(
               chatId: widget.chatId,
               text: text,
             lat: position.latitude,
             lon: position.longitude,
             address: "Location",
-            currentUserId: widget.currentUserId,
           )
           .timeout(_networkTimeout);
       }
