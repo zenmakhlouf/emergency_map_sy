@@ -1,5 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:emergency_map_sy/features/assignments/cubit/assignments_cubit.dart';
+import 'package:emergency_map_sy/features/assignments/models/participation_request.dart';
+import 'package:emergency_map_sy/features/assignments/screens/mock_request.dart';
 import 'package:emergency_map_sy/features/auth/cubit/auth_cubit.dart';
 import 'package:emergency_map_sy/features/auth/models/user_type.dart';
 import 'package:emergency_map_sy/features/chat/cubit/chat_cubit.dart';
@@ -15,7 +18,8 @@ import 'package:emergency_map_sy/features/reports/cubit/reports_cubit.dart';
 import 'package:emergency_map_sy/features/reports/models/report.dart';
 import 'package:emergency_map_sy/features/users_location/cubit/userslocation_cubit.dart';
 import 'package:emergency_map_sy/features/users_location/repo/locationservice.dart';
-import 'package:emergency_map_sy/screens/helper_functions.dart' hide getLocationErrorMessage;
+import 'package:emergency_map_sy/screens/helper_functions.dart'
+    hide getLocationErrorMessage;
 import 'package:emergency_map_sy/services/map_navigation_service.dart';
 import 'package:emergency_map_sy/services/routing_service.dart';
 import 'package:flutter/material.dart';
@@ -24,7 +28,6 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
-
 
 /// A unified dashboard that adapts its interface based on user type.
 /// This widget manages the state and business logic, while delegating UI
@@ -48,6 +51,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   late TabController _tabController;
   Timer? _reportPoller;
   late UsersLocationCubit _usersLocationCubit;
+  late AssignmentsCubit _assignmentsCubit;
 
   // --- LOCATION & DATA STATE ---
   LatLng _currentPosition = const LatLng(33.5138, 36.2765); // Damascus default
@@ -76,6 +80,11 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   bool _showReportMarkersAtCurrentZoom = true;
   bool _showUserMarkersAtCurrentZoom = false;
 
+  // --- ASSIGNMENT NOTIFICATION STATE ---
+  ParticipationRequest? _pendingAssignmentRequest;
+  bool _isAssignmentNotificationVisible = false;
+  bool _isProcessingAssignmentAction = false;
+
   // --- CONFIGURATION ---
   static const Duration _pollInterval = Duration(seconds: 20);
   static const Duration _networkTimeout = Duration(seconds: 20);
@@ -102,6 +111,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _usersLocationCubit = context.read<UsersLocationCubit>();
+    _assignmentsCubit = context.read<AssignmentsCubit>();
     MapNavigationService().registerMapCenterCallback(_centerMapOnReportId);
     _tabController = TabController(length: 3, vsync: this);
     _initializeApp();
@@ -120,10 +130,12 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     if (state == AppLifecycleState.resumed) {
       _startPolling();
       _manageUserPolling();
+      _manageAssignmentPolling();
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
       _stopPolling();
       _usersLocationCubit.stopUsersPolling();
+      _assignmentsCubit.stopPolling();
     }
   }
 
@@ -138,6 +150,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
       await _fetchReports();
       _startPolling();
       _manageUserPolling();
+      _manageAssignmentPolling();
     } catch (e) {
       debugPrint("Initialization error: $e");
       if (mounted) setState(() => _networkError = "Failed to initialize app");
@@ -285,6 +298,39 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     }
   }
 
+  void _handleAssignmentsStateChange(
+      BuildContext context, AssignmentsState state) {
+    if (!mounted) return;
+
+    if (state is AssignmentsLoaded && widget.userType == UserType.responder) {
+      // Check for new pending requests
+      final pendingRequests = state.pendingRequests;
+      if (pendingRequests.isNotEmpty && !_isAssignmentNotificationVisible) {
+        // Show notification for the first pending request
+        final newRequest = pendingRequests.first;
+        setState(() {
+          _pendingAssignmentRequest = newRequest;
+          _isAssignmentNotificationVisible = true;
+        });
+      } else if (pendingRequests.isEmpty && _isAssignmentNotificationVisible) {
+        // Hide notification if no pending requests
+        _dismissAssignmentNotification();
+      }
+    } else if (state is AssignmentActionSuccess) {
+      // Handle successful assignment actions
+      _showSuccessSnackBar(state.message);
+      if (state.action == 'accept') {
+        // Navigate to focus mode or update active assignment
+        _dismissAssignmentNotification();
+        // TODO: Navigate to focus mode or update dashboard for active assignment
+      } else if (state.action == 'reject') {
+        _dismissAssignmentNotification();
+      }
+    } else if (state is AssignmentsError) {
+      _showErrorSnackBar("Assignment error: ${state.message}");
+    }
+  }
+
   // ============================================================================
   // POLLING MANAGEMENT
   // ============================================================================
@@ -303,6 +349,16 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
       _usersLocationCubit.startUsersPolling();
     } else {
       _usersLocationCubit.stopUsersPolling();
+    }
+  }
+
+  void _manageAssignmentPolling() {
+    // Only poll assignments for responders and coordinators
+    if (widget.userType == UserType.responder ||
+        widget.userType == UserType.coordinator) {
+      _assignmentsCubit.startPolling();
+    } else {
+      _assignmentsCubit.stopPolling();
     }
   }
 
@@ -483,6 +539,9 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
         onAssignToSelf: _assignToSelf,
         onGetDirections: _getAndDisplayRoute,
         onChat: _canAccessReportChat(report) ? _navigateToReportChat : null,
+        userType: widget.userType,
+        availableResponders: _otherUsers,
+        assignmentsCubit: _assignmentsCubit,
       ),
     );
   }
@@ -574,6 +633,54 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   }
 
   // ============================================================================
+  // ASSIGNMENT NOTIFICATION MANAGEMENT
+  // ============================================================================
+
+  void _dismissAssignmentNotification() {
+    if (mounted) {
+      setState(() {
+        _pendingAssignmentRequest = null;
+        _isAssignmentNotificationVisible = false;
+        _isProcessingAssignmentAction = false;
+      });
+    }
+  }
+
+  Future<void> _acceptAssignmentRequest() async {
+    if (_pendingAssignmentRequest == null || _isProcessingAssignmentAction)
+      return;
+
+    setState(() => _isProcessingAssignmentAction = true);
+
+    try {
+      await _assignmentsCubit.acceptParticipationRequest(
+        reportId: _pendingAssignmentRequest!.report.id,
+        responderId: _pendingAssignmentRequest!.responder.id,
+      );
+    } catch (e) {
+      _showErrorSnackBar("Failed to accept assignment: ${e.toString()}");
+      setState(() => _isProcessingAssignmentAction = false);
+    }
+  }
+
+  Future<void> _rejectAssignmentRequest() async {
+    if (_pendingAssignmentRequest == null || _isProcessingAssignmentAction)
+      return;
+
+    setState(() => _isProcessingAssignmentAction = true);
+
+    try {
+      await _assignmentsCubit.rejectParticipationRequest(
+        reportId: _pendingAssignmentRequest!.report.id,
+        responderId: _pendingAssignmentRequest!.responder.id,
+      );
+    } catch (e) {
+      _showErrorSnackBar("Failed to reject assignment: ${e.toString()}");
+      setState(() => _isProcessingAssignmentAction = false);
+    }
+  }
+
+  // ============================================================================
   // SNACKBARS & CLEANUP
   // ============================================================================
 
@@ -611,6 +718,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     _stopPolling();
     _usersLocationCubit.stopUsersPolling();
     _usersLocationCubit.stopLocationPolling();
+    _assignmentsCubit.stopPolling();
     _tabController.dispose();
   }
 
@@ -622,7 +730,18 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildAppBar(),
-      body: _buildBody(),
+      body: Stack(
+        children: [
+          BlocListener<AssignmentsCubit, AssignmentsState>(
+            listener: _handleAssignmentsStateChange,
+            child: _buildBody(),
+          ),
+          // Emergency assignment notification overlay
+          if (_isAssignmentNotificationVisible &&
+              _pendingAssignmentRequest != null)
+            _buildAssignmentNotificationOverlay(),
+        ],
+      ),
       bottomNavigationBar: _buildBottomNavigation(),
       floatingActionButton:
           widget.userType == UserType.citizen ? _buildCitizenFAB() : null,
@@ -647,10 +766,13 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
       elevation: 2,
       shadowColor: Colors.black.withOpacity(0.1),
       actions: [
+        MockRequestButton(),
         if (_networkError != null)
           IconButton(
             icon: Icon(Icons.signal_wifi_off, color: Colors.orange[700]),
-            onPressed: _handleManualRefresh,
+            onPressed: () {
+              _handleManualRefresh;
+            },
             tooltip: 'Connection Issues - Tap to Retry',
           ),
         if (_activeAssignment != null && _canPerformResponderActions())
@@ -825,5 +947,315 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 16, color: Colors.grey[600])),
             ])));
+  }
+
+  // ============================================================================
+  // EMERGENCY ASSIGNMENT NOTIFICATION OVERLAY
+  // ============================================================================
+
+  Widget _buildAssignmentNotificationOverlay() {
+    final request = _pendingAssignmentRequest!;
+    final report = request.report;
+
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.elasticOut,
+      top: _isAssignmentNotificationVisible ? 0 : -300,
+      left: 0,
+      right: 0,
+      child: Container(
+        margin: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.red.shade600, Colors.red.shade800],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.red.withOpacity(0.4),
+              blurRadius: 20,
+              spreadRadius: 2,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with emergency icon and close button
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.emergency,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            '🚨 مهمة طوارئ جديدة',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'طلب رقم #${request.id}',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _dismissAssignmentNotification,
+                      icon: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // Emergency report details
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Report ID and status
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.report_problem,
+                            color: Colors.amber.shade300,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'بلاغ طوارئ #${report.id}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _getReportStatusBackgroundColor(
+                                report.latestStatus.statusColor,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              report.latestStatus.statusDisplay,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Initiator info
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.person,
+                            color: Colors.white.withOpacity(0.8),
+                            size: 16,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'مبلغ من: ${report.initiator.name}',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // Assigned by coordinator
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.assignment_ind,
+                            color: Colors.white.withOpacity(0.8),
+                            size: 16,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'مُكلف من: ${request.initiator.name}',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      if (report.latestStatus.notes.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.note,
+                                color: Colors.white.withOpacity(0.8),
+                                size: 16,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  report.latestStatus.notes,
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.9),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Action buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _isProcessingAssignmentAction
+                            ? null
+                            : _acceptAssignmentRequest,
+                        icon: _isProcessingAssignmentAction
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                            : const Icon(Icons.check, color: Colors.white),
+                        label: const Text(
+                          'قبول المهمة',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green.shade600,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 8,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _isProcessingAssignmentAction
+                            ? null
+                            : _rejectAssignmentRequest,
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        label: const Text(
+                          'رفض',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.white, width: 2),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _getReportStatusBackgroundColor(String statusColor) {
+    switch (statusColor.toLowerCase()) {
+      case 'blue':
+        return Colors.blue.shade600;
+      case 'red':
+        return Colors.red.shade600;
+      case 'green':
+        return Colors.green.shade600;
+      case 'orange':
+        return Colors.orange.shade600;
+      default:
+        return Colors.grey.shade600;
+    }
   }
 }
