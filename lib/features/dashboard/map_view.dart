@@ -211,11 +211,19 @@ class _ResponderMapView extends StatelessWidget {
   }
 
   List<Marker> _buildAllMapMarkers(BuildContext context) {
-    return [
+    debugPrint("=== BUILDING MAP MARKERS ===");
+    debugPrint("showReportMarkers: $showReportMarkers");
+    debugPrint("showUserMarkers: $showUserMarkers");
+    debugPrint("otherUsers.length: ${otherUsers.length}");
+    
+    final markers = [
       _buildUserLocationMarker(context, currentPosition, userType.name),
       if (showReportMarkers) ..._buildReportMarkers(),
       if (showUserMarkers) ..._buildOtherUserMarkers(context),
     ];
+    
+    debugPrint("Total markers built: ${markers.length}");
+    return markers;
   }
 
   List<Marker> _buildReportMarkers() {
@@ -252,9 +260,20 @@ class _ResponderMapView extends StatelessWidget {
 
   List<Marker> _buildOtherUserMarkers(BuildContext context) {
     final currentUserId = context.read<AuthCubit>().userId;
-    return otherUsers
+    debugPrint("=== BUILDING USER MARKERS ===");
+    debugPrint("Current user ID: $currentUserId");
+    debugPrint("Total other users: ${otherUsers.length}");
+    
+    final filteredUsers = otherUsers
         .where((user) => user.id.toString() != currentUserId.toString())
-        .map((user) => Marker(
+        .toList();
+        
+    debugPrint("Users after filtering out current user: ${filteredUsers.length}");
+    for (final user in filteredUsers) {
+      debugPrint("  - ${user.name} (ID: ${user.id}, Role: ${user.primaryRole})");
+    }
+    
+    final markers = filteredUsers.map((user) => Marker(
               width: 25,
               height: 25,
               alignment: Alignment.center,
@@ -279,6 +298,9 @@ class _ResponderMapView extends StatelessWidget {
               ),
             ))
         .toList();
+    
+    debugPrint("Final user markers created: ${markers.length}");
+    return markers;
   }
 }
 

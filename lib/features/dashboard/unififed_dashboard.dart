@@ -92,7 +92,19 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   static const Duration _networkTimeout = Duration(seconds: 20);
   static const double _defaultZoom = 14.0;
   static const double _minZoomForReportMarkers = 8.0;
-  static const double _minZoomForUserMarkers = 13.0;
+  // Original zoom level (comment out for testing):
+  // static const double _minZoomForUserMarkers = 13.0;
+  
+  // TEST LINE: Set very low zoom to always show user markers
+  static const double _minZoomForUserMarkers = 1.0; // Always true for testing
+  
+  // FEATURE SWITCH: Comment out this line to disable coordinator user polling
+  static const bool _enableCoordinatorUserPolling = true;
+  // static const bool _enableCoordinatorUserPolling = false; // Uncomment to disable
+  
+  // FEATURE SWITCH: Comment out this line to disable responder user polling  
+  //static const bool _enableResponderUserPolling = true;
+   static const bool _enableResponderUserPolling = false; // Uncomment to disable
   static const List<String> _emergencyCategories = [
     'medical',
     'fire',
@@ -152,6 +164,10 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
       await context.read<AuthCubit>().waitForInitialization();
       await _initializeLocation();
       await _fetchReports();
+      
+      // Force initial zoom level check since we changed the minimum zoom constants
+      _updateZoomBasedVisibility(_defaultZoom);
+      
       _startPolling();
       _manageUserPolling();
       _manageAssignmentPolling();
@@ -285,6 +301,8 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
       });
       if (previousAssignmentStatus != (_activeAssignment != null)) {
         _manageUserPolling();
+        // Force a rebuild since user marker visibility might have changed for responders
+        setState(() {});
       }
       _applyFiltersAndSearch();
     } else if (state is ReportsFailure) {
@@ -295,8 +313,12 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   void _handleUsersLocationStateChange(
       BuildContext context, UsersLocationState state) {
     if (!mounted) return;
+    debugPrint("=== USERS LOCATION STATE CHANGE ===");
     if (state is UsersLocationSuccess) {
+      debugPrint("Received ${state.users.length} users from UsersLocationCubit");
+      debugPrint("Users: ${state.users.map((u) => '${u.name}(${u.primaryRole})').join(', ')}");
       setState(() => _otherUsers = state.users);
+      debugPrint("Updated _otherUsers, count: ${_otherUsers.length}");
     } else if (state is UsersLocationError) {
       debugPrint("Error fetching user locations: ${state.message}");
     }
@@ -349,7 +371,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   void _stopPolling() => _reportPoller?.cancel();
 
   void _manageUserPolling() {
-    if (_canViewOtherUsers() && _showUserMarkersAtCurrentZoom) {
+    if (_canViewOtherUsers()) {
       _usersLocationCubit.startUsersPolling();
     } else {
       _usersLocationCubit.stopUsersPolling();
@@ -500,8 +522,73 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   }
 
   bool _canViewOtherUsers() =>
-      widget.userType == UserType.coordinator ||
-      (widget.userType == UserType.responder && _activeAssignment != null);
+      (widget.userType == UserType.coordinator && _enableCoordinatorUserPolling) ||
+      (widget.userType == UserType.responder && _enableResponderUserPolling);
+
+  bool _shouldShowUserMarkers() {
+    debugPrint("=== USER MARKERS VISIBILITY CHECK ===");
+    debugPrint("User type: ${widget.userType}");
+    debugPrint("Coordinator polling enabled: $_enableCoordinatorUserPolling");
+    debugPrint("Responder polling enabled: $_enableResponderUserPolling");
+    debugPrint("Show user markers at current zoom: $_showUserMarkersAtCurrentZoom");
+    debugPrint("Active assignment: ${_activeAssignment != null ? 'YES (${_activeAssignment!.id})' : 'NO'}");
+    
+    bool result = false;
+    
+    // Coordinators see user markers at appropriate zoom level (when feature enabled)
+    if (widget.userType == UserType.coordinator) {
+      result = _enableCoordinatorUserPolling && _showUserMarkersAtCurrentZoom;
+      debugPrint("Coordinator result: $result (polling=$_enableCoordinatorUserPolling && zoom=$_showUserMarkersAtCurrentZoom)");
+    }
+    // Responders only see user markers when assigned, at appropriate zoom level, and feature enabled
+    else if (widget.userType == UserType.responder) {
+      result = _enableResponderUserPolling && 
+               _activeAssignment != null && 
+               _showUserMarkersAtCurrentZoom;
+      debugPrint("Responder result: $result (polling=$_enableResponderUserPolling && assigned=${_activeAssignment != null} && zoom=$_showUserMarkersAtCurrentZoom)");
+    }
+    // Citizens don't see other users
+    else {
+      result = false;
+      debugPrint("Citizen result: false");
+    }
+    
+    debugPrint("Final shouldShowUserMarkers: $result");
+    return result;
+  }
+
+  // ============================================================================
+  // ZOOM & VISIBILITY HELPERS
+  // ============================================================================
+
+  void _updateZoomBasedVisibility(double zoom) {
+    bool needsRebuild = false;
+    final shouldShowReports = zoom >= _minZoomForReportMarkers;
+    final shouldShowUsers = zoom >= _minZoomForUserMarkers;
+    
+    debugPrint("=== UPDATING ZOOM-BASED VISIBILITY ===");
+    debugPrint("Current zoom: $zoom");
+    debugPrint("Min zoom for reports: $_minZoomForReportMarkers");
+    debugPrint("Min zoom for users: $_minZoomForUserMarkers");
+    debugPrint("Should show reports: $shouldShowReports");
+    debugPrint("Should show users: $shouldShowUsers");
+    
+    if (_showReportMarkersAtCurrentZoom != shouldShowReports) {
+      _showReportMarkersAtCurrentZoom = shouldShowReports;
+      needsRebuild = true;
+      debugPrint("Updated _showReportMarkersAtCurrentZoom: $shouldShowReports");
+    }
+    if (_showUserMarkersAtCurrentZoom != shouldShowUsers) {
+      _showUserMarkersAtCurrentZoom = shouldShowUsers;
+      needsRebuild = true;
+      debugPrint("Updated _showUserMarkersAtCurrentZoom: $shouldShowUsers");
+    }
+    
+    if (needsRebuild) {
+      debugPrint("Triggering setState for zoom visibility update");
+      setState(() {});
+    }
+  }
 
   // ============================================================================
   // EVENT HANDLERS & UI TRIGGERS
@@ -509,20 +596,13 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
 
   void _onMapPositionChanged(MapCamera camera, bool hasGesture) {
     if (hasGesture) {
-      bool needsRebuild = false;
-      final shouldShowReports = camera.zoom >= _minZoomForReportMarkers;
-      final shouldShowUsers = camera.zoom >= _minZoomForUserMarkers;
-      if (_showReportMarkersAtCurrentZoom != shouldShowReports) {
-        _showReportMarkersAtCurrentZoom = shouldShowReports;
-        needsRebuild = true;
-      }
-      if (_showUserMarkersAtCurrentZoom != shouldShowUsers) {
-        _showUserMarkersAtCurrentZoom = shouldShowUsers;
-        needsRebuild = true;
-      }
-      if (needsRebuild) {
-        setState(() {});
-        _manageUserPolling();
+      _updateZoomBasedVisibility(camera.zoom);
+      
+      // For coordinators, keep polling always active (never stop)
+      if (widget.userType == UserType.coordinator && _enableCoordinatorUserPolling) {
+        _startPolling(); // Always poll for coordinators
+      } else {
+        // For other users, use zoom-based polling
         if (_showReportMarkersAtCurrentZoom)
           _startPolling();
         else
@@ -863,7 +943,7 @@ context
         isRouteLoading: _isRouteLoading,
         isRefreshing: _isRefreshing,
         showReportMarkers: _showReportMarkersAtCurrentZoom,
-        showUserMarkers: _showUserMarkersAtCurrentZoom,
+        showUserMarkers: _shouldShowUserMarkers(),
         defaultZoom: _defaultZoom,
         onPositionChanged: _onMapPositionChanged,
         onRefresh: _handleManualRefresh,

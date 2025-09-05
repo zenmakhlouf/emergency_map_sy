@@ -11,8 +11,8 @@ class UsersLocationCubit extends Cubit<UsersLocationState> {
   Timer? _locationPollTimer;
 
   // Configuration
-  static const Duration _usersPollingInterval = Duration(seconds: 20);
-  static const Duration _locationPollingInterval = Duration(seconds: 20);
+  static const Duration _usersPollingInterval = Duration(seconds: 5);
+  static const Duration _locationPollingInterval = Duration(seconds: 5);
 
   UsersLocationCubit({
     required LocationService locationService,
@@ -28,25 +28,55 @@ class UsersLocationCubit extends Cubit<UsersLocationState> {
       emit(const UsersLocationLoading());
 
       final response = await _locationService.getUsersLocations();
-      debugPrint("response of users: $response");
+
+      // debugPrint("=== USERS LOCATION POLLING RESPONSE ===");
+      // debugPrint("Response success: ${response.success}");
+      // debugPrint("Response message: ${response.message}");
+      // debugPrint("Total users count: ${response.users.length}");
 
       if (response.success) {
+        // debugPrint("=== INDIVIDUAL USERS DATA ===");
+        // for (int i = 0; i < response.users.length; i++) {
+        //   final user = response.users[i];
+        //   debugPrint("User $i:");
+        //   debugPrint("  - ID: ${user.id}");
+        //   debugPrint("  - Name: ${user.name}");
+        //   debugPrint("  - Primary Role: ${user.primaryRole}");
+        //   debugPrint("  - Has Valid Location: ${user.hasValidLocation}");
+        //   if (user.location != null) {
+        //     debugPrint("  - Location: lat=${user.location!.lat}, lon=${user.location!.lon}");
+        //     debugPrint("  - Address: ${user.location!.address}");
+        //   } else {
+        //     debugPrint("  - Location: null");
+        //   }
+        //   debugPrint("  - Roles: ${user.roles.map((r) => r.name).join(', ')}");
+        //   debugPrint("  ---");
+        // }
+        
         final validUsers =
             response.users.where((user) => user.hasValidLocation).toList();
+            
+        // debugPrint("=== FILTERING RESULTS ===");
+        // debugPrint("Users with valid locations: ${validUsers.length}");
+        // for (final user in validUsers) {
+        //   debugPrint("Valid user: ${user.name} (${user.primaryRole}) at ${user.location!.lat}, ${user.location!.lon}");
+        // }
 
         emit(UsersLocationSuccess(
           users: validUsers,
           lastUpdated: DateTime.now(),
         ));
       } else {
+        debugPrint("Users location response failed: ${response.message}");
         emit(UsersLocationError(
           message: response.message ?? 'Failed to fetch users locations',
         ));
       }
     } on LocationServiceException catch (e) {
+      debugPrint("Users location service exception: ${e.message} (${e.statusCode})");
       emit(UsersLocationError(message: e.message));
     } catch (e) {
-      debugPrint('Unexpected error in fetchUsersLocations: $e');
+      debugPrint('Users location unexpected error: $e');
       emit(const UsersLocationError(
         message: 'An unexpected error occurred while fetching user locations',
       ));

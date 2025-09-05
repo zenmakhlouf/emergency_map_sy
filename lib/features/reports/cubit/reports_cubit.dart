@@ -13,15 +13,48 @@ class ReportsCubit extends Cubit<ReportsState> {
   Future<void> fetchReports({Map<String, dynamic>? query}) async {
     emit(ReportsLoading());
     try {
-      final reports = await _service.fetchReports(query: query);
-      if (reports.isEmpty) {
+      final rawReports = await _service.fetchReports(query: query);
+      final validReports = _filterValidReports(rawReports);
+      
+      if (validReports.isEmpty) {
         emit(ReportsEmpty());
       } else {
-        emit(ReportsSuccess(reports));
+        emit(ReportsSuccess(validReports));
       }
     } catch (e) {
       emit(ReportsFailure(e.toString()));
     }
+  }
+
+  /// Filters out reports with missing crucial elements
+  List<ReportEntity> _filterValidReports(List<ReportEntity> reports) {
+    return reports.where((report) {
+      // Check if state is null
+      if (report.state == null) {
+        return false;
+      }
+      
+      // Check if emergency type is missing
+      if (report.state!.emergencyType == null || 
+          report.state!.emergencyType!.trim().isEmpty) {
+        return false;
+      }
+      
+      // Check if location is valid
+      if (report.location.latitude == 0 && report.location.longitude == 0) {
+        return false;
+      }
+      
+      // Check if report details are completely missing
+      if (report.state!.report == null || 
+          (report.state!.report!.name == null && 
+           report.state!.report!.description == null && 
+           report.state!.report!.text == null)) {
+        return false;
+      }
+      
+      return true;
+    }).toList();
   }
 
   /// Updates the status of a report and optimistically removes it from the list.
