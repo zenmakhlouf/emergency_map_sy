@@ -483,6 +483,7 @@ class _MapControls extends StatelessWidget {
       right: 16,
       child: Column(
         children: [
+          //_MapControlButton(icon: Icon(Icons.clear),onPressed: () => , tooltip: 'Clear Route'),
           _MapControlButton(
               icon: Icons.refresh,
               onPressed: isRefreshing ? null : onRefresh,
