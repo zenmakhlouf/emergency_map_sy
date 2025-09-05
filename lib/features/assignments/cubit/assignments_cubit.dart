@@ -12,7 +12,7 @@ class AssignmentsCubit extends Cubit<AssignmentsState> {
     _initialize();
   }
   Timer? _pollingTimer;
-  static const Duration _pollingInterval = Duration(seconds: 5);
+  static const Duration _pollingInterval = Duration(seconds: 20);
 
   /// Initialize cubit and start polling
   void _initialize() {
