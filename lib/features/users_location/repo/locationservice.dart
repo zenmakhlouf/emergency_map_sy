@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import '../../../features/chat/models/chat_models.dart';
+import '../../../features/assignments/models/participation_request.dart' as assignments;
 
 /// Service for handling location-related API operations
 class LocationService {
@@ -212,25 +214,51 @@ class UserLocationEntity {
   final int id;
   final String name;
   final String? authPhone;
-  final String? profileImage;
+  final ProfileImage? profileImage;
+  final ResponderType? responderType;
   final List<UserRole> roles;
   final LocationData? location;
+  final List<assignments.ParticipationRequest> participationRequests;
 
   UserLocationEntity({
     required this.id,
     required this.name,
     this.authPhone,
     this.profileImage,
+    this.responderType,
     required this.roles,
     this.location,
+    this.participationRequests = const [],
   });
 
   factory UserLocationEntity.fromJson(Map<String, dynamic> json) {
+    // Parse profile_image safely
+    ProfileImage? profileImage;
+    if (json['profile_image'] is Map<String, dynamic>) {
+      profileImage = ProfileImage.fromJson(json['profile_image'] as Map<String, dynamic>);
+    }
+    
+    // Parse responder_type safely
+    ResponderType? responderType;
+    if (json['responder_type'] is Map<String, dynamic>) {
+      responderType = ResponderType.fromJson(json['responder_type'] as Map<String, dynamic>);
+    }
+    
+    // Parse participation_requests safely
+    List<assignments.ParticipationRequest> participationRequests = [];
+    if (json['participation_requests'] is List) {
+      participationRequests = (json['participation_requests'] as List)
+          .whereType<Map<String, dynamic>>()
+          .map((item) => assignments.ParticipationRequest.fromJson(item))
+          .toList();
+    }
+    
     return UserLocationEntity(
       id: json["id"] ?? 0,
       name: json["name"] ?? "",
       authPhone: json["auth_phone"],
-      profileImage: json["profile_image"],
+      profileImage: profileImage,
+      responderType: responderType,
       roles: (json["roles"] as List<dynamic>?)
               ?.map((role) => UserRole.fromJson(role))
               .toList() ??
@@ -238,6 +266,7 @@ class UserLocationEntity {
       location: json["location"] != null
           ? LocationData.fromJson(json["location"])
           : null,
+      participationRequests: participationRequests,
     );
   }
 
@@ -253,6 +282,32 @@ class UserLocationEntity {
 
   bool get hasValidLocation =>
       location != null && location!.lat != 0 && location!.lon != 0;
+      
+  /// Get profile image URL (preferring medium size, fallback to public path)
+  String? get profileImageUrl {
+    if (profileImage == null) return null;
+    return profileImage!.conversions?.medium ?? profileImage!.publicPath;
+  }
+  
+  /// Get profile thumbnail URL
+  String? get profileThumbnailUrl {
+    if (profileImage == null) return null;
+    return profileImage!.conversions?.thumb ?? profileImage!.publicPath;
+  }
+  
+  /// Get responder emergency type name if available
+  String? get responderEmergencyType {
+    return responderType?.emergencyType?.name;
+  }
+  
+  /// Get responder emergency type color if available  
+  String? get responderEmergencyTypeColor {
+    return responderType?.emergencyType?.color;
+  }
+  
+  /// Check if user has pending participation requests
+  bool get hasPendingRequests =>
+      participationRequests.any((request) => request.status == 'pending');
 }
 
 /// User role model
