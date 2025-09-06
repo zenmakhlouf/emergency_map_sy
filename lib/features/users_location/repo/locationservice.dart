@@ -5,38 +5,63 @@ import 'package:flutter/foundation.dart';
 import '../../../features/chat/models/chat_models.dart';
 import '../../../features/assignments/models/participation_request.dart'
     as assignments;
+import '../../../apis/network.dart';
+import '../../../utils/error_logger.dart';
 
 /// Service for handling location-related API operations
 class LocationService {
   static const Duration _defaultTimeout = Duration(seconds: 10);
   static const int _maxRetries = 3;
 
-  final Dio _dio;
   final String _baseUrl;
 
   LocationService({
-    required Dio dio,
     required String baseUrl,
-  })  : _dio = dio,
-        _baseUrl = baseUrl {
+  }) : _baseUrl = baseUrl {
     _setupInterceptors();
   }
 
+  // Use global Network.dio instead of separate instance
+  Dio get _dio => Network.dio;
+
   void _setupInterceptors() {
+    // Add location-specific interceptor for debugging
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          // Add common headers
-          options.headers["Content-Type"] = "application/x-www-form-urlencoded";
-          options.headers["Accept"] = "application/json";
-
-          // Add auth token if available
-          // TODO: Add token from AuthCubit
+          // Only log location update requests for debugging Android polling
+          if (options.uri.toString().contains('/users/location')) {
+            debugPrint("📍 LOCATION UPDATE REQUEST:");
+            debugPrint("   URL: ${options.uri}");
+            debugPrint("   Headers: ${options.headers}");
+            debugPrint("   Auth Header: ${options.headers['Authorization'] != null ? 'Bearer token present' : 'NO AUTH TOKEN!'}");
+            debugPrint("   Data: ${options.data}");
+          }
+          
+          // For location updates, use form data format
+          if (options.uri.toString().contains('/users/location') && options.method == 'POST') {
+            options.headers["Content-Type"] = "application/x-www-form-urlencoded";
+          }
 
           handler.next(options);
         },
+        onResponse: (response, handler) {
+          // Only log location update responses for debugging Android polling
+          if (response.requestOptions.uri.toString().contains('/users/location')) {
+            debugPrint("✅ LOCATION UPDATE RESPONSE:");
+            debugPrint("   Status: ${response.statusCode}");
+            debugPrint("   Data: ${response.data}");
+          }
+          handler.next(response);
+        },
         onError: (error, handler) {
-          debugPrint("Location API Error: ${error.message}");
+          // Only log location update errors for debugging Android polling
+          if (error.requestOptions.uri.toString().contains('/users/location')) {
+            debugPrint("❌ LOCATION UPDATE ERROR:");
+            debugPrint("   Status Code: ${error.response?.statusCode}");
+            debugPrint("   Message: ${error.message}");
+            debugPrint("   Response Data: ${error.response?.data}");
+          }
           handler.next(error);
         },
       ),
@@ -68,11 +93,15 @@ class LocationService {
 
       return LocationUpdateResponse.fromJson(response.data);
     } on DioException catch (e) {
-      throw LocationServiceException(
-        _handleDioError(e),
-        statusCode: e.response?.statusCode,
-      );
+      final error = _handleDioError(e);
+      await ErrorLogger.logLocationError('Location update failed', additionalData: {
+        'statusCode': e.response?.statusCode,
+        'error': error,
+        'url': e.requestOptions.uri.toString(),
+      });
+      throw LocationServiceException(error, statusCode: e.response?.statusCode);
     } catch (e) {
+      await ErrorLogger.logLocationError('Location update unexpected error: $e');
       throw LocationServiceException("Failed to update location: $e");
     }
   }
@@ -101,11 +130,15 @@ class LocationService {
       
       return parsedResponse;
     } on DioException catch (e) {
-      throw LocationServiceException(
-        _handleDioError(e),
-        statusCode: e.response?.statusCode,
-      );
+      final error = _handleDioError(e);
+      await ErrorLogger.logLocationError('Users location fetch failed', additionalData: {
+        'statusCode': e.response?.statusCode,
+        'error': error,
+        'url': e.requestOptions.uri.toString(),
+      });
+      throw LocationServiceException(error, statusCode: e.response?.statusCode);
     } catch (e) {
+      await ErrorLogger.logLocationError('Users location fetch unexpected error: $e');
       throw LocationServiceException("Failed to fetch users locations: $e");
     }
   }

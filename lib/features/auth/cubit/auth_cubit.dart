@@ -168,7 +168,7 @@ class AuthCubit extends Cubit<AuthState> {
       await Network.postData(
         url: Urls.sendOTP,
         body: {
-          'phone_number': '+٩٦٣${phoneController.text}',
+          'phone_number': '+963${phoneController.text}',
           'type': type,
         },
       );
@@ -187,7 +187,7 @@ class AuthCubit extends Cubit<AuthState> {
       final response = await Network.postData(
         url: Urls.checkOTP,
         body: {
-          'phone_number': '+٩٦٣${phoneController.text}',
+          'phone_number': '+963${phoneController.text}',
           'type': type,
           'code': otpController.text,
         },
@@ -207,7 +207,7 @@ class AuthCubit extends Cubit<AuthState> {
       final response = await Network.postData(
         url: Urls.login,
         body: {
-          'phone_number': '+٩٦٣${phoneController.text}',
+          'phone_number': '+963${phoneController.text}',
           'code': otpController.text,
         },
       );
@@ -231,7 +231,7 @@ class AuthCubit extends Cubit<AuthState> {
 
       FormData formData = FormData.fromMap({
         'name': cleanName,
-        'phone_number': '+٩٦٣${phoneController.text}',
+        'phone_number': '+963${phoneController.text}',
         'code': otpController.text,
       });
 
@@ -248,7 +248,7 @@ class AuthCubit extends Cubit<AuthState> {
       }
 
       debugPrint(
-          '[AuthCubit] Sending registration data: name=$cleanName, phone=+٩٦٣${phoneController.text}, hasImage=${selectedProfileImage != null}');
+          '[AuthCubit] Sending registration data: name=$cleanName, phone=+963${phoneController.text}, hasImage=${selectedProfileImage != null}');
 
       final response = await Network.dio.post(
         Urls.register,

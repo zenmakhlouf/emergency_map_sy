@@ -24,6 +24,8 @@ import 'package:emergency_map_sy/screens/helper_functions.dart'
 import 'package:emergency_map_sy/services/map_navigation_service.dart';
 import 'package:emergency_map_sy/services/routing_service.dart';
 import 'package:emergency_map_sy/services/report_details_service.dart';
+import 'package:emergency_map_sy/screens/developer_diagnostics_screen.dart';
+import 'package:emergency_map_sy/utils/developer_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -944,13 +946,13 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     String title;
     switch (widget.userType) {
       case UserType.citizen:
-        title = 'رجال الإنقاذ';
+        title = 'رجال الإنقاذ - dev';
         break;
       case UserType.responder:
-        title = 'الاستجابة للطوارئ';
+        title = 'الاستجابة للطوارئ - dev';
         break;
       case UserType.coordinator:
-        title = 'عمليات الطوارئ';
+        title = 'عمليات الطوارئ - dev';
         break;
     }
     return AppBar(
@@ -978,6 +980,16 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
                     color: Colors.white,
                     fontSize: 10,
                     fontWeight: FontWeight.bold)),
+          ),
+        // Developer Diagnostics Button - Toggle with DeveloperConfig.enableDeveloperDiagnostics
+        if (DeveloperConfig.enableDeveloperDiagnostics)
+          IconButton(
+            icon: const Icon(Icons.bug_report, color: Colors.red),
+            onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const DeveloperDiagnosticsScreen())),
+            tooltip: 'Developer Diagnostics',
           ),
         IconButton(
           icon: const Icon(Icons.person_outline),

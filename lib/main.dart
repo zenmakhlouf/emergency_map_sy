@@ -29,7 +29,7 @@ void main() async {
         BlocProvider(
           create: (_) => UsersLocationCubit(
             locationService:
-                LocationService(dio: Network.dio, baseUrl: Urls.baseUrl),
+                LocationService( baseUrl: Urls.baseUrl),
           ),
         ),
         BlocProvider(create: (_) => AssignmentsCubit()),

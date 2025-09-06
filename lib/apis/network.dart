@@ -23,13 +23,13 @@ class Network {
    // Debugging interceptor (optional, enable for dev builds only)
     // dio.interceptors.add(
     //   PrettyDioLogger(
-    //     requestHeader: false,
+    //     requestHeader: true,
     //     requestBody: true,
     //     responseBody: true,
-    //     responseHeader: false,
+    //     responseHeader: true,
     //     error: true,
     //     request: true,
-    //     compact: true,
+    //     compact: false,
     //     maxWidth: 1000,
     //   ),
     // );

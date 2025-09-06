@@ -22,6 +22,8 @@ class UsersLocationCubit extends Cubit<UsersLocationState> {
 
   /// Fetch users locations once
   Future<void> fetchUsersLocations() async {
+    // debugPrint('🎯 fetchUsersLocations() called');
+    
     // Check if users location polling is disabled
     if (LocationConfig.disableUsersLocationPolling) {
       debugPrint('🚫 Users location fetching is disabled via LocationConfig');
@@ -29,7 +31,10 @@ class UsersLocationCubit extends Cubit<UsersLocationState> {
     }
 
     // Only fetch if not already loading to prevent duplicate requests
-    if (state is UsersLocationLoading) return;
+    if (state is UsersLocationLoading) {
+      // debugPrint('⏳ Already loading users locations, skipping...');
+      return;
+    }
 
     try {
       emit(const UsersLocationLoading());
@@ -92,6 +97,8 @@ class UsersLocationCubit extends Cubit<UsersLocationState> {
 
   /// Start polling for users locations
   void startUsersPolling() {
+    // debugPrint('🚀 startUsersPolling() called');
+    
     // Check if users location polling is disabled
     if (LocationConfig.disableUsersLocationPolling) {
       debugPrint('🚫 Users location polling is disabled via LocationConfig');
@@ -138,18 +145,20 @@ class UsersLocationCubit extends Cubit<UsersLocationState> {
     // Stop any existing timer to prevent multiple active timers
     stopLocationPolling();
 
+    debugPrint('🚀 Starting location polling with: lat=$lat, lon=$lon, address=$address');
+    
     // Update immediately
     _updateLocationToBackend(lat: lat, lon: lon, address: address);
 
     // Then poll periodically with the provided coordinates
     _locationPollTimer = Timer.periodic(_locationPollingInterval, (_) {
       if (!isClosed) {
+        debugPrint('⏰ Location polling timer tick - sending location update');
         _updateLocationToBackend(lat: lat, lon: lon, address: address);
       }
     });
 
-    debugPrint(
-        'Started location polling every ${_locationPollingInterval.inSeconds}s');
+    debugPrint('✅ Location polling started every ${_locationPollingInterval.inSeconds}s');
   }
 
   /// Stop polling user's location
@@ -189,14 +198,15 @@ class UsersLocationCubit extends Cubit<UsersLocationState> {
     }
 
     try {
+      debugPrint('🔄 Updating location to backend: lat=$lat, lon=$lon, address=$address');
       await _locationService.updateUserLocation(
         lat: lat,
         lon: lon,
         address: address,
       );
-      debugPrint('Location updated: $lat, $lon');
+      debugPrint('✅ Location successfully updated to backend');
     } catch (e) {
-      debugPrint('Failed to update location to backend: $e');
+      debugPrint('❌ Failed to update location to backend: $e');
       // Don't emit error state for location polling failures
       // as this is a background operation and might spam the UI.
       // Consider a separate mechanism for critical background errors if needed.
