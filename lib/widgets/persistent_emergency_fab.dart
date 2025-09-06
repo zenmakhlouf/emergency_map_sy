@@ -12,7 +12,6 @@ import '../features/users_location/cubit/userslocation_cubit.dart';
 import '../features/chat/cubit/chat_cubit.dart';
 import '../features/reports/cubit/reports_cubit.dart';
 import '../features/reports/models/report.dart';
-import '../services/report_details_service.dart';
 import 'package:latlong2/latlong.dart';
 
 class PersistentEmergencyFAB extends StatefulWidget {
@@ -69,7 +68,7 @@ class _PersistentEmergencyFABState extends State<PersistentEmergencyFAB>
     
     if (state is AssignedMode && 
         widget.userType == UserType.responder) {
-      debugPrint('🚨 [EMERGENCY_FAB] Showing emergency FAB for assignment: ${state.activeAssignment.report.id}');
+      debugPrint('🚨 [EMERGENCY_FAB] Showing persistent emergency FAB for assignment: ${state.activeAssignment.report.id}');
       
       setState(() {
         _activeAssignment = state.activeAssignment;
@@ -78,29 +77,32 @@ class _PersistentEmergencyFABState extends State<PersistentEmergencyFAB>
       
       _scaleController.forward();
       
-      // Auto-hide timer (optional - can be removed if always visible is preferred)
+      // Cancel any existing hide timer - FAB should persist until assignment completed/rejected
       _hideTimer?.cancel();
-      _hideTimer = Timer(const Duration(minutes: 1), () {
-        if (mounted) {
-          debugPrint('🚨 [EMERGENCY_FAB] Auto-hiding emergency FAB after 1 minute');
-          _hideEmergencyFAB();
-        }
-      });
+      debugPrint('🚨 [EMERGENCY_FAB] FAB will persist until assignment is completed or rejected');
       
     } else if (state is AssignmentsLoaded || 
                state is AssignmentActionSuccess) {
-      // Check if we should hide the FAB
-      bool hasActiveAssignment = false;
+      // Check if we should hide the FAB - only hide on explicit rejection or completion
+      bool shouldHideFAB = false;
       
-      if (state is AssignmentsLoaded) {
-        hasActiveAssignment = state.acceptedRequests.isNotEmpty;
-      } else if (state is AssignmentActionSuccess && 
-                 state.action == 'reject') {
-        hasActiveAssignment = false;
+      if (state is AssignmentActionSuccess) {
+        if (state.action == 'reject') {
+          debugPrint('🚨 [EMERGENCY_FAB] Assignment rejected - hiding FAB');
+          shouldHideFAB = true;
+        }
+        // Note: On 'accept', the FAB should remain visible as user transitions to focus mode
+      } else if (state is AssignmentsLoaded) {
+        // Keep FAB visible if there are still accepted assignments
+        final hasAcceptedAssignments = state.acceptedRequests.isNotEmpty;
+        if (!hasAcceptedAssignments && _isVisible) {
+          debugPrint('🚨 [EMERGENCY_FAB] No accepted assignments found - checking if should hide');
+          shouldHideFAB = true;
+        }
       }
       
-      if (!hasActiveAssignment && _isVisible) {
-        debugPrint('🚨 [EMERGENCY_FAB] Hiding emergency FAB - no active assignments');
+      if (shouldHideFAB) {
+        debugPrint('🚨 [EMERGENCY_FAB] Hiding emergency FAB');
         _hideEmergencyFAB();
       }
     }
@@ -285,7 +287,7 @@ class _PersistentEmergencyFABState extends State<PersistentEmergencyFAB>
         // Extract the report name from the state
         final reportName = fullReport.state?.report?.name;
         if (reportName != null && reportName.isNotEmpty) {
-          debugPrint('🚨 [EMERGENCY_FAB] Using report name: $reportName');
+         // debugPrint('🚨 [EMERGENCY_FAB] Using report name: $reportName');
           return reportName;
         }
       }

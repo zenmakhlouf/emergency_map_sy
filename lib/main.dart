@@ -6,6 +6,7 @@ import 'package:emergency_map_sy/features/users_location/repo/locationservice.da
 //import 'package:emergency_map_sy/screens/unified_dashboard.dart';
 import 'package:emergency_map_sy/utils/urls.dart';
 import 'package:emergency_map_sy/widgets/persistent_emergency_fab.dart';
+import 'package:emergency_map_sy/widgets/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'apis/network.dart';
@@ -46,7 +47,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'SafetyConnect',
+      title: 'رجال الإنقاذ',
       theme: ThemeData(
         primarySwatch: Colors.red,
         visualDensity: VisualDensity.adaptivePlatformDensity,
@@ -63,7 +64,7 @@ class MyApp extends StatelessWidget {
         builder: (context, state) {
           if (state is AuthLoading) {
             return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
+              body: Center(child: SplashScreen()),
             );
           }
           

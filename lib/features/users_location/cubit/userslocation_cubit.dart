@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:emergency_map_sy/features/users_location/repo/locationservice.dart';
+import 'package:emergency_map_sy/utils/location_config.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/foundation.dart';
@@ -21,6 +22,12 @@ class UsersLocationCubit extends Cubit<UsersLocationState> {
 
   /// Fetch users locations once
   Future<void> fetchUsersLocations() async {
+    // Check if users location polling is disabled
+    if (LocationConfig.disableUsersLocationPolling) {
+      debugPrint('🚫 Users location fetching is disabled via LocationConfig');
+      return;
+    }
+
     // Only fetch if not already loading to prevent duplicate requests
     if (state is UsersLocationLoading) return;
 
@@ -85,6 +92,12 @@ class UsersLocationCubit extends Cubit<UsersLocationState> {
 
   /// Start polling for users locations
   void startUsersPolling() {
+    // Check if users location polling is disabled
+    if (LocationConfig.disableUsersLocationPolling) {
+      debugPrint('🚫 Users location polling is disabled via LocationConfig');
+      return;
+    }
+
     // Cancel any existing timer to prevent multiple active timers
     stopUsersPolling();
 
@@ -116,6 +129,12 @@ class UsersLocationCubit extends Cubit<UsersLocationState> {
     required double lon,
     String? address,
   }) {
+    // Check if own location polling is disabled
+    if (LocationConfig.disableOwnLocationPolling) {
+      debugPrint('🚫 Own location polling is disabled via LocationConfig');
+      return;
+    }
+
     // Stop any existing timer to prevent multiple active timers
     stopLocationPolling();
 
@@ -163,6 +182,12 @@ class UsersLocationCubit extends Cubit<UsersLocationState> {
     required double lon,
     String? address,
   }) async {
+    // Check if own location polling is disabled
+    if (LocationConfig.disableOwnLocationPolling) {
+      debugPrint('🚫 Location backend update is disabled via LocationConfig');
+      return;
+    }
+
     try {
       await _locationService.updateUserLocation(
         lat: lat,

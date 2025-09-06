@@ -15,16 +15,21 @@ import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-import 'chat_conversation_screen.dart';
+import 'chat_conversation_screen.dart'; // Assuming this screen will also be localized
 
-class AIEmergencyChatScreen extends StatefulWidget {
-  const AIEmergencyChatScreen({super.key});
+// Note: This file is a localized version of AIEmergencyChatScreen.
+// It is recommended to use a proper localization library like `flutter_localizations`
+// and `intl` for a real-world application for better management.
+
+class AIEmergencyChatScreenAR extends StatefulWidget {
+  const AIEmergencyChatScreenAR({super.key});
 
   @override
-  State<AIEmergencyChatScreen> createState() => _AIEmergencyChatScreenState();
+  State<AIEmergencyChatScreenAR> createState() =>
+      _AIEmergencyChatScreenARState();
 }
 
-class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
+class _AIEmergencyChatScreenARState extends State<AIEmergencyChatScreenAR>
     with TickerProviderStateMixin {
   final TextEditingController _messageController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
@@ -58,57 +63,54 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
   static const String _sttApiUrl =
       "https://help-map.saadalabyad.com/api/v1/ai/test-speech-to-text";
 
+  // --- LOCALIZED CONTENT ---
   final List<ProcessingStage> _processingStages = [
     ProcessingStage(
         icon: Icons.analytics_outlined,
-        title: 'Analyzing Emergency',
-        subtitle: 'AI is categorizing your report...',
+        title: 'تحليل حالة الطوارئ',
+        subtitle: 'الذكاء الاصطناعي يقوم بتصنيف بلاغك...',
         duration: 1500),
     ProcessingStage(
         icon: Icons.health_and_safety_outlined,
-        title: 'Writing Safety Tips',
-        subtitle: 'Generating immediate safety instructions...',
+        title: 'كتابة إرشادات السلامة',
+        subtitle: 'جاري إنشاء تعليمات السلامة الفورية...',
         duration: 1200),
     ProcessingStage(
         icon: Icons.rule_folder_outlined,
-        title: 'Detecting Missing Info',
-        subtitle: 'Checking for critical details...',
+        title: 'الكشف عن المعلومات الناقصة',
+        subtitle: 'التحقق من التفاصيل الهامة...',
         duration: 1000),
     ProcessingStage(
         icon: Icons.check_circle_outline,
-        title: 'Finalizing Report',
-        subtitle: 'Connecting you to responders...',
+        title: 'إنهاء البلاغ',
+        subtitle: 'جاري توصيلك بالمستجيبين...',
         duration: 800),
   ];
 
   final List<EmergencyPromptCategory> _categories = [
     EmergencyPromptCategory(
-        title: 'Medical Emergency',
+        title: 'طوارئ طبية',
         icon: Icons.medical_services_outlined,
         color: Colors.red,
         prompts: [
-          'Someone is unconscious and not breathing',
-          'Severe chest pain or heart attack symptoms',
-          'Major bleeding that won\'t stop'
+          'شخص فاقد للوعي ولا يتنفس',
+          'ألم شديد في الصدر أو أعراض نوبة قلبية',
+          'نزيف حاد لا يتوقف'
         ]),
     EmergencyPromptCategory(
-        title: 'Fire Emergency',
+        title: 'طوارئ حريق',
         icon: Icons.local_fire_department_outlined,
         color: Colors.orange,
         prompts: [
-          'House fire - people trapped inside',
-          'Vehicle fire on the road',
-          'Wildfire approaching residential area'
+          'حريق في منزل - يوجد أشخاص محاصرون',
+          'حريق سيارة على الطريق',
+          'حريق غابات يقترب من منطقة سكنية'
         ]),
     EmergencyPromptCategory(
-        title: 'Crime & Safety',
+        title: 'جريمة وأمان',
         icon: Icons.security_outlined,
         color: Colors.blue,
-        prompts: [
-          'Break-in in progress',
-          'Armed robbery happening now',
-          'Domestic violence situation'
-        ]),
+        prompts: ['عملية اقتحام جارية', 'سطو مسلح يحدث الآن', 'حالة عنف أسري']),
   ];
 
   @override
@@ -180,7 +182,7 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
       setState(() => _isRecorderReady = true);
     } catch (e) {
       debugPrint("Recorder initialization failed: $e");
-      _showErrorMessage("Microphone access is required for voice messages.");
+      _showErrorMessage("الوصول إلى الميكروفون مطلوب للرسائل الصوتية.");
     }
   }
 
@@ -195,7 +197,6 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
     final now = DateTime.now();
     if (_lastSubmissionTime != null &&
         now.difference(_lastSubmissionTime!).inSeconds < 2) {
-      debugPrint('[AIEmergencyChat] Ignoring rapid duplicate submission');
       return;
     }
 
@@ -260,20 +261,16 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
         throw Exception("Location is required but couldn't be determined.");
       }
 
-      // --- THE FIX IS HERE ---
-      // Calling the new, specific method for starting a conversation
       await context.read<ChatCubit>().startEmergencyConversation(
             lat: lat,
             lon: lon,
-            address:
-                _selectedLocation != null ? 'Custom Location' : 'Live Location',
+            address: _selectedLocation != null ? 'موقع مخصص' : 'الموقع الحالي',
             text: _pendingMessage!,
             currentUserId: authCubit.userId!,
           );
-      // --- END OF FIX ---
     } catch (e) {
       if (mounted) {
-        _showErrorMessage('Failed to send report: ${e.toString()}');
+        _showErrorMessage('فشل إرسال البلاغ: ${e.toString()}');
         setState(() {
           _isSubmitting = false;
           _isProcessing = false;
@@ -299,45 +296,50 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<ChatCubit, ChatState>(
-      listener: (context, state) {
-        if (state is ChatNewConversationStarted) {
-          final newConversationId = state.firstMessage.conversationId;
-          final auth = context.read<AuthCubit>();
-          if (newConversationId != null && auth.isAuthenticated) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (_) => BlocProvider.value(
-                  value: context.read<ChatCubit>(),
-                  child: ChatConversationScreen(
-                    chatId: newConversationId,
-                    currentUserId: auth.userId!,
-                    chatTitle: 'Emergency Response',
+    // Applying Directionality at the root of the screen for full RTL support.
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: BlocListener<ChatCubit, ChatState>(
+        listener: (context, state) {
+          if (state is ChatNewConversationStarted) {
+            final newConversationId = state.firstMessage.conversationId;
+            final auth = context.read<AuthCubit>();
+            if (newConversationId != null && auth.isAuthenticated) {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (_) => BlocProvider.value(
+                    value: context.read<ChatCubit>(),
+                    child: ChatConversationScreen(
+                      // Assuming ChatConversationScreen can handle RTL.
+                      chatId: newConversationId,
+                      currentUserId: auth.userId!,
+                      chatTitle: 'استجابة طارئة',
+                    ),
                   ),
                 ),
-              ),
-            );
+              );
+            }
+          } else if (state is ChatError) {
+            if (mounted) {
+              _showErrorMessage(state.message);
+              setState(() {
+                _isSubmitting = false;
+                _isProcessing = false;
+              });
+            }
           }
-        } else if (state is ChatError) {
-          if (mounted) {
-            _showErrorMessage(state.message);
-            setState(() {
-              _isSubmitting = false;
-              _isProcessing = false;
-            });
-          }
-        }
-      },
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF8F9FA),
-        body: Stack(
-          children: [
-            _buildMainContent(),
-            if (_showConfirmDialog && !_showLocationSelector)
-              _buildConfirmDialog(),
-            if (_showLocationSelector) _buildLocationSelector(),
-            if (_isProcessing) _buildProcessingOverlay(),
-          ],
+        },
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF8F9FA),
+          body: Stack(
+            children: [
+              _buildMainContent(),
+              if (_showConfirmDialog && !_showLocationSelector)
+                _buildConfirmDialog(),
+              if (_showLocationSelector) _buildLocationSelector(),
+              if (_isProcessing) _buildProcessingOverlay(),
+            ],
+          ),
         ),
       ),
     );
@@ -414,10 +416,10 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Emergency AI Assistant',
+                Text('مساعد الطوارئ الذكي',
                     style:
                         TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                Text('24/7 Emergency Response',
+                Text('استجابة طارئة 24/7',
                     style: TextStyle(fontSize: 14, color: Colors.grey)),
               ],
             ),
@@ -437,7 +439,7 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
                     decoration: const BoxDecoration(
                         color: Colors.green, shape: BoxShape.circle)),
                 const SizedBox(width: 6),
-                const Text('Online',
+                const Text('متصل',
                     style: TextStyle(
                         color: Colors.green,
                         fontSize: 12,
@@ -484,12 +486,12 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
                 size: 40, color: Colors.white),
           ),
           const SizedBox(height: 20),
-          const Text('How can I help you today?',
+          const Text('كيف يمكنني مساعدتك اليوم؟',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center),
           const SizedBox(height: 12),
           const Text(
-              'I\'m your AI emergency assistant. Describe your situation or choose a scenario below for a faster response.',
+              'أنا مساعد الطوارئ الذكي الخاص بك. صف حالتك أو اختر سيناريو أدناه للحصول على استجابة أسرع.',
               style: TextStyle(fontSize: 16, color: Colors.grey, height: 1.5),
               textAlign: TextAlign.center),
         ],
@@ -501,7 +503,7 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Common Emergencies',
+        const Text('حالات الطوارئ الشائعة',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         const SizedBox(height: 16),
         ..._categories.map((category) => Padding(
@@ -536,7 +538,7 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
             child: Icon(category.icon, color: category.color, size: 24)),
         title: Text(category.title,
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-        subtitle: Text('${category.prompts.length} quick options',
+        subtitle: Text('${category.prompts.length} خيارات سريعة',
             style: const TextStyle(fontSize: 14, color: Colors.grey)),
         children: category.prompts
             .map((prompt) => _buildPromptTile(prompt, category.color))
@@ -569,7 +571,8 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
                         style: TextStyle(
                             fontSize: 14,
                             color: categoryColor.withOpacity(0.9)))),
-                Icon(Icons.arrow_forward_ios,
+                // RTL-friendly icon
+                Icon(Icons.arrow_back_ios,
                     size: 14, color: categoryColor.withOpacity(0.5)),
               ],
             ),
@@ -602,8 +605,8 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
                 hintText: _isRecording
-                    ? 'Recording audio...'
-                    : 'Or describe your emergency in detail...',
+                    ? 'جاري تسجيل الصوت...'
+                    : 'أو صف حالة الطوارئ بالتفصيل...',
                 hintStyle: const TextStyle(color: Colors.grey),
                 border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
@@ -712,7 +715,7 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
                 ),
               ),
               const SizedBox(height: 20),
-              const Text('Confirm Emergency Report',
+              const Text('تأكيد بلاغ الطوارئ',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center),
               const SizedBox(height: 12),
@@ -724,7 +727,8 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
                 child: Text(_pendingMessage ?? '',
                     style: const TextStyle(fontSize: 14, color: Colors.grey),
                     maxLines: 3,
-                    overflow: TextOverflow.ellipsis),
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center),
               ),
               const SizedBox(height: 16),
               Container(
@@ -741,16 +745,16 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
                     Expanded(
                       child: Text(
                           _selectedLocation != null
-                              ? 'Custom location selected'
+                              ? 'تم تحديد موقع مخصص'
                               : (_currentPosition != null
-                                  ? 'Using current location'
-                                  : 'Location not set'),
+                                  ? 'استخدام الموقع الحالي'
+                                  : 'الموقع غير محدد'),
                           style: TextStyle(
                               fontSize: 12, color: Colors.blue.shade700)),
                     ),
                     TextButton(
                         onPressed: _showLocationSelector1,
-                        child: Text('Change',
+                        child: Text('تغيير',
                             style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.blue.shade600,
@@ -764,12 +768,12 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
                   Expanded(
                       child: OutlinedButton(
                           onPressed: _cancelCountdown,
-                          child: const Text('Cancel'))),
+                          child: const Text('إلغاء'))),
                   const SizedBox(width: 16),
                   Expanded(
                       child: ElevatedButton(
                           onPressed: _confirmSendMessage,
-                          child: const Text('Send Now'))),
+                          child: const Text('إرسال الآن'))),
                 ],
               ),
             ],
@@ -863,10 +867,10 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Select Emergency Location',
+                        Text('حدد موقع الطوارئ',
                             style: TextStyle(
                                 fontSize: 18, fontWeight: FontWeight.bold)),
-                        Text('Tap on the map to set the precise location',
+                        Text('انقر على الخريطة لتحديد الموقع بدقة',
                             style: TextStyle(fontSize: 14, color: Colors.grey)),
                       ]),
                 )
@@ -930,7 +934,7 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
                         }
                       },
                       icon: const Icon(Icons.my_location),
-                      label: const Text('Use Current'),
+                      label: const Text('استخدام الحالي'),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -941,7 +945,7 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
                           ? _hideLocationSelector
                           : null,
                       icon: const Icon(Icons.check),
-                      label: const Text('Confirm Location'),
+                      label: const Text('تأكيد الموقع'),
                     ),
                   ),
                 ],
@@ -1018,7 +1022,7 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
           toFile: _pathToAudioFile, codec: Codec.pcm16WAV);
       setState(() => _isRecording = true);
     } catch (e) {
-      _showErrorMessage("Could not start recording.");
+      _showErrorMessage("تعذر بدء التسجيل.");
     }
   }
 
@@ -1031,14 +1035,14 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
       });
       await _transcribeAudio();
     } catch (e) {
-      _showErrorMessage("Failed to process audio.");
+      _showErrorMessage("فشل في معالجة الصوت.");
       if (mounted) setState(() => _isTranscribing = false);
     }
   }
 
   Future<void> _transcribeAudio() async {
     if (_pathToAudioFile == null || !File(_pathToAudioFile!).existsSync()) {
-      _showErrorMessage("Audio file not found.");
+      _showErrorMessage("لم يتم العثور على الملف الصوتي.");
       return;
     }
     try {
@@ -1059,7 +1063,7 @@ class _AIEmergencyChatScreenState extends State<AIEmergencyChatScreen>
         throw Exception("Server error: ${response.statusCode}");
       }
     } catch (e) {
-      _showErrorMessage("Speech-to-text failed.");
+      _showErrorMessage("فشل تحويل الكلام إلى نص.");
     } finally {
       if (mounted) setState(() => _isTranscribing = false);
     }

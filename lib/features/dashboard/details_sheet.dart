@@ -885,6 +885,11 @@ class _ReportDetailsSheetState extends State<ReportDetailsSheet> {
 // The rest of the file remains unchanged...
 // ============================================================================
 
+// Assuming UserLocationEntity, getUserRoleColor, and getUserRoleIcon are defined elsewhere
+// For example:
+// import '.../user_location_entity.dart';
+// import '.../role_utils.dart';
+
 class UserDetailsSheet extends StatelessWidget {
   final UserLocationEntity user;
 
@@ -892,38 +897,56 @@ class UserDetailsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: 80),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            margin: const EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
+    // The Directionality widget is crucial for ensuring the entire UI is RTL.
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Container(
+        margin: const EdgeInsets.only(top: 80),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag handle
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(),
-                const Divider(height: 32),
-                _buildLocationInfo(),
-                const SizedBox(height: 24),
-                _buildActions(context),
-              ],
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(),
+                  const Divider(height: 32),
+                  _buildInfoRow(
+                    icon: Icons.person_pin_circle_outlined,
+                    title: 'آخر موقع معروف',
+                    content: user.location?.address ?? 'العنوان غير متوفر',
+                  ),
+                  const SizedBox(height: 16),
+                  if (user.authPhone != null && user.authPhone!.isNotEmpty) ...[
+                    _buildInfoRow(
+                      icon: Icons.phone_outlined,
+                      title: 'رقم الهاتف',
+                      content: user.authPhone!,
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                  _buildActions(context),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -931,35 +954,48 @@ class UserDetailsSheet extends StatelessWidget {
   Widget _buildHeader() {
     return Row(
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: getUserRoleColor(user.primaryRole).withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            getUserRoleIcon(user.primaryRole),
-            color: getUserRoleColor(user.primaryRole),
-            size: 32,
-          ),
+        CircleAvatar(
+          radius: 32,
+          backgroundColor: getUserRoleColor(user.primaryRole).withOpacity(0.1),
+          // Use NetworkImage for the profile picture if available
+          backgroundImage: (user.profileImage?.publicPath != null &&
+                  user.profileImage!.publicPath.isNotEmpty)
+              ? NetworkImage(user.profileImage!.publicPath)
+              : null,
+          // Fallback to an icon if no image is present
+          child: (user.profileImage?.publicPath == null ||
+                  user.profileImage!.publicPath.isEmpty)
+              ? Icon(
+                  getUserRoleIcon(user.primaryRole),
+                  color: getUserRoleColor(user.primaryRole),
+                  size: 32,
+                )
+              : null,
         ),
         const SizedBox(width: 16),
         Expanded(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+                CrossAxisAlignment.start, // Aligns to the right in RTL
             children: [
               Text(
                 user.name,
-                style:
-                    const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  fontFamily:
+                      'YourArabicFont', // Recommended to use a dedicated Arabic font
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
-                user.primaryRole.toUpperCase(),
+                // You should have a function to translate roles
+                user.primaryRole,
                 style: TextStyle(
+                  fontFamily: 'YourArabicFont',
                   color: Colors.grey[600],
                   fontSize: 14,
-                  letterSpacing: 0.8,
+                  letterSpacing: 0.5, // Reduced letter spacing for Arabic
                 ),
               ),
             ],
@@ -969,39 +1005,62 @@ class UserDetailsSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildLocationInfo() {
-    return Column(
+  Widget _buildInfoRow(
+      {required IconData icon,
+      required String title,
+      required String content}) {
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Last Known Location',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          user.location?.address ?? 'Address not available',
-          style: const TextStyle(fontSize: 16, height: 1.5),
+        Icon(icon, color: Colors.grey[500], size: 20),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start, // Aligns to the right in RTL
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontFamily: 'YourArabicFont',
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                content,
+                style: const TextStyle(
+                  fontFamily: 'YourArabicFont',
+                  fontSize: 16,
+                  height: 1.5,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
   Widget _buildActions(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: () {
-          // TODO: Implement contact functionality
-          Navigator.pop(context);
-        },
-        icon: const Icon(Icons.chat_bubble_outline),
-        label: const Text('Contact User'),
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-        ),
-      ),
-    );
+    return SizedBox(width: double.infinity, child: SizedBox());
   }
+
+  // // Placeholder function for role translation.
+  // // In a real app, this would use a localization package like `intl`.
+  // String _translateRole(UserRole role) {
+  //   switch (role) {
+  //     // Add your UserRole enum cases here
+  //     // case UserRole.admin:
+  //     //   return 'مسؤول';
+  //     // case UserRole.responder:
+  //     //   return 'مستجيب';
+  //     default:
+  //       return role.toString().split('.').last.toUpperCase(); // Fallback
+  //   }
+  // }
 }
 
 class ResponderAssignmentModal extends StatefulWidget {
@@ -1525,9 +1584,11 @@ class _ResponderAssignmentModalState extends State<ResponderAssignmentModal> {
   }
 
   Future<void> _assignResponder(UserLocationEntity responder) async {
-    print('👨‍💼 [COORDINATOR-UI] Starting assignment of ${responder.name} (ID: ${responder.id}) to report ${widget.report.id}');
-    print('👨‍💼 [COORDINATOR-UI] Responder roles: ${responder.roles.map((r) => r.name).join(', ')}');
-    
+    print(
+        '👨‍💼 [COORDINATOR-UI] Starting assignment of ${responder.name} (ID: ${responder.id}) to report ${widget.report.id}');
+    print(
+        '👨‍💼 [COORDINATOR-UI] Responder roles: ${responder.roles.map((r) => r.name).join(', ')}');
+
     // Defensive checks
     if (widget.assignmentsCubit == null) {
       print('❌ [COORDINATOR-UI] ERROR: assignmentsCubit is null!');
@@ -1541,29 +1602,31 @@ class _ResponderAssignmentModalState extends State<ResponderAssignmentModal> {
       }
       return;
     }
-    
+
     if (widget.report.id <= 0) {
       print('❌ [COORDINATOR-UI] ERROR: Invalid report ID: ${widget.report.id}');
       return;
     }
-    
+
     if (responder.id <= 0) {
       print('❌ [COORDINATOR-UI] ERROR: Invalid responder ID: ${responder.id}');
       return;
     }
-    
+
     setState(() {
       _assigningResponderIds.add(responder.id);
     });
 
     try {
-      print('👨‍💼 [COORDINATOR-UI] Calling cubit.createParticipationRequest...');
+      print(
+          '👨‍💼 [COORDINATOR-UI] Calling cubit.createParticipationRequest...');
       await widget.assignmentsCubit!.createParticipationRequest(
         reportId: widget.report.id,
         responderId: responder.id,
       );
 
-      print('✅ [COORDINATOR-UI] Assignment successful! Showing success message and closing modal');
+      print(
+          '✅ [COORDINATOR-UI] Assignment successful! Showing success message and closing modal');
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(

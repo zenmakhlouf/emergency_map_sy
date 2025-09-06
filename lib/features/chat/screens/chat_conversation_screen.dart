@@ -11,27 +11,19 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
 
-// Local imports from your project structure
+// استيرادات محلية من هيكل مشروعك
 import '../cubit/chat_cubit.dart';
 import '../models/chat_models.dart';
 import '../../../widgets/user_profile_modal.dart';
 import '../../../services/report_details_service.dart';
 
-// A unique identifier generator for pending messages
+// مولد معرفات فريد للرسائل المعلقة
 const uuid = Uuid();
 
-// Extension to capitalize strings
-extension StringExtension on String {
-  String capitalize() {
-    if (isEmpty) return this;
-    return '${this[0].toUpperCase()}${substring(1).toLowerCase()}';
-  }
-}
-
-/// Represents the state of a message being sent.
+/// يمثل حالة إرسال الرسالة.
 enum MessageStatus { pending, sent, failed }
 
-/// A local message model that includes a sending status for optimistic UI.
+/// نموذج رسالة محلي يتضمن حالة الإرسال لواجهة مستخدم متفائلة.
 class PendingMessage {
   final ChatMessageEntity message;
   final MessageStatus status;
@@ -46,9 +38,9 @@ class PendingMessage {
   }
 }
 
-/// An enterprise-grade, real-time chat screen for critical emergency communications.
-/// Features a complete UI/UX overhaul, role-specific participant styling, optimistic
-/// message sending, and enhanced reliability mechanisms.
+/// شاشة محادثة فورية على مستوى احترافي لاتصالات الطوارئ الحرجة.
+/// تتميز بتجديد كامل لواجهة المستخدم وتجربة المستخدم، وتصميم مخصص للمشاركين حسب أدوارهم،
+/// وإرسال متفائل للرسائل، وآليات موثوقية محسنة.
 class ChatConversationScreen extends StatefulWidget {
   final int chatId;
   final String chatTitle;
@@ -69,32 +61,32 @@ class ChatConversationScreen extends StatefulWidget {
 
 class _ChatConversationScreenState extends State<ChatConversationScreen>
     with WidgetsBindingObserver, TickerProviderStateMixin {
-  // --- STATE & CONTROLLERS ---
+  // --- الحالة والمتحكمات ---
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
   late AnimationController _sendButtonAnimationController;
 
-  // --- NETWORKING & POLLING ---
+  // --- الشبكة والاستقصاء ---
   Timer? _messagePoller;
   List<ChatMessageEntity> _confirmedMessages = [];
   Map<int, PendingMessage> _pendingMessages = {};
   List<ChatParticipant> _filteredParticipants = [];
 
-  // --- UI & UX STATE ---
+  // --- حالة واجهة المستخدم وتجربة المستخدم ---
   bool _isInitializing = true;
   bool _isRefreshing = false;
   bool _hasText = false;
   String? _networkError;
 
-  // --- SPEECH-TO-TEXT (STT) STATE ---
+  // --- حالة تحويل الكلام إلى نص (STT) ---
   final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
   bool _isRecorderReady = false;
   bool _isRecording = false;
   bool _isTranscribing = false;
   String? _pathToAudioFile;
 
-  // --- CONFIGURATION ---
+  // --- الإعدادات ---
   static const Duration _pollInterval = Duration(seconds: 5);
   static const Duration _networkTimeout = Duration(seconds: 15);
   static const Duration _locationTimeout = Duration(seconds: 7);
@@ -106,7 +98,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    // Filter out "ghost" participants from the backend immediately.
+    // تصفية المشاركين "الوهميين" من الواجهة الخلفية فورًا.
     _filteredParticipants = widget.participants
         .where((p) => p.user.name.isNotEmpty && p.user.name != 'Unknown User')
         .toList();
@@ -136,7 +128,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
   }
 
   // ============================================================================
-  // INITIALIZATION & SETUP
+  // التهيئة والإعداد
   // ============================================================================
 
   void _initializeAnimations() {
@@ -172,7 +164,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
 
       final tempDir = await getTemporaryDirectory();
 
-      // Use a container iOS actually supports
+      // استخدام حاوية يدعمها iOS بالفعل
       const ext = 'wav';
       _pathToAudioFile = p.join(tempDir.path, 'emergency_record.$ext');
 
@@ -180,13 +172,13 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
           .setSubscriptionDuration(const Duration(milliseconds: 500));
       setState(() => _isRecorderReady = true);
     } catch (e, st) {
-      debugPrint("Recorder initialization failed: $e\n$st");
-      _showErrorMessage("Microphone access is required for voice messages.");
+      debugPrint("فشل تهيئة المسجل: $e\n$st");
+      _showErrorMessage("الوصول إلى الميكروفون مطلوب للرسائل الصوتية.");
     }
   }
 
   // ============================================================================
-  // MESSAGE DATA HANDLING (POLLING & STATE)
+  // معالجة بيانات الرسائل (الاستقصاء والحالة)
   // ============================================================================
 
   Future<void> _loadMessages({bool showError = true}) async {
@@ -202,9 +194,9 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
         });
       }
     } catch (e) {
-      debugPrint("Failed to load messages: $e");
+      debugPrint("فشل تحميل الرسائل: $e");
       if (mounted && showError) {
-        setState(() => _networkError = "Connection unstable");
+        setState(() => _networkError = "الاتصال غير مستقر");
       }
     }
   }
@@ -213,46 +205,48 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
     if (!mounted) return;
 
     if (state is ChatMessagesLoaded && state.chatId == widget.chatId) {
-     final newMessages = state.messages;
+      final newMessages = state.messages;
       final updatedPendingMessages =
           Map<int, PendingMessage>.from(_pendingMessages);
 
       updatedPendingMessages.removeWhere((tempId, pending) {
         final pendingText = pending.message.text.trim();
         final pendingTime = DateTime.tryParse(pending.message.createdAt ?? '');
-        
+
         final isConfirmed = newMessages.any((confirmed) {
-          // Must be from the current user
+          // يجب أن تكون من المستخدم الحالي
           if (confirmed.sender?.user.id != widget.currentUserId) return false;
-          
+
           final confirmedText = confirmed.text.trim();
           final confirmedTime = DateTime.tryParse(confirmed.createdAt ?? '');
-          
-          // Primary matching: exact text match
+
+          // المطابقة الأساسية: تطابق النص الدقيق
           if (confirmedText == pendingText) {
-            // If we have valid timestamps, ensure they're reasonably close (2 minutes)
+            // إذا كانت لدينا طوابع زمنية صالحة، تأكد من أنها قريبة بشكل معقول (دقيقتان)
             if (pendingTime != null && confirmedTime != null) {
               final timeDiff = confirmedTime.difference(pendingTime).abs();
               return timeDiff.inMinutes < 2;
             }
-            // If no valid timestamps, rely on text match alone
+            // إذا لم تكن هناك طوابع زمنية صالحة، اعتمد على تطابق النص وحده
             return true;
           }
-          
-          // Secondary matching: handle cases where server might modify the text slightly
-          // This is more conservative - only match if text similarity is high
+
+          // المطابقة الثانوية: التعامل مع الحالات التي قد يعدل فيها الخادم النص قليلاً
+          // هذا أكثر تحفظًا - يطابق فقط إذا كان تشابه النص مرتفعًا
           if (confirmedText.contains(pendingText) && pendingText.length > 10) {
             if (pendingTime != null && confirmedTime != null) {
               final timeDiff = confirmedTime.difference(pendingTime).abs();
-              return timeDiff.inSeconds < 30; // Stricter time window for fuzzy matches
+              return timeDiff.inSeconds <
+                  30; // نافذة زمنية أضيق للمطابقات التقريبية
             }
           }
-          
+
           return false;
         });
-        
+
         if (isConfirmed) {
-          debugPrint('[ChatConversation] Removing confirmed pending message: "${pendingText.substring(0, pendingText.length > 50 ? 50 : pendingText.length)}"');
+          debugPrint(
+              '[ChatConversation] إزالة رسالة معلقة مؤكدة: "${pendingText.substring(0, pendingText.length > 50 ? 50 : pendingText.length)}"');
         }
         return isConfirmed;
       });
@@ -273,9 +267,9 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
     setState(() => _isRefreshing = true);
     try {
       await _loadMessages();
-      _showSuccessMessage("Chat updated");
+      _showSuccessMessage("تم تحديث المحادثة");
     } catch (e) {
-      _showErrorMessage("Failed to refresh");
+      _showErrorMessage("فشل تحديث المحادثة");
     } finally {
       if (mounted) setState(() => _isRefreshing = false);
     }
@@ -290,7 +284,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
   void _stopPolling() => _messagePoller?.cancel();
 
   // ============================================================================
-  // MESSAGE SENDING & STT
+  // إرسال الرسائل وتحويل الكلام إلى نص
   // ============================================================================
 
   Future<void> _sendMessage({String? textOverride}) async {
@@ -300,8 +294,8 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
     HapticFeedback.lightImpact();
     _messageController.clear();
 
-    // --- OPTIMISTIC UI ---
-    // 1. Create a temporary message with a unique negative ID to avoid conflicts.
+    // --- واجهة المستخدم المتفائلة ---
+    // 1. إنشاء رسالة مؤقتة بمعرف سالب فريد لتجنب التعارض.
     final tempId = -DateTime.now().millisecondsSinceEpoch;
     final now = DateTime.now();
     final pending = PendingMessage(
@@ -314,13 +308,13 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
       ),
     );
 
-    // 2. Add it to the local state to display it immediately.
+    // 2. إضافتها إلى الحالة المحلية لعرضها فورًا.
     setState(() {
       _pendingMessages[tempId] = pending;
     });
     _scrollToBottom(isNewMessage: true);
 
-    // 3. Attempt to send the message to the server.
+    // 3. محاولة إرسال الرسالة إلى الخادم.
     try {
       Position? position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
@@ -332,16 +326,16 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
             .sendMessageToConversation(
               chatId: widget.chatId,
               text: text,
-            lat: position.latitude,
-            lon: position.longitude,
-            address: "Location",
-          )
-          .timeout(_networkTimeout);
+              lat: position.latitude,
+              lon: position.longitude,
+              address: "الموقع",
+            )
+            .timeout(_networkTimeout);
       }
-      // On success, the next poll will pick it up and reconcile the state.
+      // عند النجاح، سيلتقطها الاستقصاء التالي ويسوي الحالة.
     } catch (e) {
-      // 4. If sending fails, update the message state to 'failed'.
-      debugPrint("Send message error: $e");
+      // 4. إذا فشل الإرسال، قم بتحديث حالة الرسالة إلى 'فشلت'.
+      debugPrint("خطأ في إرسال الرسالة: $e");
       setState(() {
         _pendingMessages[tempId] =
             pending.copyWith(status: MessageStatus.failed);
@@ -350,12 +344,12 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
   }
 
   // ============================================================================
-  // RECORDING & TRANSCRIPTION
+  // التسجيل والنسخ الصوتي
   // ============================================================================
 
   Future<void> _toggleRecording() async {
     if (!_isRecorderReady) {
-      _showErrorMessage("Recorder not ready.");
+      _showErrorMessage("المسجل غير جاهز.");
       return;
     }
     if (_isRecording) {
@@ -371,13 +365,12 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
       await _recorder.startRecorder(
         toFile: _pathToAudioFile,
         codec: codec,
-        // (optional) sampleRate/bitRate if you need them
       );
       setState(() => _isRecording = true);
     } catch (e, st) {
-      debugPrint("startRecorder failed (primary codec): $e\n$st");
+      debugPrint("فشل بدء المسجل (الترميز الأساسي): $e\n$st");
 
-      // 🔁 Fallback to AAC to force a clean permission path & confirm it’s not a codec issue
+      // 🔁 الرجوع إلى AAC لفرض مسار إذن نظيف والتأكد من أنها ليست مشكلة ترميز
       try {
         final dir = await getTemporaryDirectory();
         _pathToAudioFile = p.join(dir.path, 'emergency_record.aac');
@@ -387,14 +380,14 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
         );
         setState(() => _isRecording = true);
         _showSuccessMessage(
-            "Using AAC fallback (Opus container unsupported on this platform).");
+            "استخدام AAC كبديل (حاوية Opus غير مدعومة على هذه المنصة).");
       } catch (e2, st2) {
-        debugPrint("Fallback AAC startRecorder failed: $e2\n$st2");
+        debugPrint("فشل بدء المسجل بترميز AAC البديل: $e2\n$st2");
         if (Platform.isIOS) {
           _showErrorMessage(
-              "Could not access the microphone. If you previously denied it, enable it in Settings → Privacy → Microphone → (Your App), or reinstall the app.");
+              "لا يمكن الوصول إلى الميكروفون. إذا رفضت الإذن سابقًا، قم بتمكينه في الإعدادات ← الخصوصية ← الميكروفون ← (تطبيقك)، أو أعد تثبيت التطبيق.");
         } else {
-          _showErrorMessage("Could not start recording.");
+          _showErrorMessage("لا يمكن بدء التسجيل.");
         }
       }
     }
@@ -409,15 +402,15 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
       });
       await _transcribeAudio();
     } catch (e) {
-      debugPrint("Error stopping recorder: $e");
-      _showErrorMessage("Failed to process audio.");
+      debugPrint("خطأ في إيقاف المسجل: $e");
+      _showErrorMessage("فشل في معالجة الصوت.");
       if (mounted) setState(() => _isTranscribing = false);
     }
   }
 
   Future<void> _transcribeAudio() async {
     if (_pathToAudioFile == null || !File(_pathToAudioFile!).existsSync()) {
-      _showErrorMessage("Audio file not found.");
+      _showErrorMessage("ملف الصوت غير موجود.");
       return;
     }
     try {
@@ -426,35 +419,30 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
             await http.MultipartFile.fromPath('audio_file', _pathToAudioFile!));
       final response =
           await request.send().timeout(const Duration(seconds: 20));
-      //final respStr = await response.stream.bytesToString();
 
-      debugPrint("Status code: ${response.statusCode}");
-      // print("Response body: $respStr");
+      debugPrint("رمز الحالة: ${response.statusCode}");
       if (response.statusCode == 200) {
         final body = await response.stream.bytesToString();
         final data = json.decode(body);
         if (data['success'] == true && data['data']?['transcription'] != null) {
           final transcription = data['data']['transcription'] as String;
-          // Send the transcribed text as a message
-          //_sendMessage(textOverride: transcription);
-
           _messageController.text = transcription;
         } else {
-          throw Exception("API returned invalid data.");
+          throw Exception("واجهة برمجة التطبيقات أعادت بيانات غير صالحة.");
         }
       } else {
-        throw Exception("Server error: ${response.statusCode}");
+        throw Exception("خطأ في الخادم: ${response.statusCode}");
       }
     } catch (e) {
-      debugPrint("Transcription failed: $e");
-      _showErrorMessage("Speech-to-text failed.");
+      debugPrint("فشل النسخ الصوتي: $e");
+      _showErrorMessage("فشل تحويل الكلام إلى نص.");
     } finally {
       if (mounted) setState(() => _isTranscribing = false);
     }
   }
 
   // ============================================================================
-  // BUILD METHODS: Main Scaffold & AppBar
+  // طرق البناء: الواجهة الرئيسية وشريط التطبيق
   // ============================================================================
 
   @override
@@ -464,7 +452,6 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
       backgroundColor: const Color(0xFFF8F9FA),
       body: Column(
         children: [
-          //_buildHighPriorityHeader(),
           Expanded(child: _buildMessagesSection()),
           _buildMessageInputBar(),
         ],
@@ -481,22 +468,19 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
       foregroundColor: Colors.black87,
       centerTitle: true,
       actions: [
-        // Show report button if this conversation has an emergency report
+        // إظهار زر التقرير إذا كانت هذه المحادثة تحتوي على تقرير طوارئ
         BlocBuilder<ChatCubit, ChatState>(
           buildWhen: (previous, current) {
-            // Only rebuild when we actually get new chat list data
             return current is ChatListLoaded;
           },
           builder: (context, state) {
-            // Try to find the conversation and check if it has a report
             ConversationSummary? conversation;
-            
+
             if (state is ChatListLoaded) {
               conversation = state.chats
                   .where((chat) => chat.id == widget.chatId)
                   .firstOrNull;
             } else {
-              // Check if we have a cached conversation from previous state
               final chatCubit = context.read<ChatCubit>();
               if (chatCubit.state is ChatListLoaded) {
                 final cachedState = chatCubit.state as ChatListLoaded;
@@ -505,22 +489,26 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
                     .firstOrNull;
               }
             }
-            
-            // Show emergency button if there's any report data, status, or AI participant
-            // This handles cases where report data might be incomplete for different user types
-            if (conversation?.topic.report != null || 
+
+            // إظهار زر الطوارئ إذا كان هناك أي بيانات للتقرير أو حالة أو مشارك ذكاء اصطناعي
+            if (conversation?.topic.report != null ||
                 conversation?.topic.latestStatus != null ||
-                conversation?.participants.any((p) => p.user.roles.contains('ai-agent')) == true) {
+                conversation?.participants
+                        .any((p) => p.user.roles.contains('ai-agent')) ==
+                    true) {
               return IconButton(
                 icon: const Icon(Icons.emergency, color: Colors.red),
-                tooltip: 'View Emergency Report',
-                onPressed: () => _showEmergencyReport(conversation?.topic.report ?? const EmergencyReport(name: 'Emergency Report', description: '', text: '')),
+                tooltip: 'عرض تقرير الطوارئ',
+                onPressed: () => _showEmergencyReport(
+                    conversation?.topic.report ??
+                        const EmergencyReport(
+                            name: 'تقرير طوارئ', description: '', text: '')),
               );
             }
             return const SizedBox.shrink();
           },
         ),
-        // Participants menu
+        // قائمة المشاركين
         PopupMenuButton<String>(
           icon: const Icon(Icons.more_vert),
           onSelected: (value) {
@@ -537,7 +525,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
                 children: [
                   Icon(Icons.people),
                   SizedBox(width: 8),
-                  Text('View Participants'),
+                  Text('عرض المشاركين'),
                 ],
               ),
             ),
@@ -548,52 +536,45 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
   }
 
   void _showEmergencyReport(EmergencyReport report) {
-    // Use the chat ID as the report ID (they are the same)
     final reportId = widget.chatId;
-    
-    // Try to show the report using the unified dashboard's method
+
     final success = ReportDetailsService.showReport(reportId);
-    
+
     if (!success) {
-      // Fallback: Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Unable to load report details. Please try again.'),
+          content: Text('تعذر تحميل تفاصيل التقرير. يرجى المحاولة مرة أخرى.'),
           backgroundColor: Colors.orange,
         ),
       );
     }
   }
 
-  
-  /// Navigate to map with specific location from message
+  /// الانتقال إلى الخريطة بموقع محدد من الرسالة
   void _viewLocationOnMap(LocationData location) {
     _navigateToMapWithLocation(location);
   }
-  
-  /// Handle viewing location from individual messages
+
+  /// التعامل مع عرض الموقع من الرسائل الفردية
   void _navigateToMapWithLocation(LocationData location) {
-    // For individual message locations, we can show coordinates
-    // but since we don't have a report ID, we'll just copy coordinates
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Location: ${location.address}'),
+        content: Text('الموقع: ${location.address}'),
         duration: const Duration(seconds: 3),
         action: SnackBarAction(
-          label: 'Copy Coordinates',
+          label: 'نسخ الإحداثيات',
           onPressed: () {
             Clipboard.setData(ClipboardData(
               text: '${location.lat}, ${location.lon}',
             ));
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Coordinates copied to clipboard')),
+              const SnackBar(content: Text('تم نسخ الإحداثيات إلى الحافظة')),
             );
           },
         ),
       ),
     );
   }
-
 
   void _showParticipants() {
     showModalBottomSheet(
@@ -605,7 +586,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Participants (${widget.participants.length})',
+              'المشاركون (${widget.participants.length})',
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -613,40 +594,43 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
             ),
             const SizedBox(height: 16),
             ...widget.participants.map((participant) => ListTile(
-              leading: CircleAvatar(
-                backgroundColor: _getColorForType(participant.type?.toLowerCase() ?? 'user'),
-                backgroundImage: participant.user.profileImage?.publicPath != null
-                    ? NetworkImage(participant.user.profileImage!.publicPath)
-                    : null,
-                child: participant.user.profileImage == null
-                    ? Text(
-                        participant.user.name.isNotEmpty
-                            ? participant.user.name[0].toUpperCase()
-                            : '?',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      )
-                    : null,
-              ),
-              title: Text(participant.user.name),
-              subtitle: Text(participant.type?.capitalize() ?? 'User'),
-              onTap: () {
-                Navigator.of(context).pop();
-                showUserProfile(
-                  context,
-                  user: participant.user,
-                  onMessage: () {
+                  leading: CircleAvatar(
+                    backgroundColor: _getColorForType(
+                        participant.type?.toLowerCase() ?? 'user'),
+                    backgroundImage:
+                        participant.user.profileImage?.publicPath != null
+                            ? NetworkImage(
+                                participant.user.profileImage!.publicPath)
+                            : null,
+                    child: participant.user.profileImage == null
+                        ? Text(
+                            participant.user.name.isNotEmpty
+                                ? participant.user.name[0].toUpperCase()
+                                : '؟',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )
+                        : null,
+                  ),
+                  title: Text(participant.user.name),
+                  subtitle: Text(_translateParticipantType(participant.type)),
+                  onTap: () {
                     Navigator.of(context).pop();
-                    // Focus message input (already on this screen)
-                    _messageController.selection = TextSelection.fromPosition(
-                      TextPosition(offset: _messageController.text.length),
+                    showUserProfile(
+                      context,
+                      user: participant.user,
+                      onMessage: () {
+                        Navigator.of(context).pop();
+                        _messageController.selection =
+                            TextSelection.fromPosition(
+                          TextPosition(offset: _messageController.text.length),
+                        );
+                      },
                     );
                   },
-                );
-              },
-            )),
+                )),
             const SizedBox(height: 16),
           ],
         ),
@@ -654,9 +638,8 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
     );
   }
 
-
   // ============================================================================
-  // BUILD METHODS: Message Display
+  // طرق البناء: عرض الرسائل
   // ============================================================================
 
   Widget _buildMessagesSection() {
@@ -667,38 +650,33 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
           return const Center(child: CircularProgressIndicator());
         }
 
-        // Combine confirmed and pending messages, avoiding duplicates
         final allMessages = <ChatMessageEntity>[];
-        
-        // Add all confirmed messages first
         allMessages.addAll(_confirmedMessages);
-        
-        // Add only pending messages that aren't already confirmed
-        for (final pendingMessage in _pendingMessages.values.map((p) => p.message)) {
+
+        for (final pendingMessage
+            in _pendingMessages.values.map((p) => p.message)) {
           final pendingText = pendingMessage.text.trim();
-          
-          // Check if this pending message text already exists in confirmed messages
+
           final isDuplicate = _confirmedMessages.any((confirmed) =>
-            confirmed.sender?.user.id == widget.currentUserId &&
-            confirmed.text.trim() == pendingText
-          );
-          
+              confirmed.sender?.user.id == widget.currentUserId &&
+              confirmed.text.trim() == pendingText);
+
           if (!isDuplicate) {
             allMessages.add(pendingMessage);
           } else {
-            debugPrint('[ChatConversation] Skipping duplicate pending message in display: "${pendingText.substring(0, pendingText.length > 30 ? 30 : pendingText.length)}"');
+            debugPrint(
+                '[ChatConversation] تخطي رسالة معلقة مكررة في العرض: "${pendingText.substring(0, pendingText.length > 30 ? 30 : pendingText.length)}"');
           }
         }
-        
-        // Sort by date to ensure proper order
+
         allMessages.sort((a, b) {
           final aTime = DateTime.tryParse(a.createdAt ?? '');
           final bTime = DateTime.tryParse(b.createdAt ?? '');
-          
+
           if (aTime == null && bTime == null) return a.id.compareTo(b.id);
           if (aTime == null) return 1;
           if (bTime == null) return -1;
-          
+
           return aTime.compareTo(bTime);
         });
 
@@ -738,13 +716,12 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
 
   Widget _buildEmptyState() {
     return const Center(
-      child:
-          Text("Start the conversation.", style: TextStyle(color: Colors.grey)),
+      child: Text("ابدأ المحادثة.", style: TextStyle(color: Colors.grey)),
     );
   }
 
   // ============================================================================
-  // BUILD METHODS: Message Input Bar
+  // طرق البناء: شريط إدخال الرسائل
   // ============================================================================
 
   Widget _buildMessageInputBar() {
@@ -773,7 +750,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text("Emergency chat is monitored 24/7",
+                    Text("محادثة الطوارئ مراقبة 24/7",
                         style:
                             TextStyle(fontSize: 11, color: Colors.grey[600])),
                     Row(
@@ -784,7 +761,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
                                 ? Colors.green
                                 : Colors.orange),
                         const SizedBox(width: 4),
-                        Text("Active",
+                        Text("متصل",
                             style: TextStyle(
                                 fontSize: 11, color: Colors.grey[600])),
                       ],
@@ -808,7 +785,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
       textInputAction: TextInputAction.send,
       onSubmitted: (_) => _sendMessage(),
       decoration: InputDecoration(
-        hintText: _isRecording ? 'Recording audio...' : 'Type your message...',
+        hintText: _isRecording ? 'جارٍ تسجيل الصوت...' : 'اكتب رسالتك...',
         fillColor: const Color(0xFFF8F9FA),
         filled: true,
         contentPadding:
@@ -850,25 +827,25 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
   }
 
   // ============================================================================
-  // HELPER METHODS
+  // الطرق المساعدة
   // ============================================================================
 
   ChatParticipant _findParticipant(int? userId) {
     if (userId == null) {
       return const ChatParticipant(
-          id: -1, user: ChatUser(id: -1, name: 'Unknown'));
+          id: -1, user: ChatUser(id: -1, name: 'غير معروف'));
     }
     return _filteredParticipants.firstWhere(
       (p) => p.user.id == userId,
       orElse: () {
-        // Fallback for cases where participant list might be stale
+        // حل بديل للحالات التي قد تكون فيها قائمة المشاركين قديمة
         final confirmedSender = _confirmedMessages
             .firstWhere((m) => m.sender?.user.id == userId,
                 orElse: () => const ChatMessageEntity(id: -1))
             .sender;
         return confirmedSender ??
             const ChatParticipant(
-                id: -1, user: ChatUser(id: -1, name: 'Unknown'));
+                id: -1, user: ChatUser(id: -1, name: 'غير معروف'));
       },
     );
   }
@@ -877,7 +854,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
     return widget.participants.firstWhere(
       (p) => p.user.id == widget.currentUserId,
       orElse: () => ChatParticipant(
-          id: -1, user: ChatUser(id: widget.currentUserId, name: 'You')),
+          id: -1, user: ChatUser(id: widget.currentUserId, name: 'أنت')),
     );
   }
 
@@ -896,7 +873,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrollController.hasClients) return;
       final position = _scrollController.position;
-      // Only auto-scroll if user is near the bottom, unless it's their own new message
+      // التمرير التلقائي فقط إذا كان المستخدم قريبًا من الأسفل، إلا إذا كانت رسالته الجديدة
       if (position.maxScrollExtent - position.pixels < 100 || isNewMessage) {
         _scrollController.animateTo(
           position.maxScrollExtent,
@@ -927,6 +904,24 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
       ));
   }
 
+  String _translateParticipantType(String? type) {
+    switch (type?.toLowerCase()) {
+      case 'police':
+        return 'الشرطة';
+      case 'fire_department':
+      case 'fire':
+        return 'الإطفاء';
+      case 'medical':
+        return 'خدمات طبية';
+      case 'traffic':
+        return 'المرور';
+      case 'civil_defense':
+        return 'الدفاع المدني';
+      default:
+        return 'مستخدم';
+    }
+  }
+
   void _cleanup() {
     _stopPolling();
     _recorder.closeRecorder();
@@ -938,7 +933,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen>
 }
 
 // ============================================================================
-// WIDGET: Message Bubble & Avatar
+// الويدجت: فقاعة الرسالة والصورة الرمزية
 // ============================================================================
 
 class _MessageBubble extends StatelessWidget {
@@ -970,7 +965,7 @@ class _MessageBubble extends StatelessWidget {
         mainAxisAlignment:
             isCurrentUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
-          if (!isCurrentUser) 
+          if (!isCurrentUser)
             GestureDetector(
               onTap: () {
                 showUserProfile(
@@ -978,7 +973,6 @@ class _MessageBubble extends StatelessWidget {
                   user: participant.user,
                   onMessage: () {
                     Navigator.of(context).pop();
-                    // Could focus the message input or scroll to it
                   },
                 );
               },
@@ -1036,14 +1030,16 @@ class _MessageBubble extends StatelessWidget {
           children: [
             Text(message.text,
                 style: TextStyle(color: textColor, fontSize: 16, height: 1.4)),
-            
-            // Show location if available
+
+            // إظهار الموقع إذا كان متاحًا
             if (message.location != null) ...[
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: isCurrentUser ? Colors.red.shade500 : Colors.grey.shade100,
+                  color: isCurrentUser
+                      ? Colors.red.shade500
+                      : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -1070,14 +1066,17 @@ class _MessageBubble extends StatelessWidget {
                 ),
               ),
             ],
-            
-            // Show voice record indicator if available
-            if (message.voiceRecord != null || message.voiceRecordText != null) ...[
+
+            // إظهار مؤشر التسجيل الصوتي إذا كان متاحًا
+            if (message.voiceRecord != null ||
+                message.voiceRecordText != null) ...[
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: isCurrentUser ? Colors.red.shade500 : Colors.grey.shade100,
+                  color: isCurrentUser
+                      ? Colors.red.shade500
+                      : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -1090,7 +1089,7 @@ class _MessageBubble extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Voice Message',
+                      'رسالة صوتية',
                       style: TextStyle(
                         color: isCurrentUser ? Colors.white : Colors.black87,
                         fontSize: 12,
@@ -1105,38 +1104,38 @@ class _MessageBubble extends StatelessWidget {
       ),
     );
   }
-  
+
   void _showMessageOptions(BuildContext context) {
     final options = <Widget>[];
-    
-    // Copy message option
+
+    // خيار نسخ الرسالة
     options.add(
       ListTile(
         leading: const Icon(Icons.copy),
-        title: const Text('Copy Message'),
+        title: const Text('نسخ الرسالة'),
         onTap: () {
           Navigator.of(context).pop();
           Clipboard.setData(ClipboardData(text: message.text));
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Message copied to clipboard')),
+            const SnackBar(content: Text('تم نسخ الرسالة إلى الحافظة')),
           );
         },
       ),
     );
-    
-    // View location option
+
+    // خيار عرض الموقع
     if (message.location != null) {
       options.add(
         ListTile(
           leading: const Icon(Icons.location_on),
-          title: const Text('View Location'),
+          title: const Text('عرض الموقع'),
           onTap: () {
             Navigator.of(context).pop();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Location: ${message.location!.address}'),
+                content: Text('الموقع: ${message.location!.address}'),
                 action: SnackBarAction(
-                  label: 'Open Map',
+                  label: 'فتح الخريطة',
                   onPressed: () {
                     if (onViewLocation != null) {
                       onViewLocation!(message.location!);
@@ -1149,22 +1148,21 @@ class _MessageBubble extends StatelessWidget {
         ),
       );
     }
-    
-    // View sender profile option (for other users)
+
+    // خيار عرض الملف الشخصي للمرسل (للمستخدمين الآخرين)
     if (!isCurrentUser) {
       options.add(
         ListTile(
           leading: const Icon(Icons.person),
-          title: const Text('View Profile'),
+          title: const Text('عرض الملف الشخصي'),
           onTap: () {
             Navigator.of(context).pop();
-            // Import the user profile modal widget
             // showUserProfile(context, user: participant.user);
           },
         ),
       );
     }
-    
+
     showModalBottomSheet(
       context: context,
       builder: (context) => Column(
@@ -1217,7 +1215,6 @@ class _UserAvatar extends StatelessWidget {
     final name = participant.user.name.toLowerCase();
     final type = participant.type?.toLowerCase() ?? 'user';
 
-    // Default to a user icon
     IconData iconData = Icons.person;
     Color color = _getColorForType(type);
 
@@ -1239,10 +1236,10 @@ class _UserAvatar extends StatelessWidget {
       backgroundColor: color,
       child: Icon(iconData, color: Colors.white, size: 22),
     );
-  }}
+  }
+}
 
-
-// Helper function to assign consistent colors to responder types
+// دالة مساعدة لتعيين ألوان متسقة لأنواع المستجيبين
 MaterialColor _getColorForType(String type) {
   switch (type) {
     case 'police':

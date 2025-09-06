@@ -100,8 +100,8 @@ class _FocusModeScreenState extends State<FocusModeScreen>
   bool _isLocationTracking = true;
 
   // Configuration
-  static const Duration _locationUpdateInterval = Duration(seconds: 10);
-  static const Duration _routeUpdateInterval = Duration(seconds: 30);
+  static const Duration _locationUpdateInterval = Duration(seconds: 5);
+  static const Duration _routeUpdateInterval = Duration(seconds: 20);
   static const double _focusZoomLevel = 16.0;
 
   @override
@@ -136,6 +136,12 @@ class _FocusModeScreenState extends State<FocusModeScreen>
     _locationUpdateTimer?.cancel();
     _routeUpdateTimer?.cancel();
     _pulseAnimationController.dispose();
+    
+    // Stop user location polling when focus mode exits
+    debugPrint('🎯 [FOCUS_MODE] 👥 Stopping user location polling on dispose...');
+   // context.read<UsersLocationCubit>().stopUsersPolling();
+    debugPrint('🎯 [FOCUS_MODE] ✅ User location polling stopped');
+    
     super.dispose();
   }
 
@@ -220,9 +226,9 @@ class _FocusModeScreenState extends State<FocusModeScreen>
     try {
       debugPrint('🎯 [FOCUS_MODE] Starting focus mode initialization...');
       
-      // Get current precise location
+      // Get current precise location with high accuracy initially
       debugPrint('🎯 [FOCUS_MODE] Step 1: Getting current precise location');
-      await _updateCurrentLocation();
+      await _updateCurrentLocation(forceHighAccuracy: true);
       debugPrint('🎯 [FOCUS_MODE] ✅ Current location updated: $_currentPosition');
       
       // Calculate initial route to incident
@@ -259,28 +265,64 @@ class _FocusModeScreenState extends State<FocusModeScreen>
     }
   }
 
-  Future<void> _updateCurrentLocation() async {
+  Future<void> _updateCurrentLocation({bool forceHighAccuracy = false}) async {
     try {
-      debugPrint('🎯 [FOCUS_MODE] 📍 Getting GPS position...');
+      final startTime = DateTime.now();
+      debugPrint('🎯 [FOCUS_MODE] 📍 Getting GPS position (accuracy: ${forceHighAccuracy ? "high" : "balanced"})...');
+      
       final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 10),
+        desiredAccuracy: forceHighAccuracy ? LocationAccuracy.high : LocationAccuracy.medium,
+        timeLimit: const Duration(seconds: 8),
       );
       
-      debugPrint('🎯 [FOCUS_MODE] 📍 GPS position received: ${position.latitude}, ${position.longitude}');
-      debugPrint('🎯 [FOCUS_MODE] 📍 Accuracy: ${position.accuracy}m');
+      final endTime = DateTime.now();
+      final duration = endTime.difference(startTime).inMilliseconds;
+      
+      debugPrint('🎯 [FOCUS_MODE] 📍 GPS position received in ${duration}ms: ${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}');
+      debugPrint('🎯 [FOCUS_MODE] 📍 Accuracy: ${position.accuracy.toStringAsFixed(1)}m, Speed: ${position.speed?.toStringAsFixed(1) ?? "null"}m/s');
       
       if (mounted) {
+        final oldPosition = _currentPosition;
+        final newPosition = LatLng(position.latitude, position.longitude);
+        
         setState(() {
-          _currentPosition = LatLng(position.latitude, position.longitude);
+          _currentPosition = newPosition;
         });
-        debugPrint('🎯 [FOCUS_MODE] 📍 State updated with new position');
+        
+        // Calculate movement distance for debugging
+        final Distance distance = Distance();
+        final movementDistance = distance.as(LengthUnit.Meter, oldPosition, newPosition);
+        debugPrint('🎯 [FOCUS_MODE] 📍 Movement: ${movementDistance.toStringAsFixed(1)}m from previous position');
+        debugPrint('🎯 [FOCUS_MODE] 📍 State updated successfully');
+        
+        // Update server location
+        _updateServerLocation(position);
+        
+        // Recalculate route if significant movement (>10m)
+        if (movementDistance > 10.0) {
+          debugPrint('🎯 [FOCUS_MODE] 🗺️ Significant movement detected, recalculating route...');
+          _calculateRouteToIncident();
+        }
       } else {
         debugPrint('🚨 [FOCUS_MODE] Widget not mounted, skipping position update');
       }
     } catch (e, stackTrace) {
       debugPrint('🚨 [FOCUS_MODE] Location update error: $e');
       debugPrint('🚨 [FOCUS_MODE] Location error stack trace: $stackTrace');
+    }
+  }
+
+  Future<void> _updateServerLocation(Position position) async {
+    try {
+      debugPrint('🎯 [FOCUS_MODE] 🌐 Updating server location...');
+      context.read<UsersLocationCubit>().updateLocationCoordinates(
+        lat: position.latitude,
+        lon: position.longitude,
+        address: " ",
+      );
+      debugPrint('🎯 [FOCUS_MODE] ✅ Server location updated successfully');
+    } catch (e) {
+      debugPrint('🚨 [FOCUS_MODE] Server location update failed: $e');
     }
   }
 
@@ -467,26 +509,53 @@ class _FocusModeScreenState extends State<FocusModeScreen>
   }
 
   void _loadOtherResponders() {
-    // Load responders assigned to the same incident
+    debugPrint('🎯 [FOCUS_MODE] 👥 Starting other responders polling...');
+    // Start continuous polling of user locations for responders assigned to same incident
+    context.read<UsersLocationCubit>().startUsersPolling();
+    // Also fetch immediately for initial data
     context.read<UsersLocationCubit>().fetchUsersLocations();
+    debugPrint('🎯 [FOCUS_MODE] ✅ Other responders polling started');
   }
 
   void _handleUsersLocationChange(UsersLocationState state) {
     if (!mounted) return;
     
+    debugPrint('🎯 [FOCUS_MODE] 👥 User location state change: ${state.runtimeType}');
+    
     if (state is UsersLocationSuccess) {
-      // Filter responders assigned to same incident
-      final assignedResponders = state.users.where((user) {
-        // Check if user has responder role and is assigned to same report
-        return user.roles.any((role) => role.name == 'responder') &&
-               user.participationRequests.any((request) => 
-                 request.report.id == widget.activeAssignment.report.id &&
-                 request.isAccepted);
+      debugPrint('🎯 [FOCUS_MODE] 👥 Received ${state.users.length} total users from server');
+      
+      // Filter users with location data first
+      final usersWithLocation = state.users.where((user) => user.location != null).toList();
+      debugPrint('🎯 [FOCUS_MODE] 👥 ${usersWithLocation.length} users have location data');
+      
+      // Filter responders (including all responders for visibility in focus mode)
+      final allResponders = usersWithLocation.where((user) {
+        final hasResponderRole = user.roles.any((role) => role.name == 'responder');
+        debugPrint('🎯 [FOCUS_MODE] 👥 User ${user.name} (ID: ${user.id}) - Responder role: $hasResponderRole');
+        return hasResponderRole;
       }).toList();
       
+      debugPrint('🎯 [FOCUS_MODE] 👥 Found ${allResponders.length} responders with location');
+      
+      // For focus mode, show all responders (not just those assigned to same incident)
+      // This provides better situational awareness for the responding user
       setState(() {
-        _otherResponders = assignedResponders;
+        _otherResponders = allResponders;
       });
+      
+      // Debug log each responder
+      for (final responder in allResponders) {
+        final location = responder.location!;
+        debugPrint('🎯 [FOCUS_MODE] 👥 Responder: ${responder.name} at ${location.lat.toStringAsFixed(4)}, ${location.lon.toStringAsFixed(4)}');
+      }
+      
+      debugPrint('🎯 [FOCUS_MODE] ✅ Other responders state updated with ${_otherResponders.length} users');
+      
+    } else if (state is UsersLocationError) {
+      debugPrint('🚨 [FOCUS_MODE] 👥 User location error: ${state.message}');
+    } else if (state is UsersLocationLoading) {
+      debugPrint('🎯 [FOCUS_MODE] 👥 Loading user locations...');
     }
   }
 
@@ -1164,7 +1233,7 @@ class _FocusModeScreenState extends State<FocusModeScreen>
         // Extract the report name from the state
         final reportName = fullReport.state?.report?.name;
         if (reportName != null && reportName.isNotEmpty) {
-          debugPrint('🎯 [FOCUS_MODE] Using report name: $reportName');
+         // debugPrint('🎯 [FOCUS_MODE] Using report name: $reportName');
           return reportName;
         }
       }

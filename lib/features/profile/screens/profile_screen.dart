@@ -12,50 +12,56 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => ProfileCubit()..fetchProfile(),
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('My Profile'),
-        ),
-        body: BlocBuilder<ProfileCubit, ProfileState>(
-          builder: (context, state) {
-            if (state is ProfileLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (state is ProfileError) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('Error: ${state.message}'),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () =>
-                          context.read<ProfileCubit>().fetchProfile(),
-                      child: const Text('Retry'),
-                    )
-                  ],
-                ),
-              );
-            }
-            if (state is ProfileLoaded) {
-              final profile = state.userProfile;
-              return SingleChildScrollView(
-                child: Column(
-                  children: [
-                    _buildProfileHeader(profile),
-                    _buildRoleSpecificContent(profile),
-                    _buildContactInfo(profile, context),
-                    _buildLocationInfo(profile, context),
-                    if (profile.hasResponderSpecialization) _buildResponderInfo(profile),
-                    if (profile.pendingRequestsCount > 0) _buildRequestsInfo(profile),
-                    const SizedBox(height: 24),
-                    _buildActionButtons(context),
-                  ],
-                ),
-              );
-            }
-            return const SizedBox.shrink();
-          },
+      child: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text('ملفي الشخصي'),
+          ),
+          body: BlocBuilder<ProfileCubit, ProfileState>(
+            builder: (context, state) {
+              if (state is ProfileLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (state is ProfileError) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('خطأ: ${state.message}'),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () =>
+                            context.read<ProfileCubit>().fetchProfile(),
+                        child: const Text('إعادة المحاولة'),
+                      )
+                    ],
+                  ),
+                );
+              }
+              if (state is ProfileLoaded) {
+                final profile = state.userProfile;
+                return SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildProfileHeader(profile),
+                      _buildRoleSpecificContent(profile),
+                      _buildContactInfo(profile, context),
+                      _buildLocationInfo(profile, context),
+                      if (profile.hasResponderSpecialization)
+                        _buildResponderInfo(profile),
+                      if (profile.pendingRequestsCount > 0)
+                        _buildRequestsInfo(profile),
+                      const SizedBox(height: 24),
+                      _buildActionButtons(context),
+                    ],
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
         ),
       ),
     );
@@ -66,8 +72,8 @@ class ProfileScreen extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
           colors: [
             _getRoleColor(profile.primaryRole).withOpacity(0.1),
             _getRoleColor(profile.primaryRole).withOpacity(0.05),
@@ -87,7 +93,9 @@ class ProfileScreen extends StatelessWidget {
                     : null,
                 child: profile.profileImage == null
                     ? Text(
-                        profile.name.isNotEmpty ? profile.name[0].toUpperCase() : 'U',
+                        profile.name.isNotEmpty
+                            ? profile.name[0].toUpperCase()
+                            : 'U',
                         style: const TextStyle(
                           fontSize: 36,
                           fontWeight: FontWeight.bold,
@@ -98,7 +106,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               Positioned(
                 bottom: 0,
-                right: 0,
+                left: 0,
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
@@ -137,7 +145,7 @@ class ProfileScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              profile.primaryRole.toUpperCase(),
+              _getRoleTranslation(profile.primaryRole),
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -153,7 +161,7 @@ class ProfileScreen extends StatelessWidget {
                   .where((role) => role != profile.primaryRole.toLowerCase())
                   .map<Widget>((role) => Chip(
                         label: Text(
-                          role.toUpperCase(),
+                          _getRoleTranslation(role),
                           style: const TextStyle(fontSize: 10),
                         ),
                         backgroundColor: Colors.grey.shade200,
@@ -189,9 +197,10 @@ class ProfileScreen extends StatelessWidget {
         border: Border.all(color: Colors.green.shade200),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Row(
+            textDirection: TextDirection.rtl,
             children: [
               Icon(
                 Icons.person,
@@ -200,7 +209,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               const Text(
-                'Citizen Profile',
+                'ملف المواطن',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -210,7 +219,8 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const Text(
-            'You can report emergencies and receive assistance from emergency responders in your area.',
+            'يمكنك الإبلاغ عن حالات الطوارئ وتلقي المساعدة من المستجيبين في منطقتك.',
+            textAlign: TextAlign.right,
             style: TextStyle(fontSize: 16),
           ),
         ],
@@ -228,9 +238,10 @@ class ProfileScreen extends StatelessWidget {
         border: Border.all(color: Colors.blue.shade200),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Row(
+            textDirection: TextDirection.rtl,
             children: [
               Icon(
                 Icons.medical_services,
@@ -239,7 +250,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               const Text(
-                'Emergency Responder',
+                'المستجيب للطوارئ',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -249,7 +260,8 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const Text(
-            'You respond to emergency calls and provide assistance to citizens in need. You can view and accept emergency assignments.',
+            'تقوم بالاستجابة لمكالمات الطوارئ وتقديم المساعدة للمواطنين المحتاجين. يمكنك عرض وقبول مهام الطوارئ.',
+            textAlign: TextAlign.right,
             style: TextStyle(fontSize: 16),
           ),
         ],
@@ -267,9 +279,10 @@ class ProfileScreen extends StatelessWidget {
         border: Border.all(color: Colors.purple.shade200),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Row(
+            textDirection: TextDirection.rtl,
             children: [
               Icon(
                 Icons.admin_panel_settings,
@@ -278,7 +291,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               const Text(
-                'Emergency Coordinator',
+                'منسق الطوارئ',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -288,7 +301,8 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const Text(
-            'You coordinate emergency response operations, manage resources, and oversee responder assignments.',
+            'تقوم بتنسيق عمليات الاستجابة للطوارئ، وإدارة الموارد، والإشراف على مهام المستجيبين.',
+            textAlign: TextAlign.right,
             style: TextStyle(fontSize: 16),
           ),
         ],
@@ -305,10 +319,10 @@ class ProfileScreen extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               const Text(
-                'Contact Information',
+                'معلومات الاتصال',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -317,18 +331,19 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(height: 16),
               _buildInfoRow(
                 icon: Icons.phone,
-                title: 'Phone Number',
+                title: 'رقم الهاتف',
                 value: profile.phoneNumber,
                 onTap: () {
                   Clipboard.setData(ClipboardData(text: profile.phoneNumber));
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Phone number copied to clipboard')),
+                    const SnackBar(content: Text('تم نسخ رقم الهاتف')),
                   );
                 },
               ),
               if (profile.authPhone?.isVerified == true) ...[
                 const SizedBox(height: 8),
                 Row(
+                  textDirection: TextDirection.rtl,
                   children: [
                     Icon(
                       Icons.verified,
@@ -337,7 +352,7 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Verified ${profile.authPhone?.verifiedAt ?? ''}',
+                      'تم التحقق ${profile.authPhone?.verifiedAt ?? ''}',
                       style: TextStyle(
                         color: Colors.green.shade600,
                         fontSize: 12,
@@ -356,7 +371,7 @@ class ProfileScreen extends StatelessWidget {
 
   Widget _buildLocationInfo(profile, BuildContext context) {
     if (!profile.hasLocation) return const SizedBox.shrink();
-    
+
     return Container(
       margin: const EdgeInsets.all(16),
       child: Card(
@@ -365,10 +380,10 @@ class ProfileScreen extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               const Text(
-                'Location',
+                'الموقع',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -377,13 +392,13 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(height: 16),
               _buildInfoRow(
                 icon: Icons.location_on,
-                title: 'Address',
+                title: 'العنوان',
                 value: profile.location!.address,
                 onTap: () {
-                  // Could open maps or copy address
-                  Clipboard.setData(ClipboardData(text: profile.location!.address));
+                  Clipboard.setData(
+                      ClipboardData(text: profile.location!.address));
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Address copied to clipboard')),
+                    const SnackBar(content: Text('تم نسخ العنوان')),
                   );
                 },
               ),
@@ -403,10 +418,10 @@ class ProfileScreen extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               const Text(
-                'Specialization',
+                'التخصص',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -415,8 +430,9 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(height: 16),
               _buildInfoRow(
                 icon: Icons.local_hospital,
-                title: 'Type',
-                value: profile.responderType!.description,
+                title: 'النوع',
+                value: _getResponderTypeTranslation(
+                    profile.responderType!.description),
               ),
             ],
           ),
@@ -435,9 +451,10 @@ class ProfileScreen extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Row(
+                textDirection: TextDirection.rtl,
                 children: [
                   Icon(
                     Icons.assignment_late,
@@ -445,7 +462,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   const Text(
-                    'Pending Requests',
+                    'طلبات معلقة',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -455,7 +472,8 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'You have ${profile.pendingRequestsCount} pending participation request(s)',
+                'لديك ${profile.pendingRequestsCount} طلب(ات) مشاركة معلقة',
+                textAlign: TextAlign.right,
                 style: const TextStyle(fontSize: 16),
               ),
             ],
@@ -474,7 +492,7 @@ class ProfileScreen extends StatelessWidget {
             width: double.infinity,
             child: OutlinedButton.icon(
               icon: const Icon(Icons.refresh),
-              label: const Text('Refresh Profile'),
+              label: const Text('تحديث الملف الشخصي'),
               onPressed: () => context.read<ProfileCubit>().fetchProfile(),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -489,7 +507,7 @@ class ProfileScreen extends StatelessWidget {
             width: double.infinity,
             child: ElevatedButton.icon(
               icon: const Icon(Icons.logout),
-              label: const Text('Sign Out'),
+              label: const Text('تسجيل الخروج'),
               onPressed: () {
                 context.read<AuthCubit>().logout();
                 Navigator.of(context).pushAndRemoveUntil(
@@ -521,6 +539,7 @@ class ProfileScreen extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Row(
+        textDirection: TextDirection.rtl,
         children: [
           Icon(
             icon,
@@ -530,7 +549,7 @@ class ProfileScreen extends StatelessWidget {
           const SizedBox(width: 16),
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
                   title,
@@ -589,6 +608,34 @@ class ProfileScreen extends StatelessWidget {
         return Icons.smart_toy;
       default:
         return Icons.help;
+    }
+  }
+
+  String _getRoleTranslation(String role) {
+    switch (role.toLowerCase()) {
+      case 'coordinator':
+        return 'المنسق';
+      case 'responder':
+        return 'المستجيب';
+      case 'citizen':
+        return 'المواطن';
+      case 'ai agent':
+        return 'وكيل الذكاء الاصطناعي';
+      default:
+        return role;
+    }
+  }
+
+  String _getResponderTypeTranslation(String type) {
+    switch (type.toLowerCase()) {
+      case 'paramedic':
+        return 'مسعف';
+      case 'firefighter':
+        return 'رجل إطفاء';
+      case 'police':
+        return 'شرطة';
+      default:
+        return type;
     }
   }
 }
