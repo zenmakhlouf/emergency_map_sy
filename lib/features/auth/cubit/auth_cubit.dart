@@ -20,7 +20,7 @@ class AuthCubit extends Cubit<AuthState> {
   final otpController = TextEditingController();
   final nameController = TextEditingController();
   final phoneController = TextEditingController();
-  
+
   // Profile image
   File? selectedProfileImage;
 
@@ -68,10 +68,9 @@ class AuthCubit extends Cubit<AuthState> {
       if (storedToken != null &&
           storedToken.isNotEmpty &&
           storedUserId != null) {
-        
         // Set token for the profile request
         Network.setBearer(storedToken);
-        
+
         // Validate session with profile endpoint
         if (await _validateSessionWithProfile()) {
           emit(AuthSuccess());
@@ -96,24 +95,24 @@ class AuthCubit extends Cubit<AuthState> {
   Future<bool> _validateSessionWithProfile() async {
     try {
       final response = await Network.getData(url: Urls.profile);
-      
+
       final body = response.data;
       if (body is Map<String, dynamic> && body['success'] == true) {
         final data = body['data'] as Map<String, dynamic>?;
         final user = data?['user'] as Map<String, dynamic>?;
-        
+
         if (user != null) {
           final userId = int.tryParse(user['id']?.toString() ?? '');
           final roles = user['roles'] as List<dynamic>?;
-          
+
           if (userId != null && roles != null) {
             // Determine highest role (hierarchical)
             final userType = _getHighestUserType(roles);
-            
+
             // Get current token from SharedPreferences
             final prefs = await SharedPreferences.getInstance();
             final token = prefs.getString('auth_token');
-            
+
             if (token != null && userType != null) {
               // Set authentication data
               _setAuthData(
@@ -122,14 +121,15 @@ class AuthCubit extends Cubit<AuthState> {
                 userType: userType,
                 persist: false, // Don't re-persist what we just validated
               );
-              
-              debugPrint('[AuthCubit] Profile validation successful - UserType: $userType');
+
+              debugPrint(
+                  '[AuthCubit] Profile validation successful - UserType: $userType');
               return true;
             }
           }
         }
       }
-      
+
       debugPrint('[AuthCubit] Profile validation failed - Invalid response');
       return false;
     } catch (e) {
@@ -145,9 +145,9 @@ class AuthCubit extends Cubit<AuthState> {
         .where((name) => name != null)
         .cast<String>()
         .toSet();
-    
+
     debugPrint('[AuthCubit] User roles: $roleNames');
-    
+
     // Check hierarchy: coordinator > responder > citizen
     if (roleNames.contains('coordinator')) {
       return UserType.coordinator;
@@ -156,7 +156,7 @@ class AuthCubit extends Cubit<AuthState> {
     } else if (roleNames.contains('citizen')) {
       return UserType.citizen;
     }
-    
+
     debugPrint('[AuthCubit] No valid role found in: $roleNames');
     return null;
   }
@@ -168,7 +168,7 @@ class AuthCubit extends Cubit<AuthState> {
       await Network.postData(
         url: Urls.sendOTP,
         body: {
-          'phone_number': '+963${phoneController.text}',
+          'phone_number': '+٩٦٣${phoneController.text}',
           'type': type,
         },
       );
@@ -187,7 +187,7 @@ class AuthCubit extends Cubit<AuthState> {
       final response = await Network.postData(
         url: Urls.checkOTP,
         body: {
-          'phone_number': '+963${phoneController.text}',
+          'phone_number': '+٩٦٣${phoneController.text}',
           'type': type,
           'code': otpController.text,
         },
@@ -207,7 +207,7 @@ class AuthCubit extends Cubit<AuthState> {
       final response = await Network.postData(
         url: Urls.login,
         body: {
-          'phone_number': '+963${phoneController.text}',
+          'phone_number': '+٩٦٣${phoneController.text}',
           'code': otpController.text,
         },
       );
@@ -228,10 +228,10 @@ class AuthCubit extends Cubit<AuthState> {
         emit(AuthError(message: 'Name is required'));
         return;
       }
-      
+
       FormData formData = FormData.fromMap({
         'name': cleanName,
-        'phone_number': '+963${phoneController.text}',
+        'phone_number': '+٩٦٣${phoneController.text}',
         'code': otpController.text,
       });
 
@@ -247,13 +247,14 @@ class AuthCubit extends Cubit<AuthState> {
         ));
       }
 
-      debugPrint('[AuthCubit] Sending registration data: name=$cleanName, phone=+963${phoneController.text}, hasImage=${selectedProfileImage != null}');
-      
+      debugPrint(
+          '[AuthCubit] Sending registration data: name=$cleanName, phone=+٩٦٣${phoneController.text}, hasImage=${selectedProfileImage != null}');
+
       final response = await Network.dio.post(
         Urls.register,
         data: formData,
       );
-      
+
       debugPrint('[AuthCubit] Registration response: ${response.statusCode}');
       await _handleAuthResponse(response);
     } on DioException catch (e) {
@@ -280,7 +281,8 @@ class AuthCubit extends Cubit<AuthState> {
           final roles = data['user']?['roles'] as List<dynamic>?;
 
           if (token != null && token.isNotEmpty && userId != null) {
-            debugPrint('[AuthCubit] Auth response valid - Token: ${token.substring(0, 8)}..., UserID: $userId');
+            debugPrint(
+                '[AuthCubit] Auth response valid - Token: ${token.substring(0, 8)}..., UserID: $userId');
 
             // Handle case where roles is null (e.g., during registration)
             UserType? userType;
@@ -289,10 +291,11 @@ class AuthCubit extends Cubit<AuthState> {
               userType = _getHighestUserType(roles);
             } else {
               // For registration without roles, default to citizen
-              debugPrint('[AuthCubit] No roles provided, defaulting to citizen');
+              debugPrint(
+                  '[AuthCubit] No roles provided, defaulting to citizen');
               userType = UserType.citizen;
             }
-            
+
             if (userType != null) {
               // Set authentication data and persist it
               _setAuthData(
@@ -303,21 +306,26 @@ class AuthCubit extends Cubit<AuthState> {
               );
 
               emit(AuthSuccess());
-              debugPrint('[AuthCubit] Authentication successful - UserType: $userType');
+              debugPrint(
+                  '[AuthCubit] Authentication successful - UserType: $userType');
               return;
             } else {
               debugPrint('[AuthCubit] Failed to determine user type');
-              emit(AuthError(message: 'Authentication failed: Could not determine user type'));
+              emit(AuthError(
+                  message:
+                      'Authentication failed: Could not determine user type'));
               return;
             }
           } else {
-            debugPrint('[AuthCubit] Missing required auth data - Token: ${token != null}, UserID: ${userId != null}');
+            debugPrint(
+                '[AuthCubit] Missing required auth data - Token: ${token != null}, UserID: ${userId != null}');
           }
         }
       }
 
       debugPrint('[AuthCubit] Invalid auth response structure');
-      emit(AuthError(message: 'Authentication failed: Invalid server response'));
+      emit(
+          AuthError(message: 'Authentication failed: Invalid server response'));
     } catch (e) {
       debugPrint('[AuthCubit] Error handling auth response: $e');
       emit(AuthError(message: 'Authentication failed: $e'));

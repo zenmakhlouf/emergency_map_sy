@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pinput/pinput.dart';
 
-//import '../../../../screens/unified_dashboard.dart';
 import '../../../../widgets/loading_ui.dart';
 import '../../cubit/auth_cubit.dart';
 
@@ -13,27 +12,6 @@ class LoginOtpScreen extends StatelessWidget {
   LoginOtpScreen({super.key, required this.cubit});
 
   final formKey = GlobalKey<FormState>();
-
-  // void _navigateToDashboard(BuildContext context) {
-  //   Widget dashboard;
-  //   switch (userType) {
-  //     case UserType.citizen:
-  //       dashboard = const CitizenDashboardScreen();
-  //       break;
-  //     case UserType.responder:
-  //       dashboard = const ResponderDashboardScreen();
-  //       break;
-  //     case UserType.coordinator:
-  //       dashboard = const CoordinatorDashboardScreen();
-  //       break;
-  //   }
-  //
-  //   Navigator.pushAndRemoveUntil(
-  //     context,
-  //     MaterialPageRoute(builder: (context) => dashboard),
-  //     (route) => false,
-  //   );
-  // }
 
   @override
   Widget build(BuildContext context) {
@@ -72,137 +50,142 @@ class LoginOtpScreen extends StatelessWidget {
           builder: (context, state) {
             final cubit = context.read<AuthCubit>();
 
-            return Container(
-              height: double.infinity,
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFFFFF5F5), Color(0xFFFFEBEE)],
+            return Directionality(
+              textDirection: TextDirection.rtl,
+              child: Container(
+                height: double.infinity,
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0xFFFFF5F5), Color(0xFFFFEBEE)],
+                  ),
                 ),
-              ),
-              alignment: Alignment.center,
-              child: SafeArea(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      Center(
-                        child: Card(
-                          elevation: 4,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(24.0),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // Icon
-                                Container(
-                                  width: 64,
-                                  height: 64,
-                                  decoration: const BoxDecoration(
-                                    color: Colors.red,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.phone,
-                                    color: Colors.white,
-                                    size: 32,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-
-                                // Title
-                                const Text(
-                                  'Enter Verification Code',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-
-                                // Subtitle
-                                Text(
-                                  'We sent a code to ${cubit.phoneController.text}',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 24),
-
-                                // OTP Input
-                                Form(
-                                  key: formKey,
-                                  child: Pinput(
-                                    length: 4,
-                                    controller: cubit.otpController,
-                                    defaultPinTheme: PinTheme(
-                                      width:
-                                          MediaQuery.of(context).size.width / 6,
-                                      height: 60,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: Colors.red),
-                                      ),
+                alignment: Alignment.center,
+                child: SafeArea(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      children: [
+                        Center(
+                          child: Card(
+                            elevation: 4,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(24.0),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // Icon
+                                  Container(
+                                    width: 64,
+                                    height: 64,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
                                     ),
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) {
-                                        return 'This field is required';
-                                      } else if (value.length != 4) {
-                                        return 'Please enter the four digit otp';
-                                      }
-                                      return null;
-                                    },
+                                    child: const Icon(
+                                      Icons.phone,
+                                      color: Colors.white,
+                                      size: 32,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 16),
-                                state is VerifyCodeLoading
-                                    ? const LoadingUi()
-                                    : // Button to VERIFY the code and log in
-                                    SizedBox(
-                                        width: double.infinity,
-                                        child: ElevatedButton(
-                                          onPressed: () {
-                                            final cubit =
-                                                context.read<AuthCubit>();
-                                            if (formKey.currentState!
-                                                .validate()) {
-                                              // You can use either checkOtp or the login method depending on your flow.
-                                              // The login() method is designed for this purpose in the cubit.
-                                              cubit.login();
-                                            }
-                                          },
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.red,
-                                            foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(
-                                                vertical: 16),
-                                          ),
-                                          child: const Text('Login with Code'),
+                                  const SizedBox(height: 16),
+
+                                  // Title
+                                  const Text(
+                                    'أدخل رمز التحقق',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+
+                                  // Subtitle
+                                  Text(
+                                    'لقد أرسلنا رمزًا إلى ${cubit.phoneController.text}',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 24),
+
+                                  // OTP Input
+                                  Form(
+                                    key: formKey,
+                                    child: Pinput(
+                                      length: 4,
+                                      controller: cubit.otpController,
+                                      defaultPinTheme: PinTheme(
+                                        width:
+                                            MediaQuery.of(context).size.width /
+                                                6,
+                                        height: 60,
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          border: Border.all(color: Colors.red),
                                         ),
                                       ),
-                                const SizedBox(height: 16),
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                  },
-                                  child: const Text(
-                                    'Change Phone Number',
-                                    style: TextStyle(color: Colors.red),
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'هذا الحقل مطلوب';
+                                        } else if (value.length != 4) {
+                                          return 'الرجاء إدخال الرمز المكون من أربعة أرقام';
+                                        }
+                                        return null;
+                                      },
+                                    ),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: 16),
+                                  state is VerifyCodeLoading
+                                      ? const LoadingUi()
+                                      : // Button to VERIFY the code and log in
+                                      SizedBox(
+                                          width: double.infinity,
+                                          child: ElevatedButton(
+                                            onPressed: () {
+                                              final cubit =
+                                                  context.read<AuthCubit>();
+                                              if (formKey.currentState!
+                                                  .validate()) {
+                                                cubit.login();
+                                              }
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.red,
+                                              foregroundColor: Colors.white,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 16),
+                                            ),
+                                            child: const Text(
+                                                'تسجيل الدخول بالرمز'),
+                                          ),
+                                        ),
+                                  const SizedBox(height: 16),
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                    },
+                                    child: const Text(
+                                      'تغيير رقم الهاتف',
+                                      style: TextStyle(color: Colors.red),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
