@@ -211,10 +211,10 @@ class _ResponderMapView extends StatelessWidget {
   }
 
   List<Marker> _buildAllMapMarkers(BuildContext context) {
-    debugPrint("=== BUILDING MAP MARKERS ===");
-    debugPrint("showReportMarkers: $showReportMarkers");
-    debugPrint("showUserMarkers: $showUserMarkers");
-    debugPrint("otherUsers.length: ${otherUsers.length}");
+    // debugPrint("=== BUILDING MAP MARKERS ===");
+    // debugPrint("showReportMarkers: $showReportMarkers");
+    // debugPrint("showUserMarkers: $showUserMarkers");
+    // debugPrint("otherUsers.length: ${otherUsers.length}");
     
     final markers = [
       _buildUserLocationMarker(context, currentPosition, userType.name),
@@ -222,7 +222,7 @@ class _ResponderMapView extends StatelessWidget {
       if (showUserMarkers) ..._buildOtherUserMarkers(context),
     ];
     
-    debugPrint("Total markers built: ${markers.length}");
+    // debugPrint("Total markers built: ${markers.length}");
     return markers;
   }
 
@@ -260,17 +260,17 @@ class _ResponderMapView extends StatelessWidget {
 
   List<Marker> _buildOtherUserMarkers(BuildContext context) {
     final currentUserId = context.read<AuthCubit>().userId;
-    debugPrint("=== BUILDING USER MARKERS ===");
-    debugPrint("Current user ID: $currentUserId");
-    debugPrint("Total other users: ${otherUsers.length}");
+    // debugPrint("=== BUILDING USER MARKERS ===");
+    // debugPrint("Current user ID: $currentUserId");
+    // debugPrint("Total other users: ${otherUsers.length}");
     
     final filteredUsers = otherUsers
         .where((user) => user.id.toString() != currentUserId.toString())
         .toList();
         
-    debugPrint("Users after filtering out current user: ${filteredUsers.length}");
+    //debugPrint("Users after filtering out current user: ${filteredUsers.length}");
     for (final user in filteredUsers) {
-      debugPrint("  - ${user.name} (ID: ${user.id}, Role: ${user.primaryRole})");
+      //debugPrint("  - ${user.name} (ID: ${user.id}, Role: ${user.primaryRole})");
     }
     
     final markers = filteredUsers.map((user) => Marker(
@@ -299,7 +299,7 @@ class _ResponderMapView extends StatelessWidget {
             ))
         .toList();
     
-    debugPrint("Final user markers created: ${markers.length}");
+    //debugPrint("Final user markers created: ${markers.length}");
     return markers;
   }
 }

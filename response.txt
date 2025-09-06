@@ -1,0 +1,3564 @@
+{
+    "success": true,
+    "message": null,
+    "data": {
+        "reports": [
+            {
+                "id": 96,
+                "initiator_id": 18,
+                "created_at": "2025-09-05 18:07",
+                "conversation": {
+                    "id": 96
+                },
+                "location": {
+                    "lat": 22,
+                    "lon": 22,
+                    "address": "hi"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nسرقة حقيبة",
+                        "discription": "\nتم الإبلاغ عن سرقة حقيبة شخصية.",
+                        "text": "\n🚨 نوع الطوارئ: سرقة\n⚠️ مستوى الخطورة: خطورة عالية\n📝 البلاغ: تم الإبلاغ عن سرقة حقيبة شخصية."
+                    },
+                    "severity": "0.6",
+                    "emergency_type": "POLICE",
+                    "emergency_sub_type": "theft",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 105,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-05T15:07:50.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "0 km"
+            },
+            {
+                "id": 95,
+                "initiator_id": 18,
+                "created_at": "2025-09-05 18:05",
+                "conversation": {
+                    "id": 95
+                },
+                "location": {
+                    "lat": 22,
+                    "lon": 22,
+                    "address": "hi"
+                },
+                "state": {
+                    "report": {
+                        "name": null,
+                        "discription": null,
+                        "text": null
+                    },
+                    "severity": null,
+                    "emergency_type": null,
+                    "emergency_sub_type": null,
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 104,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-05T15:05:54.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "0 km"
+            },
+            {
+                "id": 90,
+                "initiator_id": 18,
+                "created_at": "2025-09-05 17:22",
+                "conversation": {
+                    "id": 90
+                },
+                "location": {
+                    "lat": 22,
+                    "lon": 22,
+                    "address": "hi"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nإنقاذ من حريق",
+                        "discription": "\nطلب إنقاذ الأشخاص المحاصرين في حريق.",
+                        "text": "\n🚨 نوع الطوارئ: حريق في مبنى\n⚠️ مستوى الخطورة: خطورة خطيرة جدًا\n📝 البلاغ: طلب إنقاذ الأشخاص المحاصرين في حريق."
+                    },
+                    "severity": "0.85",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 98,
+                    "status": "in_resolve",
+                    "status_display": "In Resolve",
+                    "status_color": "orange",
+                    "notes": null,
+                    "created_at": "2025-09-05T14:28:37.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "0 km"
+            },
+            {
+                "id": 27,
+                "initiator_id": 2,
+                "created_at": "2025-08-31 21:23",
+                "conversation": {
+                    "id": 27
+                },
+                "location": {
+                    "lat": 33.4,
+                    "lon": 33.5,
+                    "address": "شارع الثورة"
+                },
+                "state": null,
+                "latest_status": {
+                    "id": 27,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-31T18:23:02.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1697.07 km"
+            },
+            {
+                "id": 5,
+                "initiator_id": 2,
+                "created_at": "2025-08-30 23:13",
+                "conversation": {
+                    "id": 5
+                },
+                "location": {
+                    "lat": 33.4,
+                    "lon": 33.5,
+                    "address": "شارع الثورة"
+                },
+                "state": {
+                    "report": null,
+                    "severity": null,
+                    "emergency_type": null,
+                    "emergency_sub_type": null,
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 5,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-30T20:13:24.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1697.07 km"
+            },
+            {
+                "id": 57,
+                "initiator_id": 2,
+                "created_at": "2025-09-02 00:41",
+                "conversation": {
+                    "id": 57
+                },
+                "location": {
+                    "lat": 33.4,
+                    "lon": 33.5,
+                    "address": "شارع الثورة"
+                },
+                "state": {
+                    "report": {
+                        "name": null,
+                        "discription": null,
+                        "text": null
+                    },
+                    "severity": null,
+                    "emergency_type": null,
+                    "emergency_sub_type": null,
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 57,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-01T21:41:12.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1697.07 km"
+            },
+            {
+                "id": 56,
+                "initiator_id": 2,
+                "created_at": "2025-09-02 00:36",
+                "conversation": {
+                    "id": 56
+                },
+                "location": {
+                    "lat": 33.4,
+                    "lon": 33.5,
+                    "address": "شارع الثورة"
+                },
+                "state": {
+                    "report": {
+                        "name": null,
+                        "discription": null,
+                        "text": null
+                    },
+                    "severity": null,
+                    "emergency_type": null,
+                    "emergency_sub_type": null,
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 56,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-01T21:36:29.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1697.07 km"
+            },
+            {
+                "id": 81,
+                "initiator_id": 15,
+                "created_at": "2025-09-05 02:06",
+                "conversation": {
+                    "id": 81
+                },
+                "location": {
+                    "lat": 33,
+                    "lon": 36,
+                    "address": "hi"
+                },
+                "state": null,
+                "latest_status": {
+                    "id": 88,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-04T23:06:45.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1841.22 km"
+            },
+            {
+                "id": 82,
+                "initiator_id": 15,
+                "created_at": "2025-09-05 02:08",
+                "conversation": {
+                    "id": 82
+                },
+                "location": {
+                    "lat": 33,
+                    "lon": 36,
+                    "address": "hi"
+                },
+                "state": null,
+                "latest_status": {
+                    "id": 89,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-04T23:08:29.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1841.22 km"
+            },
+            {
+                "id": 86,
+                "initiator_id": 8,
+                "created_at": "2025-09-05 11:37",
+                "conversation": {
+                    "id": 86
+                },
+                "location": {
+                    "lat": 33,
+                    "lon": 36,
+                    "address": "hi"
+                },
+                "state": null,
+                "latest_status": {
+                    "id": 93,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-05T08:37:35.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1841.22 km"
+            },
+            {
+                "id": 87,
+                "initiator_id": 8,
+                "created_at": "2025-09-05 13:06",
+                "conversation": {
+                    "id": 87
+                },
+                "location": {
+                    "lat": 33,
+                    "lon": 36,
+                    "address": "hi"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nطلب إنقاذ من سرقة",
+                        "discription": "\nطلب إنقاذ عاجل، تعرضت للسرقة من قبل مجموعة من الأشخاص. المتصل هو زين١.",
+                        "text": "\n🚨 نوع الطوارئ: سرقة\n⚠️ مستوى الخطورة: خطورة عالية\n📝 البلاغ: طلب إنقاذ عاجل، تعرضت للسرقة من قبل مجموعة من الأشخاص. المتصل هو زين١."
+                    },
+                    "severity": "0.7",
+                    "emergency_type": "POLICE",
+                    "emergency_sub_type": "theft",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 94,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-05T10:06:38.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1841.22 km"
+            },
+            {
+                "id": 91,
+                "initiator_id": 19,
+                "created_at": "2025-09-05 17:32",
+                "conversation": {
+                    "id": 91
+                },
+                "location": {
+                    "lat": 33,
+                    "lon": 36,
+                    "address": "hi"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nاستغاثة سرقة",
+                        "discription": "\nطلب استغاثة لإنقاذ الأشخاص من عملية سرقة.",
+                        "text": "\n🚨 نوع الطوارئ: سرقة\n⚠️ مستوى الخطورة: خطورة عالية\n📝 البلاغ: طلب استغاثة لإنقاذ الأشخاص من عملية سرقة."
+                    },
+                    "severity": "0.7",
+                    "emergency_type": "POLICE",
+                    "emergency_sub_type": "theft",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 100,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-05T14:32:38.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1841.22 km"
+            },
+            {
+                "id": 9,
+                "initiator_id": 4,
+                "created_at": "2025-08-30 23:29",
+                "conversation": {
+                    "id": 9
+                },
+                "location": {
+                    "lat": 33.51674130996242,
+                    "lon": 36.28170242616598,
+                    "address": "Location"
+                },
+                "state": {
+                    "report": null,
+                    "severity": "0.9",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 9,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-30T20:29:45.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1897.46 km"
+            },
+            {
+                "id": 50,
+                "initiator_id": 10,
+                "created_at": "2025-09-01 21:43",
+                "conversation": {
+                    "id": 50
+                },
+                "location": {
+                    "lat": 33.518191461873585,
+                    "lon": 36.29291237772508,
+                    "address": "Custom Location"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nاعتداء قاتل في الشارع",
+                        "discription": "\nشخص يُتعرض للاعتداء القاتل في الشارع، يرجى التدخل الفوري.",
+                        "text": "\n🚨 نوع الطوارئ: جريمة قتل\n⚠️ مستوى الخطورة: حالة طارئة قصوى\n📝 البلاغ: شخص يُتعرض للاعتداء القاتل في الشارع، يرجى التدخل الفوري."
+                    },
+                    "severity": "1",
+                    "emergency_type": "CIVIL",
+                    "emergency_sub_type": "murder",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 50,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-01T18:43:26.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1898.38 km"
+            },
+            {
+                "id": 78,
+                "initiator_id": 8,
+                "created_at": "2025-09-03 20:35",
+                "conversation": {
+                    "id": 78
+                },
+                "location": {
+                    "lat": 33.52142801562703,
+                    "lon": 36.29062254310213,
+                    "address": "Custom Location"
+                },
+                "state": {
+                    "report": {
+                        "name": null,
+                        "discription": null,
+                        "text": null
+                    },
+                    "severity": null,
+                    "emergency_type": null,
+                    "emergency_sub_type": null,
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 84,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-03T17:35:18.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1898.44 km"
+            },
+            {
+                "id": 10,
+                "initiator_id": 4,
+                "created_at": "2025-08-30 23:31",
+                "conversation": {
+                    "id": 10
+                },
+                "location": {
+                    "lat": 33.51873110685648,
+                    "lon": 36.29344773745627,
+                    "address": "Location"
+                },
+                "state": {
+                    "report": null,
+                    "severity": "0.9",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 10,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-30T20:31:19.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1898.45 km"
+            },
+            {
+                "id": 26,
+                "initiator_id": 7,
+                "created_at": "2025-08-31 17:42",
+                "conversation": {
+                    "id": 26
+                },
+                "location": {
+                    "lat": 33.51875359571208,
+                    "lon": 36.293497871166096,
+                    "address": "Location"
+                },
+                "state": {
+                    "report": null,
+                    "severity": "0.9",
+                    "emergency_type": "TRAFFIC",
+                    "emergency_sub_type": "major_accident",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 26,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-31T14:42:34.000000Z"
+                },
+                "participation_requests": [
+                    {
+                        "id": 8,
+                        "initiator": {
+                            "id": 7,
+                            "name": "Zwen",
+                            "email": null,
+                            "password": null,
+                            "last_active_at": "2025-09-05 23:01",
+                            "last_login_at": "2025-09-05 22:13",
+                            "created_at": "2025-08-31 11:07",
+                            "updated_at": "2025-09-05 20:01",
+                            "roles": [
+                                {
+                                    "id": 3,
+                                    "name": "citizen",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 7,
+                                        "role_id": 3
+                                    }
+                                },
+                                {
+                                    "id": 4,
+                                    "name": "responder",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 7,
+                                        "role_id": 4
+                                    }
+                                },
+                                {
+                                    "id": 5,
+                                    "name": "coordinator",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 7,
+                                        "role_id": 5
+                                    }
+                                }
+                            ]
+                        },
+                        "responder": {
+                            "id": 11,
+                            "name": "Wisam",
+                            "email": null,
+                            "password": null,
+                            "last_active_at": "2025-09-04 18:44",
+                            "last_login_at": "2025-09-04 18:43",
+                            "created_at": "2025-08-31 23:35",
+                            "updated_at": "2025-09-04 15:44",
+                            "roles": [
+                                {
+                                    "id": 3,
+                                    "name": "citizen",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 11,
+                                        "role_id": 3
+                                    }
+                                },
+                                {
+                                    "id": 4,
+                                    "name": "responder",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 11,
+                                        "role_id": 4
+                                    }
+                                }
+                            ]
+                        },
+                        "status": "accept",
+                        "report": null
+                    },
+                    {
+                        "id": 10,
+                        "initiator": {
+                            "id": 13,
+                            "name": "Zen Al Abdeen",
+                            "email": null,
+                            "password": null,
+                            "last_active_at": "2025-09-05 23:01",
+                            "last_login_at": "2025-09-04 18:44",
+                            "created_at": "2025-09-03 04:42",
+                            "updated_at": "2025-09-05 20:01",
+                            "roles": [
+                                {
+                                    "id": 3,
+                                    "name": "citizen",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 13,
+                                        "role_id": 3
+                                    }
+                                },
+                                {
+                                    "id": 4,
+                                    "name": "responder",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 13,
+                                        "role_id": 4
+                                    }
+                                }
+                            ]
+                        },
+                        "responder": {
+                            "id": 13,
+                            "name": "Zen Al Abdeen",
+                            "email": null,
+                            "password": null,
+                            "last_active_at": "2025-09-05 23:01",
+                            "last_login_at": "2025-09-04 18:44",
+                            "created_at": "2025-09-03 04:42",
+                            "updated_at": "2025-09-05 20:01",
+                            "roles": [
+                                {
+                                    "id": 3,
+                                    "name": "citizen",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 13,
+                                        "role_id": 3
+                                    }
+                                },
+                                {
+                                    "id": 4,
+                                    "name": "responder",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 13,
+                                        "role_id": 4
+                                    }
+                                }
+                            ]
+                        },
+                        "status": "pending",
+                        "report": null
+                    }
+                ],
+                "distance": "1898.46 km"
+            },
+            {
+                "id": 51,
+                "initiator_id": 10,
+                "created_at": "2025-09-01 21:50",
+                "conversation": {
+                    "id": 51
+                },
+                "location": {
+                    "lat": 33.51870106907875,
+                    "lon": 36.29358427658585,
+                    "address": "Custom Location"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nحالة بلع طارئة",
+                        "discription": "\nيوجد حالة طارئة تتعلق بشخص بلع مادة خطيرة. يرجى إرسال الشرطة والإسعاف على الفور.",
+                        "text": "\n🚨 نوع الطوارئ: فاقد للوعي\n⚠️ مستوى الخطورة: حالة طارئة قصوى\n📝 البلاغ: يوجد حالة طارئة تتعلق بشخص بلع مادة خطيرة. يرجى إرسال الشرطة والإسعاف على الفور."
+                    },
+                    "severity": "0.9",
+                    "emergency_type": "MEDICAL",
+                    "emergency_sub_type": "unconscious",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 51,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-01T18:50:12.000000Z"
+                },
+                "participation_requests": [
+                    {
+                        "id": 3,
+                        "initiator": {
+                            "id": 4,
+                            "name": "Zen",
+                            "email": null,
+                            "password": null,
+                            "last_active_at": "2025-09-05 23:01",
+                            "last_login_at": "2025-09-05 21:50",
+                            "created_at": "2025-08-30 19:54",
+                            "updated_at": "2025-09-05 20:01",
+                            "roles": [
+                                {
+                                    "id": 3,
+                                    "name": "citizen",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 4,
+                                        "role_id": 3
+                                    }
+                                },
+                                {
+                                    "id": 4,
+                                    "name": "responder",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 4,
+                                        "role_id": 4
+                                    }
+                                }
+                            ]
+                        },
+                        "responder": {
+                            "id": 4,
+                            "name": "Zen",
+                            "email": null,
+                            "password": null,
+                            "last_active_at": "2025-09-05 23:01",
+                            "last_login_at": "2025-09-05 21:50",
+                            "created_at": "2025-08-30 19:54",
+                            "updated_at": "2025-09-05 20:01",
+                            "roles": [
+                                {
+                                    "id": 3,
+                                    "name": "citizen",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 4,
+                                        "role_id": 3
+                                    }
+                                },
+                                {
+                                    "id": 4,
+                                    "name": "responder",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 4,
+                                        "role_id": 4
+                                    }
+                                }
+                            ]
+                        },
+                        "status": "pending",
+                        "report": null
+                    }
+                ],
+                "distance": "1898.46 km"
+            },
+            {
+                "id": 3,
+                "initiator_id": 4,
+                "created_at": "2025-08-30 23:03",
+                "conversation": {
+                    "id": 3
+                },
+                "location": {
+                    "lat": 33.51876369388579,
+                    "lon": 36.29353787195735,
+                    "address": "Location"
+                },
+                "state": {
+                    "report": null,
+                    "severity": "0.7",
+                    "emergency_type": "POLICE",
+                    "emergency_sub_type": "theft",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 3,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-30T20:03:40.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1898.46 km"
+            },
+            {
+                "id": 58,
+                "initiator_id": 10,
+                "created_at": "2025-09-02 00:44",
+                "conversation": {
+                    "id": 58
+                },
+                "location": {
+                    "lat": 33.518800832819174,
+                    "lon": 36.29351350190786,
+                    "address": "Custom Location"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nصدمة كهربائية لأحمد",
+                        "discription": "\nتعرض أحمد لصدمة كهربائية نتيجة لمسه شريط الكهرباء. نحتاج إلى توجيهات عاجلة للتعامل مع الحالة.",
+                        "text": "\n🚨 نوع الطوارئ: إصابة بطلق ناري\n⚠️ مستوى الخطورة: حالة طارئة قصوى\n📝 البلاغ: تعرض أحمد لصدمة كهربائية نتيجة لمسه شريط الكهرباء. نحتاج إلى توجيهات عاجلة للتعامل مع الحالة."
+                    },
+                    "severity": "0.9",
+                    "emergency_type": "MEDICAL",
+                    "emergency_sub_type": "gunwound",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 58,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-01T21:44:15.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1898.46 km"
+            },
+            {
+                "id": 49,
+                "initiator_id": 10,
+                "created_at": "2025-09-01 21:39",
+                "conversation": {
+                    "id": 49
+                },
+                "location": {
+                    "lat": 33.51967900182198,
+                    "lon": 36.29497691487092,
+                    "address": "Custom Location"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nبلاغ جريمة قتل",
+                        "discription": "\nبلاغ عن جريمة قتل تم الإبلاغ عنها.",
+                        "text": "\n🚨 نوع الطوارئ: جريمة قتل\n⚠️ مستوى الخطورة: حالة طارئة قصوى\n📝 البلاغ: بلاغ عن جريمة قتل تم الإبلاغ عنها."
+                    },
+                    "severity": "0.95",
+                    "emergency_type": "POLICE",
+                    "emergency_sub_type": "murder",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 49,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-01T18:39:54.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1898.63 km"
+            },
+            {
+                "id": 53,
+                "initiator_id": 5,
+                "created_at": "2025-09-01 23:40",
+                "conversation": {
+                    "id": 53
+                },
+                "location": {
+                    "lat": 33.529525,
+                    "lon": 36.2908172,
+                    "address": "Live Location"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nحالة وفاة",
+                        "discription": "\nتقرير عن حالة وفاة.",
+                        "text": "\n🚨 نوع الطوارئ: جثة\n⚠️ مستوى الخطورة: حالة طارئة قصوى\n📝 البلاغ: تقرير عن حالة وفاة.\n🆘 معلومة جديدة: فاقدة الوعي\n🆘 معلومة جديدة: فاقدة الوعي"
+                    },
+                    "severity": "0.9",
+                    "emergency_type": "MEDICAL",
+                    "emergency_sub_type": "body",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 53,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-01T20:40:10.000000Z"
+                },
+                "participation_requests": [
+                    {
+                        "id": 4,
+                        "initiator": {
+                            "id": 4,
+                            "name": "Zen",
+                            "email": null,
+                            "password": null,
+                            "last_active_at": "2025-09-05 23:01",
+                            "last_login_at": "2025-09-05 21:50",
+                            "created_at": "2025-08-30 19:54",
+                            "updated_at": "2025-09-05 20:01",
+                            "roles": [
+                                {
+                                    "id": 3,
+                                    "name": "citizen",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 4,
+                                        "role_id": 3
+                                    }
+                                },
+                                {
+                                    "id": 4,
+                                    "name": "responder",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 4,
+                                        "role_id": 4
+                                    }
+                                }
+                            ]
+                        },
+                        "responder": {
+                            "id": 4,
+                            "name": "Zen",
+                            "email": null,
+                            "password": null,
+                            "last_active_at": "2025-09-05 23:01",
+                            "last_login_at": "2025-09-05 21:50",
+                            "created_at": "2025-08-30 19:54",
+                            "updated_at": "2025-09-05 20:01",
+                            "roles": [
+                                {
+                                    "id": 3,
+                                    "name": "citizen",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 4,
+                                        "role_id": 3
+                                    }
+                                },
+                                {
+                                    "id": 4,
+                                    "name": "responder",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 4,
+                                        "role_id": 4
+                                    }
+                                }
+                            ]
+                        },
+                        "status": "pending",
+                        "report": null
+                    },
+                    {
+                        "id": 11,
+                        "initiator": {
+                            "id": 10,
+                            "name": "Ahmad",
+                            "email": null,
+                            "password": null,
+                            "last_active_at": "2025-09-05 15:42",
+                            "last_login_at": "2025-09-05 15:41",
+                            "created_at": "2025-08-31 23:33",
+                            "updated_at": "2025-09-05 12:42",
+                            "roles": [
+                                {
+                                    "id": 3,
+                                    "name": "citizen",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 10,
+                                        "role_id": 3
+                                    }
+                                },
+                                {
+                                    "id": 4,
+                                    "name": "responder",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 10,
+                                        "role_id": 4
+                                    }
+                                }
+                            ]
+                        },
+                        "responder": {
+                            "id": 10,
+                            "name": "Ahmad",
+                            "email": null,
+                            "password": null,
+                            "last_active_at": "2025-09-05 15:42",
+                            "last_login_at": "2025-09-05 15:41",
+                            "created_at": "2025-08-31 23:33",
+                            "updated_at": "2025-09-05 12:42",
+                            "roles": [
+                                {
+                                    "id": 3,
+                                    "name": "citizen",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 10,
+                                        "role_id": 3
+                                    }
+                                },
+                                {
+                                    "id": 4,
+                                    "name": "responder",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 10,
+                                        "role_id": 4
+                                    }
+                                }
+                            ]
+                        },
+                        "status": "pending",
+                        "report": null
+                    }
+                ],
+                "distance": "1899.01 km"
+            },
+            {
+                "id": 20,
+                "initiator_id": 5,
+                "created_at": "2025-08-31 00:36",
+                "conversation": {
+                    "id": 20
+                },
+                "location": {
+                    "lat": 33.5295208,
+                    "lon": 36.290824,
+                    "address": "Live Location"
+                },
+                "state": {
+                    "report": null,
+                    "severity": "0.6",
+                    "emergency_type": "POLICE",
+                    "emergency_sub_type": "complaint",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 20,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-30T21:36:44.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1899.01 km"
+            },
+            {
+                "id": 42,
+                "initiator_id": 5,
+                "created_at": "2025-09-01 01:39",
+                "conversation": {
+                    "id": 42
+                },
+                "location": {
+                    "lat": 33.5295263,
+                    "lon": 36.2908317,
+                    "address": "Live Location"
+                },
+                "state": null,
+                "latest_status": {
+                    "id": 42,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-31T22:39:31.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1899.01 km"
+            },
+            {
+                "id": 43,
+                "initiator_id": 5,
+                "created_at": "2025-09-01 01:39",
+                "conversation": {
+                    "id": 43
+                },
+                "location": {
+                    "lat": 33.5295263,
+                    "lon": 36.2908317,
+                    "address": "Live Location"
+                },
+                "state": null,
+                "latest_status": {
+                    "id": 43,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-31T22:39:41.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1899.01 km"
+            },
+            {
+                "id": 52,
+                "initiator_id": 5,
+                "created_at": "2025-09-01 23:25",
+                "conversation": {
+                    "id": 52
+                },
+                "location": {
+                    "lat": 33.5295172,
+                    "lon": 36.2908495,
+                    "address": "Live Location"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nفتاة عالقة في حفرة",
+                        "discription": "\nحالة طارئة في منطقة المزة، فتاة سقطت في حفرة وتحتاج إلى مساعدة عاجلة.",
+                        "text": "\n🚨 نوع الطوارئ: سقوط شخص\n⚠️ مستوى الخطورة: خطورة عالية\n📝 البلاغ: حالة طارئة في منطقة المزة، فتاة سقطت في حفرة وتحتاج إلى مساعدة عاجلة.\n🆘 معلومة جديدة: عمرها خمس سنين البنت غايبة عن الوعي\n🆘 معلومة جديدة: غايبة عن الوعي صرلا ساعة\n🆘 معلومة جديدة: حالة مستعجلة جدا بالمزة بنت وقعت بالحفرة علقانة\n🆘 معلومة جديدة: حالة مستعجلة جدا بالمزة بنت وقعت بالحفرة علقانة\n🆘 معلومة جديدة: حالة مستعجلة جدا بالمزة بنت وقعت بالحفرة علقانة\n🆘 معلومة جديدة: عمرها خمس سنين البنت غايبة عن الوعي"
+                    },
+                    "severity": "0.75",
+                    "emergency_type": "MEDICAL",
+                    "emergency_sub_type": "fallen",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 52,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-01T20:25:28.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1899.02 km"
+            },
+            {
+                "id": 38,
+                "initiator_id": 5,
+                "created_at": "2025-09-01 01:32",
+                "conversation": {
+                    "id": 38
+                },
+                "location": {
+                    "lat": 33.529522,
+                    "lon": 36.2908492,
+                    "address": "Live Location"
+                },
+                "state": null,
+                "latest_status": {
+                    "id": 38,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-31T22:32:13.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1899.02 km"
+            },
+            {
+                "id": 39,
+                "initiator_id": 5,
+                "created_at": "2025-09-01 01:32",
+                "conversation": {
+                    "id": 39
+                },
+                "location": {
+                    "lat": 33.529522,
+                    "lon": 36.2908492,
+                    "address": "Live Location"
+                },
+                "state": null,
+                "latest_status": {
+                    "id": 39,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-31T22:32:22.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1899.02 km"
+            },
+            {
+                "id": 40,
+                "initiator_id": 5,
+                "created_at": "2025-09-01 01:32",
+                "conversation": {
+                    "id": 40
+                },
+                "location": {
+                    "lat": 33.529522,
+                    "lon": 36.2908492,
+                    "address": "Live Location"
+                },
+                "state": null,
+                "latest_status": {
+                    "id": 40,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-31T22:32:30.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1899.02 km"
+            },
+            {
+                "id": 41,
+                "initiator_id": 5,
+                "created_at": "2025-09-01 01:39",
+                "conversation": {
+                    "id": 41
+                },
+                "location": {
+                    "lat": 33.529522,
+                    "lon": 36.2908492,
+                    "address": "Live Location"
+                },
+                "state": null,
+                "latest_status": {
+                    "id": 41,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-31T22:39:09.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1899.02 km"
+            },
+            {
+                "id": 18,
+                "initiator_id": 5,
+                "created_at": "2025-08-31 00:31",
+                "conversation": {
+                    "id": 18
+                },
+                "location": {
+                    "lat": 33.5295136,
+                    "lon": 36.2908587,
+                    "address": "Live Location"
+                },
+                "state": {
+                    "report": null,
+                    "severity": "0.9",
+                    "emergency_type": "MEDICAL",
+                    "emergency_sub_type": "fallen",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 18,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-30T21:31:52.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1899.02 km"
+            },
+            {
+                "id": 75,
+                "initiator_id": 5,
+                "created_at": "2025-09-03 01:26",
+                "conversation": {
+                    "id": 75
+                },
+                "location": {
+                    "lat": 33.5295255,
+                    "lon": 36.2908523,
+                    "address": "Location"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nمساعدة في شبين",
+                        "discription": "\nنطلب المساعدة في شبين حيث يوجد شخصان عالقان بالسكاكين.",
+                        "text": "\n🚨 نوع الطوارئ: شجار\n⚠️ مستوى الخطورة: خطورة عالية\n📝 البلاغ: نطلب المساعدة في شبين حيث يوجد شخصان عالقان بالسكاكين.\n🆘 معلومة جديدة: رح يدبحو بعض بدنا الامن يجو يفكو الخناقة بسرعوة\n🆘 معلومة جديدة: رح يدبحو بعض بدنا الامن يجو يفكو الخناقة بسرعوة\n🆘 معلومة جديدة: بالعباسيين شارع العابد بالسكاكين عم يهددو بغض\n🆘 معلومة جديدة: شخصان ٢ فقط"
+                    },
+                    "severity": "0.7",
+                    "emergency_type": "CIVIL",
+                    "emergency_sub_type": "fight",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 76,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-02T22:26:54.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1899.02 km"
+            },
+            {
+                "id": 76,
+                "initiator_id": 5,
+                "created_at": "2025-09-03 01:33",
+                "conversation": {
+                    "id": 76
+                },
+                "location": {
+                    "lat": 33.5295285,
+                    "lon": 36.2908495,
+                    "address": "Custom Location"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nزلزال اللاذقية 6 ريختر",
+                        "discription": "\nتم تسجيل زلزال بقوة 6 درجات على مقياس ريختر في مدينة اللاذقية.",
+                        "text": "\n🚨 نوع الطوارئ: تحذير\n⚠️ مستوى الخطورة: حالة طارئة قصوى\n📝 البلاغ: تم تسجيل زلزال بقوة 6 درجات على مقياس ريختر في مدينة اللاذقية."
+                    },
+                    "severity": "0.9",
+                    "emergency_type": "CIVIL",
+                    "emergency_sub_type": "warning",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 77,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-02T22:33:38.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1899.02 km"
+            },
+            {
+                "id": 74,
+                "initiator_id": 5,
+                "created_at": "2025-09-03 01:19",
+                "conversation": {
+                    "id": 74
+                },
+                "location": {
+                    "lat": 33.5295288,
+                    "lon": 36.2908499,
+                    "address": "Location"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nحريق كبير في المزة",
+                        "discription": "\nنشب حريق كبير في منطقة المزة، شيخ سعد. نرجو إرسال فرق الإطفاء على وجه السرعة.",
+                        "text": "\n🚨 نوع الطوارئ: حريق في مبنى\n⚠️ مستوى الخطورة: حالة طارئة قصوى\n📝 البلاغ: نشب حريق كبير في منطقة المزة، شيخ سعد. نرجو إرسال فرق الإطفاء على وجه السرعة.\n🆘 معلومة جديدة: حريق ضخم بالمزة شيخ سعد بعتولنا اطفاء بسرعة\n🆘 معلومة جديدة: اخي حريق ضخم بالمزة شيخ سعد بعتولنا اطفاء بسرعة"
+                    },
+                    "severity": "0.9",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 75,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-02T22:19:16.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1899.02 km"
+            },
+            {
+                "id": 64,
+                "initiator_id": 5,
+                "created_at": "2025-09-02 21:13",
+                "conversation": {
+                    "id": 64
+                },
+                "location": {
+                    "lat": 33.5295283,
+                    "lon": 36.2908593,
+                    "address": "Live Location"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nسقوط صاروخ في الفردوس",
+                        "discription": "\nسقوط صاروخ في منطقة ضاحية الفردوس، مما أسفر عن وقوع ضحايا ووجود صرخات استغاثة.",
+                        "text": "\n🚨 نوع الطوارئ: انفجار\n⚠️ مستوى الخطورة: حالة طارئة قصوى\n📝 البلاغ: سقوط صاروخ في منطقة ضاحية الفردوس، مما أسفر عن وقوع ضحايا ووجود صرخات استغاثة.\n🆘 معلومة جديدة: عملية اختطاف لبنت صغيرة شفت العصابة بعيني\nنزل صاروخ بمنطقة ضاحية الفردوس في ضحايا وناس عم تصرخ"
+                    },
+                    "severity": "0.9",
+                    "emergency_type": "CIVIL",
+                    "emergency_sub_type": "explosion",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 64,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-02T18:13:20.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1899.02 km"
+            },
+            {
+                "id": 63,
+                "initiator_id": 5,
+                "created_at": "2025-09-02 09:21",
+                "conversation": {
+                    "id": 63
+                },
+                "location": {
+                    "lat": 33.5295411,
+                    "lon": 36.2908545,
+                    "address": "Live Location"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nحالة خطر طارئة",
+                        "discription": "\nأواجه خطرًا كبيرًا وأحتاج إلى المساعدة الفورية.",
+                        "text": "\n🚨 نوع الطوارئ: تحذير\n⚠️ مستوى الخطورة: حالة طارئة قصوى\n📝 البلاغ: أواجه خطرًا كبيرًا وأحتاج إلى المساعدة الفورية.\n🆘 معلومة جديدة: في جماعة مسلحة عم تلاحقني شارع بغداد هلا تخبيت ورا الشخرة\n🆘 معلومة جديدة: في جماعة مسلحة عم تلاحقني شارع بغداد هلا تخبيت ورا الشخرة انا بخطر كيير"
+                    },
+                    "severity": "0.9",
+                    "emergency_type": "CIVIL",
+                    "emergency_sub_type": "warning",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 63,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-02T06:21:46.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1899.02 km"
+            },
+            {
+                "id": 97,
+                "initiator_id": 5,
+                "created_at": "2025-09-05 19:13",
+                "conversation": {
+                    "id": 97
+                },
+                "location": {
+                    "lat": 33.5313752,
+                    "lon": 36.2933068,
+                    "address": "Location"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nانفجار عبوة بالبرامكة",
+                        "discription": "\nحالة طارئة: انفجار عبوة مفخخة في منطقة البرامكة. نطلب المساعدة العاجلة.",
+                        "text": "\n🚨 نوع الطوارئ: انفجار\n⚠️ مستوى الخطورة: حالة طارئة قصوى\n📝 البلاغ: حالة طارئة: انفجار عبوة مفخخة في منطقة البرامكة. نطلب المساعدة العاجلة.\n🆘 معلومة جديدة: في ضحايا كتير بعتولنا الاسعاف بسرعة\n🆘 معلومة جديدة: عشر ضحايا حتى الان الموقع بالضبط جنب صيدلية الرحمن\n🆘 معلومة جديدة: عشر ضحايا حتى الان الموقع بالضبط جنب صيدلية الرحمن"
+                    },
+                    "severity": "0.9",
+                    "emergency_type": "CIVIL",
+                    "emergency_sub_type": "explosion",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 110,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-05T16:13:49.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "1899.32 km"
+            },
+            {
+                "id": 32,
+                "initiator_id": 2,
+                "created_at": "2025-08-31 21:46",
+                "conversation": {
+                    "id": 32
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": null,
+                    "severity": "0.9",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 32,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-31T18:46:12.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 54,
+                "initiator_id": 2,
+                "created_at": "2025-09-02 00:19",
+                "conversation": {
+                    "id": 54
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nحريق منزل الجبة",
+                        "discription": "\nنشوب حريق في منزل بمنطقة الجبة، يتطلب التدخل الفوري.",
+                        "text": "\n🚨 نوع الطوارئ: حريق في مبنى\n⚠️ مستوى الخطورة: حالة طارئة قصوى\n📝 البلاغ: نشوب حريق في منزل بمنطقة الجبة، يتطلب التدخل الفوري.\n🆘 معلومة جديدة: لما يتم اخلاء البيت عالقين وفي بنت رح تختنق محبوسة"
+                    },
+                    "severity": "0.9",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 54,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-01T21:19:42.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 65,
+                "initiator_id": 2,
+                "created_at": "2025-09-03 00:02",
+                "conversation": {
+                    "id": 65
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nحريق في المزة - أشخاص محاصرون",
+                        "discription": "\nحريق في مبنى 45، الطابق السادس، منطقة المزة، ووجود أشخاص محاصرين داخل الشقة.",
+                        "text": "\n🚨 نوع الطوارئ: حريق في مبنى\n⚠️ مستوى الخطورة: حالة طارئة قصوى\n📝 البلاغ: حريق في مبنى 45، الطابق السادس، منطقة المزة، ووجود أشخاص محاصرين داخل الشقة.\n🆘 معلومة جديدة: في حريق بمنطقي المزة مبنى 45 الطابق السادس والاشخاص علقانين بالبيت"
+                    },
+                    "severity": "0.9",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 65,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-02T21:02:27.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 66,
+                "initiator_id": 2,
+                "created_at": "2025-09-03 00:13",
+                "conversation": {
+                    "id": 66
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nحريق في المزة",
+                        "discription": "\nتم رصد دخان متصاعد من منزل في منطقة المزة بالقرب من بقالية الصفاء، مما يشير إلى احتمال وجود حريق.",
+                        "text": "\n🚨 نوع الطوارئ: حريق في مبنى\n⚠️ مستوى الخطورة: خطورة عالية\n📝 البلاغ: تم رصد دخان متصاعد من منزل في منطقة المزة بالقرب من بقالية الصفاء، مما يشير إلى احتمال وجود حريق.\n🆘 معلومة جديدة: طلع بيت عم يحترق وصحابه علقانين جوا مو قادرين يطلعو بسرعة بدنا اطفاء"
+                    },
+                    "severity": "0.75",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 66,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-02T21:13:09.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 67,
+                "initiator_id": 2,
+                "created_at": "2025-09-03 00:23",
+                "conversation": {
+                    "id": 67
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nحريق في المزة",
+                        "discription": "\nنشب حريق في مبنى بمنطقة المزة.",
+                        "text": "\n🚨 نوع الطوارئ: حريق في مبنى\n⚠️ مستوى الخطورة: خطورة خطيرة جدًا\n📝 البلاغ: نشب حريق في مبنى بمنطقة المزة.\n🆘 معلومة جديدة: طلع بيت عم يحترق وصحابه علقانين جوا مو قادرين يطلعو بسرعة بدنا اطفاء"
+                    },
+                    "severity": "0.85",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 67,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-02T21:23:37.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 68,
+                "initiator_id": 2,
+                "created_at": "2025-09-03 00:31",
+                "conversation": {
+                    "id": 68
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nحريق في المزة",
+                        "discription": "\nنشب حريق كبير في بناية بمنطقة المزة.",
+                        "text": "\n🚨 نوع الطوارئ: حريق في مبنى\n⚠️ مستوى الخطورة: حالة طارئة قصوى\n📝 البلاغ: نشب حريق كبير في بناية بمنطقة المزة.\n🆘 معلومة جديدة: طلع بيت عم يحترق وصحابه علقانين جوا مو قادرين يطلعو بسرعة بدنا اطفاء"
+                    },
+                    "severity": "0.9",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 68,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-02T21:31:55.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 69,
+                "initiator_id": 2,
+                "created_at": "2025-09-03 00:34",
+                "conversation": {
+                    "id": 69
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nحريق في المزة",
+                        "discription": "\nنشب حريق كبير في مبنى بمنطقة المزة.",
+                        "text": "\n🚨 نوع الطوارئ: حريق في مبنى\n⚠️ مستوى الخطورة: حالة طارئة قصوى\n📝 البلاغ: نشب حريق كبير في مبنى بمنطقة المزة.\n🆘 معلومة جديدة: طلع بيت عم يحترق وصحابه علقانين جوا مو قادرين يطلعو بسرعة بدنا اطفاء"
+                    },
+                    "severity": "0.9",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 69,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-02T21:34:28.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 70,
+                "initiator_id": 2,
+                "created_at": "2025-09-03 00:47",
+                "conversation": {
+                    "id": 70
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nحريق في شيخ سعد",
+                        "discription": "\nتم الإبلاغ عن حريق كبير في منطقة شيخ سعد.",
+                        "text": "\n🚨 نوع الطوارئ: حريق في مبنى\n⚠️ مستوى الخطورة: حالة طارئة قصوى\n📝 البلاغ: تم الإبلاغ عن حريق كبير في منطقة شيخ سعد.\n🆘 معلومة جديدة: طلع بيت عم يحترق وصحابه علقانين جوا مو قادرين يطلعو بسرعة بدنا اطفاء"
+                    },
+                    "severity": "0.9",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 70,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-02T21:47:05.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 8,
+                "initiator_id": 2,
+                "created_at": "2025-08-30 23:28",
+                "conversation": {
+                    "id": 8
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": null,
+                    "severity": "0.7",
+                    "emergency_type": "TRAFFIC",
+                    "emergency_sub_type": "major_accident",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 8,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-30T20:28:35.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 72,
+                "initiator_id": 2,
+                "created_at": "2025-09-03 00:58",
+                "conversation": {
+                    "id": 72
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nحريق في المزة",
+                        "discription": "\nتم الإبلاغ عن حريق في منطقة المزة.",
+                        "text": "\n🚨 نوع الطوارئ: حريق في مبنى\n⚠️ مستوى الخطورة: خطورة خطيرة جدًا\n📝 البلاغ: تم الإبلاغ عن حريق في منطقة المزة.\n🆘 معلومة جديدة: طلع بيت عم يحترق وصحابه علقانين جوا مو قادرين يطلعو بسرعة بدنا اطفاء"
+                    },
+                    "severity": "0.8",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 72,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-02T21:58:29.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 73,
+                "initiator_id": 2,
+                "created_at": "2025-09-03 01:01",
+                "conversation": {
+                    "id": 73
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nحريق منزل بالجبة",
+                        "discription": "\nحريق في منزل بمنطقة الجبة.",
+                        "text": "\n🚨 نوع الطوارئ: حريق في مبنى\n⚠️ مستوى الخطورة: حالة طارئة قصوى\n📝 البلاغ: حريق في منزل بمنطقة الجبة.\n🆘 معلومة جديدة: طلع بيت عم يحترق وصحابه علقانين جوا مو قادرين يطلعو بسرعة بدنا اطفاء\n🆘 معلومة جديدة: بيت عم يحترق وصحابه علقانين جوا مو قادرين يطلعو بسرعة بدنا اطفاء"
+                    },
+                    "severity": "0.9",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 73,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-02T22:01:16.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 80,
+                "initiator_id": 2,
+                "created_at": "2025-09-04 01:07",
+                "conversation": {
+                    "id": 80
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nحريق في محطة وقود",
+                        "discription": "\nيوجد حريق كبير في محطة الوقود بالمزة. نطلب الاستجابة السريعة من فرق الإطفاء.",
+                        "text": "\n🚨 نوع الطوارئ: حريق في مبنى\n⚠️ مستوى الخطورة: حالة طارئة قصوى\n📝 البلاغ: يوجد حريق كبير في محطة الوقود بالمزة. نطلب الاستجابة السريعة من فرق الإطفاء.\n🆘 معلومة جديدة: مافي اصابات بس الاضؤاؤ المادية كبيرة\n🆘 معلومة جديدة: في سيارة اشتعلت هلا كمان بسبب  الحريق\n🆘 معلومة جديدة: اجت سيارة الااسعاف هلا"
+                    },
+                    "severity": "0.9",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 86,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-03T22:07:56.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 79,
+                "initiator_id": 2,
+                "created_at": "2025-09-04 01:00",
+                "conversation": {
+                    "id": 79
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nحريق مخزن كتب",
+                        "discription": "\nنشوب حريق كبير في مخزن للكتب بمنطقة المهاجرين.",
+                        "text": "\n🚨 نوع الطوارئ: حريق في مبنى\n⚠️ مستوى الخطورة: خطورة خطيرة جدًا\n📝 البلاغ: نشوب حريق كبير في مخزن للكتب بمنطقة المهاجرين.\n🆘 معلومة جديدة: بدا الحريق من 5 دقايق مافي معلومات عن عدد العالقين بس رح يختنقو ساعدونا بسرعة\n🆘 معلومة جديدة: بدا الحريق من 5 دقايق مافي معلومات عن عدد العالقين بس رح يختنقو ساعدونا بسرعة\n🆘 معلومة جديدة: هناك شخص اختنق للاسف فارق الحياة\n🆘 معلومة جديدة: هناك شخص اختنق للاسف فارق الحياة"
+                    },
+                    "severity": "0.8",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 85,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-03T22:00:13.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 62,
+                "initiator_id": 2,
+                "created_at": "2025-09-02 01:38",
+                "conversation": {
+                    "id": 62
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nحالة انتحار",
+                        "discription": "\nبلاغ عن حالة انتحار محتملة لشخص.",
+                        "text": "\n🚨 نوع الطوارئ: جثة\n⚠️ مستوى الخطورة: حالة طارئة قصوى\n📝 البلاغ: بلاغ عن حالة انتحار محتملة لشخص.\n🆘 معلومة جديدة: شخض ينتحر"
+                    },
+                    "severity": "1",
+                    "emergency_type": "MEDICAL",
+                    "emergency_sub_type": "body",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 62,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-01T22:38:23.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 61,
+                "initiator_id": 2,
+                "created_at": "2025-09-02 01:27",
+                "conversation": {
+                    "id": 61
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nحالة انتحار",
+                        "discription": "\nبلاغ عن حالة انتحار محتملة لشخص.",
+                        "text": "\n🚨 نوع الطوارئ: فاقد للوعي\n⚠️ مستوى الخطورة: حالة طارئة قصوى\n📝 البلاغ: بلاغ عن حالة انتحار محتملة لشخص.\n🆘 معلومة جديدة: ما حدا معه بسرحة لحثوه عسطح البناية"
+                    },
+                    "severity": "0.9",
+                    "emergency_type": "MEDICAL",
+                    "emergency_sub_type": "unconscious",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 61,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-01T22:27:56.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 46,
+                "initiator_id": 2,
+                "created_at": "2025-09-01 11:41",
+                "conversation": {
+                    "id": 46
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nتهديد بقتل",
+                        "discription": "\nيوجد تهديد بوقوع جريمة قتل بين شخصين.",
+                        "text": "\n🚨 نوع الطوارئ: جريمة قتل\n⚠️ مستوى الخطورة: حالة طارئة قصوى\n📝 البلاغ: يوجد تهديد بوقوع جريمة قتل بين شخصين."
+                    },
+                    "severity": "0.9",
+                    "emergency_type": "POLICE",
+                    "emergency_sub_type": "murder",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 46,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-01T08:41:18.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 47,
+                "initiator_id": 2,
+                "created_at": "2025-09-01 11:49",
+                "conversation": {
+                    "id": 47
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nتهديد بقتل",
+                        "discription": "\nيوجد تهديد بوقوع جريمة قتل بين شخصين.",
+                        "text": "\n🚨 نوع الطوارئ: جريمة قتل\n⚠️ مستوى الخطورة: حالة طارئة قصوى\n📝 البلاغ: يوجد تهديد بوقوع جريمة قتل بين شخصين.\n🆘 معلومة جديدة: شخصين بالسكاكين زاحد اصلع والتاني سمين\n🆘 معلومة جديدة: شخصين بالسكاكين زاحد اصلع والتاني سمين\n🆘 معلومة جديدة: 5 اشخاص\nشخصين بالسكاكين زاحد اصلع والتاني سمين\nفي واحد رح يقتل التاني\n🆘 معلومة جديدة: شخصين بالسكاكين زاحد اصلع والتاني سمين"
+                    },
+                    "severity": "0.9",
+                    "emergency_type": "POLICE",
+                    "emergency_sub_type": "murder",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 47,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-01T08:49:48.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 37,
+                "initiator_id": 2,
+                "created_at": "2025-09-01 00:13",
+                "conversation": {
+                    "id": 37
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": null,
+                    "severity": "0.7",
+                    "emergency_type": "POLICE",
+                    "emergency_sub_type": "fight",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 37,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-31T21:13:48.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 34,
+                "initiator_id": 2,
+                "created_at": "2025-08-31 21:51",
+                "conversation": {
+                    "id": 34
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": null,
+                    "severity": "0.9",
+                    "emergency_type": "MEDICAL",
+                    "emergency_sub_type": "cardiac_arrest",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 34,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-31T18:51:15.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 33,
+                "initiator_id": 2,
+                "created_at": "2025-08-31 21:48",
+                "conversation": {
+                    "id": 33
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": null,
+                    "severity": "0.9",
+                    "emergency_type": "MEDICAL",
+                    "emergency_sub_type": "cardiac_arrest",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 33,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-31T18:48:17.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 71,
+                "initiator_id": 2,
+                "created_at": "2025-09-03 00:54",
+                "conversation": {
+                    "id": 71
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": {
+                        "name": null,
+                        "discription": null,
+                        "text": null
+                    },
+                    "severity": null,
+                    "emergency_type": null,
+                    "emergency_sub_type": null,
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 71,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-02T21:54:01.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 30,
+                "initiator_id": 2,
+                "created_at": "2025-08-31 21:41",
+                "conversation": {
+                    "id": 30
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": null,
+                    "severity": "0.9",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 30,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-31T18:41:18.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 29,
+                "initiator_id": 2,
+                "created_at": "2025-08-31 21:36",
+                "conversation": {
+                    "id": 29
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": null,
+                    "severity": "0.9",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 29,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-31T18:36:15.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 55,
+                "initiator_id": 2,
+                "created_at": "2025-09-02 00:25",
+                "conversation": {
+                    "id": 55
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nحريق منزل الجبة",
+                        "discription": "\nنشب حريق في منزل بمنطقة الجبة.",
+                        "text": "\n🚨 نوع الطوارئ: حريق في مبنى\n⚠️ مستوى الخطورة: خطورة خطيرة جدًا\n📝 البلاغ: نشب حريق في منزل بمنطقة الجبة.\n🆘 معلومة جديدة: لما يتم اخلاء البيت عالقين وفي بنت رح تختنق محبوسة\n🆘 معلومة جديدة: حريق بمنزل بمنطقة الجبة\n🆘 معلومة جديدة: لما يتم اخلاء البيت عالقين وفي بنت رح تختنق محبوسة\n🆘 معلومة جديدة: حريق بمنزل بمنطقة الجبة"
+                    },
+                    "severity": "0.8",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 55,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-01T21:25:33.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 14,
+                "initiator_id": 2,
+                "created_at": "2025-08-31 00:02",
+                "conversation": {
+                    "id": 14
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": null,
+                    "severity": "0.8",
+                    "emergency_type": "TRAFFIC",
+                    "emergency_sub_type": "major_accident",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 14,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-30T21:02:59.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 4,
+                "initiator_id": 2,
+                "created_at": "2025-08-30 23:08",
+                "conversation": {
+                    "id": 4
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": null,
+                    "severity": null,
+                    "emergency_type": null,
+                    "emergency_sub_type": null,
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 4,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-30T20:08:53.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 7,
+                "initiator_id": 2,
+                "created_at": "2025-08-30 23:19",
+                "conversation": {
+                    "id": 7
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": null,
+                    "severity": null,
+                    "emergency_type": null,
+                    "emergency_sub_type": null,
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 7,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-30T20:19:12.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 59,
+                "initiator_id": 2,
+                "created_at": "2025-09-02 00:52",
+                "conversation": {
+                    "id": 59
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nحريق منزل الجبة",
+                        "discription": "\nنشوب حريق في منزل بمنطقة الجبة.",
+                        "text": "\n🚨 نوع الطوارئ: حريق في مبنى\n⚠️ مستوى الخطورة: خطورة خطيرة جدًا\n📝 البلاغ: نشوب حريق في منزل بمنطقة الجبة."
+                    },
+                    "severity": "0.8",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 59,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-01T21:52:10.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 60,
+                "initiator_id": 2,
+                "created_at": "2025-09-02 00:57",
+                "conversation": {
+                    "id": 60
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nحريق منزل الجبة",
+                        "discription": "\nتم الإبلاغ عن حريق في منزل يقع في منطقة الجبة.",
+                        "text": "\n🚨 نوع الطوارئ: حريق في مبنى\n⚠️ مستوى الخطورة: خطورة خطيرة جدًا\n📝 البلاغ: تم الإبلاغ عن حريق في منزل يقع في منطقة الجبة.\n🆘 معلومة جديدة: لما يتم اخلاء البيت عالقين وفي بنت رح تختنق محبوسة\n🆘 معلومة جديدة: البنت رح تختنق عجلو ساعدونا\n🆘 معلومة جديدة: حريق بمنزل بمنطقة الجبة\n🆘 معلومة جديدة: حريق بمنزل بمنطقة الجبة\n🆘 معلومة جديدة: حريق بمنزل بمنطقة الجبة"
+                    },
+                    "severity": "0.8",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 60,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-01T21:57:55.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 16,
+                "initiator_id": 2,
+                "created_at": "2025-08-31 00:10",
+                "conversation": {
+                    "id": 16
+                },
+                "location": {
+                    "lat": 40,
+                    "lon": 40,
+                    "address": "مشروع ياسين"
+                },
+                "state": {
+                    "report": null,
+                    "severity": "0.8",
+                    "emergency_type": "TRAFFIC",
+                    "emergency_sub_type": "major_accident",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 16,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-30T21:10:47.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "2625.3 km"
+            },
+            {
+                "id": 21,
+                "initiator_id": 4,
+                "created_at": "2025-08-31 01:38",
+                "conversation": {
+                    "id": 21
+                },
+                "location": {
+                    "lat": 37.79103431285018,
+                    "lon": -122.39930020563263,
+                    "address": "Custom Location"
+                },
+                "state": {
+                    "report": null,
+                    "severity": null,
+                    "emergency_type": null,
+                    "emergency_sub_type": null,
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 21,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-30T22:38:14.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "12396.22 km"
+            },
+            {
+                "id": 23,
+                "initiator_id": 8,
+                "created_at": "2025-08-31 16:56",
+                "conversation": {
+                    "id": 23
+                },
+                "location": {
+                    "lat": 37.78836071941045,
+                    "lon": -122.40276204329153,
+                    "address": "Custom Location"
+                },
+                "state": {
+                    "report": null,
+                    "severity": "0.9",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 23,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-31T13:56:19.000000Z"
+                },
+                "participation_requests": [
+                    {
+                        "id": 7,
+                        "initiator": {
+                            "id": 10,
+                            "name": "Ahmad",
+                            "email": null,
+                            "password": null,
+                            "last_active_at": "2025-09-05 15:42",
+                            "last_login_at": "2025-09-05 15:41",
+                            "created_at": "2025-08-31 23:33",
+                            "updated_at": "2025-09-05 12:42",
+                            "roles": [
+                                {
+                                    "id": 3,
+                                    "name": "citizen",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 10,
+                                        "role_id": 3
+                                    }
+                                },
+                                {
+                                    "id": 4,
+                                    "name": "responder",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 10,
+                                        "role_id": 4
+                                    }
+                                }
+                            ]
+                        },
+                        "responder": {
+                            "id": 10,
+                            "name": "Ahmad",
+                            "email": null,
+                            "password": null,
+                            "last_active_at": "2025-09-05 15:42",
+                            "last_login_at": "2025-09-05 15:41",
+                            "created_at": "2025-08-31 23:33",
+                            "updated_at": "2025-09-05 12:42",
+                            "roles": [
+                                {
+                                    "id": 3,
+                                    "name": "citizen",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 10,
+                                        "role_id": 3
+                                    }
+                                },
+                                {
+                                    "id": 4,
+                                    "name": "responder",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 10,
+                                        "role_id": 4
+                                    }
+                                }
+                            ]
+                        },
+                        "status": "pending",
+                        "report": null
+                    }
+                ],
+                "distance": "12396.64 km"
+            },
+            {
+                "id": 77,
+                "initiator_id": 9,
+                "created_at": "2025-09-03 02:21",
+                "conversation": {
+                    "id": 77
+                },
+                "location": {
+                    "lat": 37.785834,
+                    "lon": -122.406417,
+                    "address": "Location"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nاقتحام جاري",
+                        "discription": "\nعملية اقتحام جارية في الموقع.",
+                        "text": "\n🚨 نوع الطوارئ: سرقة\n⚠️ مستوى الخطورة: خطورة عالية\n📝 البلاغ: عملية اقتحام جارية في الموقع."
+                    },
+                    "severity": "0.7",
+                    "emergency_type": "POLICE",
+                    "emergency_sub_type": "theft",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 78,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-02T23:21:17.000000Z"
+                },
+                "participation_requests": [
+                    {
+                        "id": 6,
+                        "initiator": {
+                            "id": 10,
+                            "name": "Ahmad",
+                            "email": null,
+                            "password": null,
+                            "last_active_at": "2025-09-05 15:42",
+                            "last_login_at": "2025-09-05 15:41",
+                            "created_at": "2025-08-31 23:33",
+                            "updated_at": "2025-09-05 12:42",
+                            "roles": [
+                                {
+                                    "id": 3,
+                                    "name": "citizen",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 10,
+                                        "role_id": 3
+                                    }
+                                },
+                                {
+                                    "id": 4,
+                                    "name": "responder",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 10,
+                                        "role_id": 4
+                                    }
+                                }
+                            ]
+                        },
+                        "responder": {
+                            "id": 10,
+                            "name": "Ahmad",
+                            "email": null,
+                            "password": null,
+                            "last_active_at": "2025-09-05 15:42",
+                            "last_login_at": "2025-09-05 15:41",
+                            "created_at": "2025-08-31 23:33",
+                            "updated_at": "2025-09-05 12:42",
+                            "roles": [
+                                {
+                                    "id": 3,
+                                    "name": "citizen",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 10,
+                                        "role_id": 3
+                                    }
+                                },
+                                {
+                                    "id": 4,
+                                    "name": "responder",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 10,
+                                        "role_id": 4
+                                    }
+                                }
+                            ]
+                        },
+                        "status": "pending",
+                        "report": null
+                    }
+                ],
+                "distance": "12397.06 km"
+            },
+            {
+                "id": 25,
+                "initiator_id": 7,
+                "created_at": "2025-08-31 17:35",
+                "conversation": {
+                    "id": 25
+                },
+                "location": {
+                    "lat": 37.785834,
+                    "lon": -122.406417,
+                    "address": "Location"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nإطلاق نار وشجار",
+                        "discription": "\nتم الإبلاغ عن إطلاق نار وأصوات شجار عنيف.",
+                        "text": "\n🚨 نوع الطوارئ: جريمة عنف\n⚠️ مستوى الخطورة: حالة طارئة قصوى\n📝 البلاغ: تم الإبلاغ عن إطلاق نار وأصوات شجار عنيف."
+                    },
+                    "severity": "0.9",
+                    "emergency_type": "CIVIL",
+                    "emergency_sub_type": "violent_crime",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 25,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-31T14:35:27.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "12397.06 km"
+            },
+            {
+                "id": 24,
+                "initiator_id": 8,
+                "created_at": "2025-08-31 16:59",
+                "conversation": {
+                    "id": 24
+                },
+                "location": {
+                    "lat": 37.785834,
+                    "lon": -122.406417,
+                    "address": "Location"
+                },
+                "state": {
+                    "report": null,
+                    "severity": "0.7",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "unknown_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 24,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-31T13:59:54.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "12397.06 km"
+            },
+            {
+                "id": 94,
+                "initiator_id": 19,
+                "created_at": "2025-09-05 17:55",
+                "conversation": {
+                    "id": 94
+                },
+                "location": {
+                    "lat": 37.785834,
+                    "lon": -122.406417,
+                    "address": "Location"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nإطلاق نار في منزل",
+                        "discription": "\nإطلاق نار على مدنيين داخل منزل.",
+                        "text": "\n🚨 نوع الطوارئ: جريمة عنف\n⚠️ مستوى الخطورة: حالة طارئة قصوى\n📝 البلاغ: إطلاق نار على مدنيين داخل منزل.\n🆘 معلومة جديدة: أنا أقوم بإطلاق النار على المدنيين في المنزل"
+                    },
+                    "severity": "0.9",
+                    "emergency_type": "CIVIL",
+                    "emergency_sub_type": "violent_crime",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 103,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-05T14:55:50.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "12397.06 km"
+            },
+            {
+                "id": 6,
+                "initiator_id": 4,
+                "created_at": "2025-08-30 23:13",
+                "conversation": {
+                    "id": 6
+                },
+                "location": {
+                    "lat": 37.785834,
+                    "lon": -122.406417,
+                    "address": "Live Location"
+                },
+                "state": {
+                    "report": null,
+                    "severity": "0.9",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 6,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-30T20:13:27.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "12397.06 km"
+            },
+            {
+                "id": 45,
+                "initiator_id": 9,
+                "created_at": "2025-09-01 03:35",
+                "conversation": {
+                    "id": 45
+                },
+                "location": {
+                    "lat": 37.785834,
+                    "lon": -122.406417,
+                    "address": "Location"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nاختطاف في جادة البزم",
+                        "discription": "\nبلاغ عن حالة اختطاف شخص في جادة البزم. يرجى عدم التأخير.",
+                        "text": "\n🚨 نوع الطوارئ: خطف\n⚠️ مستوى الخطورة: حالة طارئة قصوى\n📝 البلاغ: بلاغ عن حالة اختطاف شخص في جادة البزم. يرجى عدم التأخير."
+                    },
+                    "severity": "0.9",
+                    "emergency_type": "POLICE",
+                    "emergency_sub_type": "kidnapping",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 45,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-01T00:35:33.000000Z"
+                },
+                "participation_requests": [
+                    {
+                        "id": 1,
+                        "initiator": {
+                            "id": 4,
+                            "name": "Zen",
+                            "email": null,
+                            "password": null,
+                            "last_active_at": "2025-09-05 23:01",
+                            "last_login_at": "2025-09-05 21:50",
+                            "created_at": "2025-08-30 19:54",
+                            "updated_at": "2025-09-05 20:01",
+                            "roles": [
+                                {
+                                    "id": 3,
+                                    "name": "citizen",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 4,
+                                        "role_id": 3
+                                    }
+                                },
+                                {
+                                    "id": 4,
+                                    "name": "responder",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 4,
+                                        "role_id": 4
+                                    }
+                                }
+                            ]
+                        },
+                        "responder": {
+                            "id": 4,
+                            "name": "Zen",
+                            "email": null,
+                            "password": null,
+                            "last_active_at": "2025-09-05 23:01",
+                            "last_login_at": "2025-09-05 21:50",
+                            "created_at": "2025-08-30 19:54",
+                            "updated_at": "2025-09-05 20:01",
+                            "roles": [
+                                {
+                                    "id": 3,
+                                    "name": "citizen",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 4,
+                                        "role_id": 3
+                                    }
+                                },
+                                {
+                                    "id": 4,
+                                    "name": "responder",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 4,
+                                        "role_id": 4
+                                    }
+                                }
+                            ]
+                        },
+                        "status": "pending",
+                        "report": null
+                    }
+                ],
+                "distance": "12397.06 km"
+            },
+            {
+                "id": 84,
+                "initiator_id": 8,
+                "created_at": "2025-09-05 02:11",
+                "conversation": {
+                    "id": 84
+                },
+                "location": {
+                    "lat": 37.785834,
+                    "lon": -122.406417,
+                    "address": "Custom Location"
+                },
+                "state": null,
+                "latest_status": {
+                    "id": 91,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-04T23:11:03.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "12397.06 km"
+            },
+            {
+                "id": 2,
+                "initiator_id": 4,
+                "created_at": "2025-08-30 22:55",
+                "conversation": {
+                    "id": 2
+                },
+                "location": {
+                    "lat": 37.785834,
+                    "lon": -122.406417,
+                    "address": "Live Location"
+                },
+                "state": {
+                    "report": null,
+                    "severity": "0.8",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 87,
+                    "status": "in_resolve",
+                    "status_display": "In Resolve",
+                    "status_color": "orange",
+                    "notes": "Auto-updated when participation was accepted",
+                    "created_at": "2025-09-04T15:46:53.000000Z"
+                },
+                "participation_requests": [
+                    {
+                        "id": 9,
+                        "initiator": {
+                            "id": 7,
+                            "name": "Zwen",
+                            "email": null,
+                            "password": null,
+                            "last_active_at": "2025-09-05 23:01",
+                            "last_login_at": "2025-09-05 22:13",
+                            "created_at": "2025-08-31 11:07",
+                            "updated_at": "2025-09-05 20:01",
+                            "roles": [
+                                {
+                                    "id": 3,
+                                    "name": "citizen",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 7,
+                                        "role_id": 3
+                                    }
+                                },
+                                {
+                                    "id": 4,
+                                    "name": "responder",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 7,
+                                        "role_id": 4
+                                    }
+                                },
+                                {
+                                    "id": 5,
+                                    "name": "coordinator",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 7,
+                                        "role_id": 5
+                                    }
+                                }
+                            ]
+                        },
+                        "responder": {
+                            "id": 13,
+                            "name": "Zen Al Abdeen",
+                            "email": null,
+                            "password": null,
+                            "last_active_at": "2025-09-05 23:01",
+                            "last_login_at": "2025-09-04 18:44",
+                            "created_at": "2025-09-03 04:42",
+                            "updated_at": "2025-09-05 20:01",
+                            "roles": [
+                                {
+                                    "id": 3,
+                                    "name": "citizen",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 13,
+                                        "role_id": 3
+                                    }
+                                },
+                                {
+                                    "id": 4,
+                                    "name": "responder",
+                                    "guard_name": "web",
+                                    "created_at": "2025-08-30T19:43:08.000000Z",
+                                    "updated_at": "2025-08-30T19:43:08.000000Z",
+                                    "pivot": {
+                                        "model_type": "App\\Models\\User",
+                                        "model_id": 13,
+                                        "role_id": 4
+                                    }
+                                }
+                            ]
+                        },
+                        "status": "accept",
+                        "report": null
+                    }
+                ],
+                "distance": "12397.06 km"
+            },
+            {
+                "id": 22,
+                "initiator_id": 4,
+                "created_at": "2025-08-31 01:50",
+                "conversation": {
+                    "id": 22
+                },
+                "location": {
+                    "lat": 37.785834,
+                    "lon": -122.406417,
+                    "address": "Location"
+                },
+                "state": {
+                    "report": null,
+                    "severity": "0.75",
+                    "emergency_type": "FIRE",
+                    "emergency_sub_type": "structure_fire",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 22,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-30T22:50:51.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "12397.06 km"
+            },
+            {
+                "id": 19,
+                "initiator_id": 4,
+                "created_at": "2025-08-31 00:35",
+                "conversation": {
+                    "id": 19
+                },
+                "location": {
+                    "lat": 37.785834,
+                    "lon": -122.406417,
+                    "address": "Location"
+                },
+                "state": {
+                    "report": null,
+                    "severity": "0.3",
+                    "emergency_type": "CIVIL",
+                    "emergency_sub_type": "complaint",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 19,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-30T21:35:02.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "12397.06 km"
+            },
+            {
+                "id": 15,
+                "initiator_id": 4,
+                "created_at": "2025-08-31 00:03",
+                "conversation": {
+                    "id": 15
+                },
+                "location": {
+                    "lat": 37.785834,
+                    "lon": -122.406417,
+                    "address": "Location"
+                },
+                "state": {
+                    "report": null,
+                    "severity": "0.3",
+                    "emergency_type": "CIVIL",
+                    "emergency_sub_type": "complaint",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 15,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-30T21:03:53.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "12397.06 km"
+            },
+            {
+                "id": 12,
+                "initiator_id": 4,
+                "created_at": "2025-08-30 23:59",
+                "conversation": {
+                    "id": 12
+                },
+                "location": {
+                    "lat": 37.785834,
+                    "lon": -122.406417,
+                    "address": "Location"
+                },
+                "state": {
+                    "report": null,
+                    "severity": "0.7",
+                    "emergency_type": "CIVIL",
+                    "emergency_sub_type": "fight",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 12,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-08-30T20:59:15.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "12397.06 km"
+            },
+            {
+                "id": 85,
+                "initiator_id": 8,
+                "created_at": "2025-09-05 11:32",
+                "conversation": {
+                    "id": 85
+                },
+                "location": {
+                    "lat": 37.78349373986252,
+                    "lon": -122.40778313856741,
+                    "address": "Custom Location"
+                },
+                "state": null,
+                "latest_status": {
+                    "id": 92,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-05T08:32:47.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "12397.34 km"
+            },
+            {
+                "id": 83,
+                "initiator_id": 8,
+                "created_at": "2025-09-05 02:09",
+                "conversation": {
+                    "id": 83
+                },
+                "location": {
+                    "lat": 37.78074073038972,
+                    "lon": -122.40670310251322,
+                    "address": "Custom Location"
+                },
+                "state": null,
+                "latest_status": {
+                    "id": 90,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-04T23:09:36.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "12397.53 km"
+            },
+            {
+                "id": 89,
+                "initiator_id": 8,
+                "created_at": "2025-09-05 17:19",
+                "conversation": {
+                    "id": 89
+                },
+                "location": {
+                    "lat": 37.77515525437284,
+                    "lon": -122.41345511645541,
+                    "address": "Custom Location"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nسرقة في كاليفورنيا",
+                        "discription": "\nبلاغ عن حادثة سرقة في منطقة كاليفورنيا.",
+                        "text": "\n🚨 نوع الطوارئ: سرقة\n⚠️ مستوى الخطورة: خطورة عالية\n📝 البلاغ: بلاغ عن حادثة سرقة في منطقة كاليفورنيا.\n🆘 معلومة جديدة: بلاغ قتل لوس بولوس هيرمانوس\nنوع الطارئ: POLICE\nالنوع الفرعي: theft\nتاريخ المحادثة: 👤 المستخدم:\nسرقة في منطقة كاليفورنيا\n🆘 معلومة جديدة: بلاغ قتل لوس بولوس هيرمانوس"
+                    },
+                    "severity": "0.6",
+                    "emergency_type": "POLICE",
+                    "emergency_sub_type": "theft",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 96,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-05T14:19:28.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "12398.38 km"
+            },
+            {
+                "id": 92,
+                "initiator_id": 19,
+                "created_at": "2025-09-05 17:33",
+                "conversation": {
+                    "id": 92
+                },
+                "location": {
+                    "lat": 37.77266765973157,
+                    "lon": -122.41161690942872,
+                    "address": "Custom Location"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nاستغاثة سرقة",
+                        "discription": "\nطلب استغاثة لإنقاذ الأشخاص من عملية سرقة. المتصل هو زين3.",
+                        "text": "\n🚨 نوع الطوارئ: سرقة\n⚠️ مستوى الخطورة: خطورة عالية\n📝 البلاغ: طلب استغاثة لإنقاذ الأشخاص من عملية سرقة. المتصل هو زين3.\n🆘 معلومة جديدة: يوجد سرقة في منطقة القزاص"
+                    },
+                    "severity": "0.75",
+                    "emergency_type": "POLICE",
+                    "emergency_sub_type": "theft",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 101,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-05T14:33:04.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "12398.51 km"
+            },
+            {
+                "id": 93,
+                "initiator_id": 19,
+                "created_at": "2025-09-05 17:44",
+                "conversation": {
+                    "id": 93
+                },
+                "location": {
+                    "lat": 37.76677359019345,
+                    "lon": -122.42921070018137,
+                    "address": "Custom Location"
+                },
+                "state": {
+                    "report": {
+                        "name": "\nسرقة في المدزي الجديدة",
+                        "discription": "\nتم الإبلاغ عن سرقة في منطقة المدزي الجديدة.",
+                        "text": "\n🚨 نوع الطوارئ: سرقة\n⚠️ مستوى الخطورة: خطورة عالية\n📝 البلاغ: تم الإبلاغ عن سرقة في منطقة المدزي الجديدة.\n🆘 معلومة جديدة: يوجد سريقة في منطقة المدزي جديدا جديدا"
+                    },
+                    "severity": "0.7",
+                    "emergency_type": "POLICE",
+                    "emergency_sub_type": "theft",
+                    "status": null,
+                    "priority": null,
+                    "assigned": 0
+                },
+                "latest_status": {
+                    "id": 102,
+                    "status": "submitted",
+                    "status_display": "Submitted",
+                    "status_color": "blue",
+                    "notes": "Report submitted",
+                    "created_at": "2025-09-05T14:44:25.000000Z"
+                },
+                "participation_requests": [],
+                "distance": "12399.94 km"
+            }
+        ]
+    }
+}

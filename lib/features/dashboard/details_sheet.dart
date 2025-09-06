@@ -1525,16 +1525,45 @@ class _ResponderAssignmentModalState extends State<ResponderAssignmentModal> {
   }
 
   Future<void> _assignResponder(UserLocationEntity responder) async {
+    print('👨‍💼 [COORDINATOR-UI] Starting assignment of ${responder.name} (ID: ${responder.id}) to report ${widget.report.id}');
+    print('👨‍💼 [COORDINATOR-UI] Responder roles: ${responder.roles.map((r) => r.name).join(', ')}');
+    
+    // Defensive checks
+    if (widget.assignmentsCubit == null) {
+      print('❌ [COORDINATOR-UI] ERROR: assignmentsCubit is null!');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('خطأ: لا يمكن التكليف - المنطق غير مُهيّأ'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+    
+    if (widget.report.id <= 0) {
+      print('❌ [COORDINATOR-UI] ERROR: Invalid report ID: ${widget.report.id}');
+      return;
+    }
+    
+    if (responder.id <= 0) {
+      print('❌ [COORDINATOR-UI] ERROR: Invalid responder ID: ${responder.id}');
+      return;
+    }
+    
     setState(() {
       _assigningResponderIds.add(responder.id);
     });
 
     try {
-      await widget.assignmentsCubit.createParticipationRequest(
+      print('👨‍💼 [COORDINATOR-UI] Calling cubit.createParticipationRequest...');
+      await widget.assignmentsCubit!.createParticipationRequest(
         reportId: widget.report.id,
         responderId: responder.id,
       );
 
+      print('✅ [COORDINATOR-UI] Assignment successful! Showing success message and closing modal');
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1546,6 +1575,7 @@ class _ResponderAssignmentModalState extends State<ResponderAssignmentModal> {
         );
       }
     } catch (e) {
+      print('❌ [COORDINATOR-UI] Assignment failed: $e');
       setState(() {
         _assigningResponderIds.remove(responder.id);
       });

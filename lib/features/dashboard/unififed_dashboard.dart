@@ -88,15 +88,15 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
   bool _isProcessingAssignmentAction = false;
 
   // --- CONFIGURATION ---
-  static const Duration _pollInterval = Duration(seconds: 20);
-  static const Duration _networkTimeout = Duration(seconds: 20);
+  static const Duration _pollInterval = Duration(seconds: 5);
+  static const Duration _networkTimeout = Duration(seconds: 5);
   static const double _defaultZoom = 14.0;
   static const double _minZoomForReportMarkers = 8.0;
   // Original zoom level (comment out for testing):
-  // static const double _minZoomForUserMarkers = 13.0;
+   static const double _minZoomForUserMarkers = 14.0;
   
   // TEST LINE: Set very low zoom to always show user markers
-  static const double _minZoomForUserMarkers = 1.0; // Always true for testing
+  //static const double _minZoomForUserMarkers = 1.0; // Always true for testing
   
   // FEATURE SWITCH: Comment out this line to disable coordinator user polling
   static const bool _enableCoordinatorUserPolling = true;
@@ -199,7 +199,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
       }
 
       final position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
+          desiredAccuracy: LocationAccuracy.best,
           timeLimit: const Duration(seconds: 10));
       if (mounted) {
         final newPosition = LatLng(position.latitude, position.longitude);
@@ -315,18 +315,61 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     if (!mounted) return;
     debugPrint("=== USERS LOCATION STATE CHANGE ===");
     if (state is UsersLocationSuccess) {
-      debugPrint("Received ${state.users.length} users from UsersLocationCubit");
-      debugPrint("Users: ${state.users.map((u) => '${u.name}(${u.primaryRole})').join(', ')}");
+      // debugPrint("Received ${state.users.length} users from UsersLocationCubit");
+      // debugPrint("Users: ${state.users.map((u) => '${u.name}(${u.primaryRole})').join(', ')}");
       setState(() => _otherUsers = state.users);
-      debugPrint("Updated _otherUsers, count: ${_otherUsers.length}");
+   //   debugPrint("Updated _otherUsers, count: ${_otherUsers.length}");
     } else if (state is UsersLocationError) {
-      debugPrint("Error fetching user locations: ${state.message}");
+   ///   debugPrint("Error fetching user locations: ${state.message}");
     }
   }
 
   void _handleAssignmentsStateChange(
       BuildContext context, AssignmentsState state) {
     if (!mounted) return;
+
+    // HIGH PRIORITY: Handle assigned mode activation
+    if (state is AssignedMode && widget.userType == UserType.responder) {
+      print('🚀 [UnifiedDashboard] ASSIGNED MODE DETECTED!');
+      print('   📋 Report ID: ${state.activeAssignment.report.id}');
+      print('   🆕 First time: ${state.isFirstTime}');
+      
+      // Show prominent snackbar notification
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.assignment, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'تم تعيينك لمهمة!',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text('تقرير ${state.activeAssignment.report.id}'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.green[700],
+          duration: const Duration(seconds: 4),
+          action: SnackBarAction(
+            label: 'عرض',
+            textColor: Colors.white,
+            onPressed: () {
+              print('🎯 [UnifiedDashboard] User tapped to view assignment');
+              // TODO: Navigate to focus mode or show assignment details
+            },
+          ),
+        ),
+      );
+      return; // Exit early, don't process other state types
+    }
 
     if (state is AssignmentsLoaded && widget.userType == UserType.responder) {
       // Check for new pending requests
@@ -526,34 +569,34 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
       (widget.userType == UserType.responder && _enableResponderUserPolling);
 
   bool _shouldShowUserMarkers() {
-    debugPrint("=== USER MARKERS VISIBILITY CHECK ===");
-    debugPrint("User type: ${widget.userType}");
-    debugPrint("Coordinator polling enabled: $_enableCoordinatorUserPolling");
-    debugPrint("Responder polling enabled: $_enableResponderUserPolling");
-    debugPrint("Show user markers at current zoom: $_showUserMarkersAtCurrentZoom");
-    debugPrint("Active assignment: ${_activeAssignment != null ? 'YES (${_activeAssignment!.id})' : 'NO'}");
+    // debugPrint("=== USER MARKERS VISIBILITY CHECK ===");
+    // debugPrint("User type: ${widget.userType}");
+    // debugPrint("Coordinator polling enabled: $_enableCoordinatorUserPolling");
+    // debugPrint("Responder polling enabled: $_enableResponderUserPolling");
+    // debugPrint("Show user markers at current zoom: $_showUserMarkersAtCurrentZoom");
+    // debugPrint("Active assignment: ${_activeAssignment != null ? 'YES (${_activeAssignment!.id})' : 'NO'}");
     
     bool result = false;
     
     // Coordinators see user markers at appropriate zoom level (when feature enabled)
     if (widget.userType == UserType.coordinator) {
       result = _enableCoordinatorUserPolling && _showUserMarkersAtCurrentZoom;
-      debugPrint("Coordinator result: $result (polling=$_enableCoordinatorUserPolling && zoom=$_showUserMarkersAtCurrentZoom)");
+    //  debugPrint("Coordinator result: $result (polling=$_enableCoordinatorUserPolling && zoom=$_showUserMarkersAtCurrentZoom)");
     }
     // Responders only see user markers when assigned, at appropriate zoom level, and feature enabled
     else if (widget.userType == UserType.responder) {
       result = _enableResponderUserPolling && 
                _activeAssignment != null && 
                _showUserMarkersAtCurrentZoom;
-      debugPrint("Responder result: $result (polling=$_enableResponderUserPolling && assigned=${_activeAssignment != null} && zoom=$_showUserMarkersAtCurrentZoom)");
+      //debugPrint("Responder result: $result (polling=$_enableResponderUserPolling && assigned=${_activeAssignment != null} && zoom=$_showUserMarkersAtCurrentZoom)");
     }
     // Citizens don't see other users
     else {
       result = false;
-      debugPrint("Citizen result: false");
+     // debugPrint("Citizen result: false");
     }
     
-    debugPrint("Final shouldShowUserMarkers: $result");
+   // debugPrint("Final shouldShowUserMarkers: $result");
     return result;
   }
 
@@ -566,26 +609,26 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     final shouldShowReports = zoom >= _minZoomForReportMarkers;
     final shouldShowUsers = zoom >= _minZoomForUserMarkers;
     
-    debugPrint("=== UPDATING ZOOM-BASED VISIBILITY ===");
-    debugPrint("Current zoom: $zoom");
-    debugPrint("Min zoom for reports: $_minZoomForReportMarkers");
-    debugPrint("Min zoom for users: $_minZoomForUserMarkers");
-    debugPrint("Should show reports: $shouldShowReports");
-    debugPrint("Should show users: $shouldShowUsers");
+    // debugPrint("=== UPDATING ZOOM-BASED VISIBILITY ===");
+    // debugPrint("Current zoom: $zoom");
+    // debugPrint("Min zoom for reports: $_minZoomForReportMarkers");
+    // debugPrint("Min zoom for users: $_minZoomForUserMarkers");
+    // debugPrint("Should show reports: $shouldShowReports");
+    // debugPrint("Should show users: $shouldShowUsers");
     
     if (_showReportMarkersAtCurrentZoom != shouldShowReports) {
       _showReportMarkersAtCurrentZoom = shouldShowReports;
       needsRebuild = true;
-      debugPrint("Updated _showReportMarkersAtCurrentZoom: $shouldShowReports");
+      //debugPrint("Updated _showReportMarkersAtCurrentZoom: $shouldShowReports");
     }
     if (_showUserMarkersAtCurrentZoom != shouldShowUsers) {
       _showUserMarkersAtCurrentZoom = shouldShowUsers;
       needsRebuild = true;
-      debugPrint("Updated _showUserMarkersAtCurrentZoom: $shouldShowUsers");
+     // debugPrint("Updated _showUserMarkersAtCurrentZoom: $shouldShowUsers");
     }
     
     if (needsRebuild) {
-      debugPrint("Triggering setState for zoom visibility update");
+      // debugPrint("Triggering setState for zoom visibility update");
       setState(() {});
     }
   }
@@ -684,7 +727,7 @@ context
 
   Future<void> _centerMapOnCurrentLocation() async {
     if (_isLocationLoading) return;
-    _mapController.move(_currentPosition, _defaultZoom);
+    _mapController.move(_currentPosition, 20.0);
     await _fetchReports();
   }
 
@@ -728,7 +771,7 @@ context
   Future<void> _updateAssignmentStatus(String status) async {
     if (_activeAssignment == null) return;
     try {
-      debugPrint("Updating assignment status to: $status");
+    //  debugPrint("Updating assignment status to: $status");
       // TODO: Implement API call
       _showSuccessSnackBar("Status updated: ${status.replaceAll('_', ' ')}");
     } catch (e) {
@@ -771,8 +814,7 @@ context
 
     try {
       await _assignmentsCubit.acceptParticipationRequest(
-        reportId: _pendingAssignmentRequest!.report.id,
-        responderId: _pendingAssignmentRequest!.responder.id,
+        requestId: _pendingAssignmentRequest!.id,
       );
     } catch (e) {
       _showErrorSnackBar("Failed to accept assignment: ${e.toString()}");
@@ -788,8 +830,7 @@ context
 
     try {
       await _assignmentsCubit.rejectParticipationRequest(
-        reportId: _pendingAssignmentRequest!.report.id,
-        responderId: _pendingAssignmentRequest!.responder.id,
+        requestId: _pendingAssignmentRequest!.id,
       );
     } catch (e) {
       _showErrorSnackBar("Failed to reject assignment: ${e.toString()}");
@@ -883,7 +924,7 @@ context
       elevation: 2,
       shadowColor: Colors.black.withOpacity(0.1),
       actions: [
-        MockRequestButton(),
+        //MockRequestButton(),
         if (_networkError != null)
           IconButton(
             icon: Icon(Icons.signal_wifi_off, color: Colors.orange[700]),

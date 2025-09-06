@@ -21,7 +21,7 @@ class ParticipationRequest extends Equatable {
 
   factory ParticipationRequest.fromJson(Map<String, dynamic> json) {
     try {
-      print('Parsing ParticipationRequest with ID: ${json['id']}');
+     // print('Parsing ParticipationRequest with ID: ${json['id']}');
 
       return ParticipationRequest(
         id: _parseInt(json['id']),
@@ -33,9 +33,9 @@ class ParticipationRequest extends Equatable {
         updatedAt: _parseDateTime(json['updated_at']),
       );
     } catch (e, stackTrace) {
-      print('❌ Error parsing ParticipationRequest: $e');
-      print('Stack trace: $stackTrace');
-      print('JSON data: $json');
+      // print('❌ Error parsing ParticipationRequest: $e');
+      // print('Stack trace: $stackTrace');
+      // print('JSON data: $json');
       rethrow;
     }
   }
@@ -139,7 +139,7 @@ class User extends Equatable {
 
   factory User.fromJson(Map<String, dynamic> json) {
     try {
-      print('Parsing User with ID: ${json['id']}');
+      //print('Parsing User with ID: ${json['id']}');
 
       // Handle roles with comprehensive error checking
       List<UserRole> userRoles = [];
@@ -173,9 +173,9 @@ class User extends Equatable {
         roles: userRoles,
       );
     } catch (e, stackTrace) {
-      print('❌ Error parsing User: $e');
-      print('Stack trace: $stackTrace');
-      print('JSON data: $json');
+        // print('❌ Error parsing User: $e');
+        // print('Stack trace: $stackTrace');
+        // print('JSON data: $json');
       rethrow;
     }
   }
@@ -224,7 +224,7 @@ class UserRole extends Equatable {
 
   factory UserRole.fromJson(Map<String, dynamic> json) {
     try {
-      print('Parsing UserRole with ID: ${json['id']}');
+    //  print('Parsing UserRole with ID: ${json['id']}');
 
       return UserRole(
         id: _parseInt(json['id']),
@@ -235,9 +235,9 @@ class UserRole extends Equatable {
         pivot: _getMapValueNullable(json, 'pivot'),
       );
     } catch (e, stackTrace) {
-      print('❌ Error parsing UserRole: $e');
-      print('Stack trace: $stackTrace');
-      print('JSON data: $json');
+      // print('❌ Error parsing UserRole: $e');
+      // print('Stack trace: $stackTrace');
+      // print('JSON data: $json');
       rethrow;
     }
   }
@@ -274,7 +274,7 @@ class EmergencyReport extends Equatable {
 
   factory EmergencyReport.fromJson(Map<String, dynamic> json) {
     try {
-      print('Parsing EmergencyReport with ID: ${json['id']}');
+      //print('Parsing EmergencyReport with ID: ${json['id']}');
 
       return EmergencyReport(
         id: _parseInt(json['id']),
@@ -285,9 +285,9 @@ class EmergencyReport extends Equatable {
         updatedAt: _parseDateTimeRequired(json['updated_at']),
       );
     } catch (e, stackTrace) {
-      print('❌ Error parsing EmergencyReport: $e');
-      print('Stack trace: $stackTrace');
-      print('JSON data: $json');
+      // print('❌ Error parsing EmergencyReport: $e');
+      // print('Stack trace: $stackTrace');
+      // print('JSON data: $json');
       rethrow;
     }
   }
@@ -326,7 +326,7 @@ class ReportStatus extends Equatable {
 
   factory ReportStatus.fromJson(Map<String, dynamic> json) {
     try {
-      print('Parsing ReportStatus with ID: ${json['id']}');
+      //print('Parsing ReportStatus with ID: ${json['id']}');
 
       return ReportStatus(
         id: _parseInt(json['id']),
@@ -339,9 +339,9 @@ class ReportStatus extends Equatable {
         createdAt: _parseDateTimeRequired(json['created_at']),
       );
     } catch (e, stackTrace) {
-      print('❌ Error parsing ReportStatus: $e');
-      print('Stack trace: $stackTrace');
-      print('JSON data: $json');
+      // print('❌ Error parsing ReportStatus: $e');
+      // print('Stack trace: $stackTrace');
+      // print('JSON data: $json');
       rethrow;
     }
   }

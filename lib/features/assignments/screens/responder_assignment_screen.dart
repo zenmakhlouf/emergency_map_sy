@@ -17,36 +17,117 @@ class _ResponderAssignmentScreenState extends State<ResponderAssignmentScreen> {
   @override
   void initState() {
     super.initState();
+    print('📱 [ResponderAssignmentScreen] Screen initialized - cubit will start polling automatically');
     // Cubit automatically starts polling when created
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('طلبات الاستجابة'),
-        backgroundColor: Colors.blue[800],
-        foregroundColor: Colors.white,
-        actions: [
-          // Mock request button for testing (remove when backend is fixed)
-          MockRequestButton(),
-          BlocBuilder<AssignmentsCubit, AssignmentsState>(
-            builder: (context, state) {
-              return IconButton(
-                icon: const Icon(Icons.refresh),
-                onPressed: state is AssignmentsLoading
-                    ? null
-                    : () => context.read<AssignmentsCubit>().refresh(),
-                tooltip: 'تحديث',
-              );
-            },
-          ),
-        ],
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: BlocBuilder<AssignmentsCubit, AssignmentsState>(
+        builder: (context, state) {
+          final cubit = context.read<AssignmentsCubit>();
+          final isAssigned = cubit.isAssigned;
+          final activeAssignment = cubit.activeAssignment;
+          
+          print('🎨 [AppBar] BlocBuilder rebuilding - isAssigned: $isAssigned, activeAssignment: ${activeAssignment?.id}');
+          print('🎨 [AppBar] Current state: ${state.runtimeType}');
+          
+          return AppBar(
+            title: isAssigned && activeAssignment != null 
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'مكلف بمهمة',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'تقرير ${activeAssignment.report.id}',
+                      style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.9)),
+                    ),
+                  ],
+                )
+              : const Text('طلبات الاستجابة'),
+            backgroundColor: isAssigned ? Colors.green[800] : Colors.blue[800],
+            foregroundColor: Colors.white,
+            actions: [
+              // Mock request button for testing (remove when backend is fixed)
+              const MockRequestButton(),
+              BlocBuilder<AssignmentsCubit, AssignmentsState>(
+                builder: (context, state) {
+                  return IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: state is AssignmentsLoading
+                        ? null
+                        : () => context.read<AssignmentsCubit>().refresh(),
+                    tooltip: 'تحديث',
+                  );
+                },
+              ),
+            ],
+          );
+        },
+        ),
       ),
       body: BlocListener<AssignmentsCubit, AssignmentsState>(
         listener: (context, state) {
+          print('📱 [ResponderAssignmentScreen] State changed: ${state.runtimeType}');
+          
+          // Handle assigned mode activation - HIGH PRIORITY
+          if (state is AssignedMode) {
+            print('🚀 [ResponderAssignmentScreen] ASSIGNED MODE DETECTED!');
+            print('   📋 Report ID: ${state.activeAssignment.report.id}');
+            print('   🆕 First time: ${state.isFirstTime}');
+            
+            // Show prominent snackbar notification
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    Icon(Icons.assignment, color: Colors.white),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'تم تعيينك لمهمة!',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Text('تقرير ${state.activeAssignment.report.id}'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                backgroundColor: Colors.green[700],
+                duration: Duration(seconds: 4),
+                action: SnackBarAction(
+                  label: 'عرض',
+                  textColor: Colors.white,
+                  onPressed: () {
+                    // Navigate to focus mode
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                        builder: (context) => FocusModeScreen(
+                          activeRequest: state.activeAssignment,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            );
+            return; // Exit early, don't process other state types
+          }
+          
           // Handle focus mode navigation
           if (state is AssignmentsLoaded && state.acceptedRequests.isNotEmpty) {
+            print('📱 [ResponderAssignmentScreen] Accepted requests found (${state.acceptedRequests.length}) - navigating to focus mode');
             // Navigate to focus mode if there's an accepted request
             final activeRequest = state.acceptedRequests.first;
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -60,8 +141,19 @@ class _ResponderAssignmentScreenState extends State<ResponderAssignmentScreen> {
             return;
           }
 
+          if (state is AssignmentsLoaded) {
+            print('📱 [ResponderAssignmentScreen] Assignments loaded:');
+            print('   Total requests: ${state.allRequests.length}');
+            print('   Pending requests: ${state.pendingRequests.length}');
+            print('   Accepted requests: ${state.acceptedRequests.length}');
+            for (var request in state.allRequests) {
+              print('   📋 Request ID: ${request.id}, Status: ${request.status}, Report: ${request.report.id}');
+            }
+          }
+
           // Handle success/error states
           if (state is AssignmentActionSuccess) {
+            print('📱 [ResponderAssignmentScreen] Action success: ${state.action}');
             // Close any open dialogs
             _dismissLoadingDialog();
 
@@ -75,18 +167,20 @@ class _ResponderAssignmentScreenState extends State<ResponderAssignmentScreen> {
             );
 
             // Check if the action was accepting a request - if so, navigate to focus mode
-            if (state.action == 'accept' && state.updatedRequest.isAccepted) {
+            if (state.action == 'accept' && state.updatedRequest != null && state.updatedRequest!.isAccepted) {
+              print('📱 [ResponderAssignmentScreen] Request accepted - navigating to focus mode');
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute(
                     builder: (context) =>
-                        FocusModeScreen(activeRequest: state.updatedRequest),
+                        FocusModeScreen(activeRequest: state.updatedRequest!),
                   ),
                 );
               });
             }
           } else if (state is AssignmentsError &&
               state.operation != 'load_all_assignments') {
+            print('📱 [ResponderAssignmentScreen] Error: ${state.message}');
             // Close any open dialogs
             _dismissLoadingDialog();
 
@@ -98,6 +192,8 @@ class _ResponderAssignmentScreenState extends State<ResponderAssignmentScreen> {
                 duration: const Duration(seconds: 3),
               ),
             );
+          } else if (state is AssignmentsEmpty) {
+            print('📱 [ResponderAssignmentScreen] No assignments available');
           }
         },
         child: BlocBuilder<AssignmentsCubit, AssignmentsState>(
@@ -687,11 +783,12 @@ class _ResponderAssignmentScreenState extends State<ResponderAssignmentScreen> {
   }
 
   void _acceptRequest(BuildContext context, ParticipationRequest request) {
+    print('📱 [RESPONDER-UI] User accepting request ID: ${request.id}');
+    print('📱 [RESPONDER-UI] Report: ${request.report.id}, Responder: ${request.responder.id}');
     _showLoadingDialog();
 
     context.read<AssignmentsCubit>().acceptParticipationRequest(
-          reportId: request.report.id,
-          responderId: request.responder.id,
+          requestId: request.id,
         );
   }
 
@@ -711,11 +808,11 @@ class _ResponderAssignmentScreenState extends State<ResponderAssignmentScreen> {
             onPressed: () {
               Navigator.pop(context);
 
+              print('📱 [RESPONDER-UI] User rejecting request ID: ${request.id}');
               _showLoadingDialog();
 
               context.read<AssignmentsCubit>().rejectParticipationRequest(
-                    reportId: request.report.id,
-                    responderId: request.responder.id,
+                    requestId: request.id,
                   );
             },
             style: ElevatedButton.styleFrom(
@@ -744,11 +841,11 @@ class _ResponderAssignmentScreenState extends State<ResponderAssignmentScreen> {
             onPressed: () {
               Navigator.pop(context);
 
+              print('📱 [RESPONDER-UI] User cancelling request ID: ${request.id}');
               _showLoadingDialog();
 
               context.read<AssignmentsCubit>().cancelParticipationRequest(
-                    reportId: request.report.id,
-                    responderId: request.responder.id,
+                    requestId: request.id,
                   );
             },
             style: ElevatedButton.styleFrom(

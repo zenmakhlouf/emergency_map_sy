@@ -114,16 +114,29 @@ class ReportAssignmentsLoaded extends AssignmentsState {
 class AssignmentActionSuccess extends AssignmentsState {
   final String message;
   final String action;
-  final ParticipationRequest updatedRequest;
+  final ParticipationRequest? updatedRequest;
 
   const AssignmentActionSuccess({
     required this.message,
     required this.action,
-    required this.updatedRequest,
+    this.updatedRequest,
   });
 
   @override
   List<Object?> get props => [message, action, updatedRequest];
+}
+
+class AssignedMode extends AssignmentsState {
+  final ParticipationRequest activeAssignment;
+  final bool isFirstTime;
+
+  const AssignedMode({
+    required this.activeAssignment,
+    required this.isFirstTime,
+  });
+
+  @override
+  List<Object?> get props => [activeAssignment, isFirstTime];
 }
 
 class AssignmentsError extends AssignmentsState {
