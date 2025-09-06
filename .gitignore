@@ -45,3 +45,7 @@ app.*.map.json
 /android/app/release
 CLAUDE.md
 2025-09-05-caveat-the-messages-below-were-generated-by-the-u.txt
+android/settings.gradle
+android/settings.gradle
+android/app/build.gradle
+android/gradle/wrapper/gradle-wrapper.properties
