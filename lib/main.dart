@@ -5,6 +5,7 @@ import 'package:emergency_map_sy/features/users_location/cubit/userslocation_cub
 import 'package:emergency_map_sy/features/users_location/repo/locationservice.dart';
 //import 'package:emergency_map_sy/screens/unified_dashboard.dart';
 import 'package:emergency_map_sy/utils/urls.dart';
+import 'package:emergency_map_sy/widgets/persistent_emergency_fab.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'apis/network.dart';
@@ -71,7 +72,10 @@ class MyApp extends StatelessWidget {
             final userType = authCubit.userType;
             
             if (userType != null) {
-              return UnifiedDashboardScreen(userType: userType);
+              return PersistentEmergencyFAB(
+                userType: userType,
+                child: UnifiedDashboardScreen(userType: userType),
+              );
             }
           }
           

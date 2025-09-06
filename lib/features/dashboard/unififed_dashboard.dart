@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:emergency_map_sy/features/assignments/cubit/assignments_cubit.dart';
 import 'package:emergency_map_sy/features/assignments/models/participation_request.dart';
-import 'package:emergency_map_sy/features/assignments/screens/mock_request.dart';
+import 'package:emergency_map_sy/features/assignments/screens/focus_mode_screen.dart';
 import 'package:emergency_map_sy/features/auth/cubit/auth_cubit.dart';
 import 'package:emergency_map_sy/features/auth/models/user_type.dart';
 import 'package:emergency_map_sy/features/chat/cubit/chat_cubit.dart';
@@ -330,9 +330,14 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
 
     // HIGH PRIORITY: Handle assigned mode activation
     if (state is AssignedMode && widget.userType == UserType.responder) {
-      print('🚀 [UnifiedDashboard] ASSIGNED MODE DETECTED!');
-      print('   📋 Report ID: ${state.activeAssignment.report.id}');
-      print('   🆕 First time: ${state.isFirstTime}');
+      // print('🚀 [UnifiedDashboard] ASSIGNED MODE DETECTED!');
+      // print('   📋 Report ID: ${state.activeAssignment.report.id}');
+      // print('   🆕 First time: ${state.isFirstTime}');
+      
+      debugPrint('🎯 [FOCUS_MODE] AssignedMode detected in UnifiedDashboard');
+      debugPrint('🎯 [FOCUS_MODE] Report ID: ${state.activeAssignment.report.id}');
+      debugPrint('🎯 [FOCUS_MODE] First time assignment: ${state.isFirstTime}');
+      debugPrint('🎯 [FOCUS_MODE] Assignment status: ${state.activeAssignment.status}');
       
       // Show prominent snackbar notification
       ScaffoldMessenger.of(context).showSnackBar(
@@ -362,8 +367,10 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
             label: 'عرض',
             textColor: Colors.white,
             onPressed: () {
-              print('🎯 [UnifiedDashboard] User tapped to view assignment');
-              // TODO: Navigate to focus mode or show assignment details
+              // print('🎯 [UnifiedDashboard] User tapped to view assignment');
+              debugPrint('🎯 [FOCUS_MODE] User tapped snackbar action to view assignment');
+              debugPrint('🎯 [FOCUS_MODE] Navigating to focus mode...');
+              _navigateToFocusMode(state.activeAssignment);
             },
           ),
         ),
@@ -389,9 +396,14 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
       // Handle successful assignment actions
       _showSuccessSnackBar(state.message);
       if (state.action == 'accept') {
-        // Navigate to focus mode or update active assignment
+        // Navigate to focus mode automatically on accept
         _dismissAssignmentNotification();
-        // TODO: Navigate to focus mode or update dashboard for active assignment
+        if (state.updatedRequest != null) {
+          // Navigate to focus mode immediately
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _navigateToFocusMode(state.updatedRequest!);
+          });
+        }
       } else if (state.action == 'reject') {
         _dismissAssignmentNotification();
       }
@@ -792,6 +804,53 @@ context
     }
   }
 
+  void _navigateToFocusMode(ParticipationRequest activeAssignment) {
+    debugPrint('🎯 [FOCUS_MODE] ========== NAVIGATION TO FOCUS MODE ==========');
+    debugPrint('🎯 [FOCUS_MODE] Assignment ID: ${activeAssignment.id}');
+    debugPrint('🎯 [FOCUS_MODE] Report ID: ${activeAssignment.report.id}');
+    debugPrint('🎯 [FOCUS_MODE] Current position: $_currentPosition');
+    
+    // Get the full report data from cached reports
+    final fullReport = _getEnhancedReportData(activeAssignment);
+    if (fullReport == null) {
+      debugPrint('🚨 [FOCUS_MODE] ❌ Cannot navigate: full report data not found in cache');
+      _showErrorSnackBar('خطأ: لم يتم العثور على بيانات البلاغ كاملة');
+      return;
+    }
+    
+    debugPrint('🎯 [FOCUS_MODE] ✅ Full report data retrieved for report ${fullReport.id}');
+    debugPrint('🎯 [FOCUS_MODE] Report location: ${fullReport.latitude}, ${fullReport.longitude}');
+    debugPrint('🎯 [FOCUS_MODE] Report name: ${fullReport.state?.report?.name ?? "Unknown"}');
+    debugPrint('🎯 [FOCUS_MODE] Emergency type: ${fullReport.state?.emergencyType ?? "Unknown"}');
+    debugPrint('🎯 [FOCUS_MODE] Creating MultiBlocProvider...');
+    
+    try {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) {
+            debugPrint('🎯 [FOCUS_MODE] Building FocusModeScreen with full report data...');
+            return MultiBlocProvider(
+              providers: [
+                BlocProvider.value(value: context.read<ChatCubit>()),
+                BlocProvider.value(value: context.read<UsersLocationCubit>()),
+                BlocProvider.value(value: context.read<AuthCubit>()),
+              ],
+              child: FocusModeScreen(
+                activeAssignment: activeAssignment,
+                fullReport: fullReport,           // Pass the complete report data
+                currentPosition: _currentPosition,
+              ),
+            );
+          },
+        ),
+      );
+      debugPrint('🎯 [FOCUS_MODE] ✅ Navigation to focus mode initiated with full report data');
+    } catch (e, stackTrace) {
+      debugPrint('🚨 [FOCUS_MODE] Navigation error: $e');
+      debugPrint('🚨 [FOCUS_MODE] Navigation stack trace: $stackTrace');
+    }
+  }
+
   // ============================================================================
   // ASSIGNMENT NOTIFICATION MANAGEMENT
   // ============================================================================
@@ -1109,13 +1168,147 @@ context
   }
 
   // ============================================================================
+  // ENHANCED REPORT DATA RETRIEVAL
+  // ============================================================================
+  
+  /// Retrieves comprehensive report data by merging participation request with cached reports
+  ReportEntity? _getEnhancedReportData(ParticipationRequest request) {
+    if (request.report?.id == null) return null;
+    
+    try {
+      // Find the full report in cached reports using the report ID
+      final reportId = request.report.id;
+      final cachedReport = _cachedReports.where((r) => r.id == reportId).firstOrNull;
+      
+      if (cachedReport != null) {
+        debugPrint('🚨 [ASSIGNMENT_POPUP] Found enhanced report data for report $reportId');
+        return cachedReport;
+      } else {
+        debugPrint('🚨 [ASSIGNMENT_POPUP] Report $reportId not found in cache, using basic data');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('🚨 [ASSIGNMENT_POPUP] Error retrieving enhanced report data: $e');
+      return null;
+    }
+  }
+  
+  /// Gets emergency type icon based on emergency type
+  IconData _getEmergencyTypeIcon(String? emergencyType) {
+    switch (emergencyType?.toLowerCase()) {
+      case 'medical':
+        return Icons.medical_services;
+      case 'fire':
+        return Icons.local_fire_department;
+      case 'police':
+        return Icons.local_police;
+      case 'traffic':
+        return Icons.traffic;
+      case 'civil':
+        return Icons.engineering;
+      default:
+        return Icons.emergency;
+    }
+  }
+  
+  /// Gets emergency type color based on emergency type
+  Color _getEmergencyTypeColor(String? emergencyType) {
+    switch (emergencyType?.toLowerCase()) {
+      case 'medical':
+        return Colors.red.shade600;
+      case 'fire':
+        return Colors.orange.shade600;
+      case 'police':
+        return Colors.blue.shade600;
+      case 'traffic':
+        return Colors.amber.shade600;
+      case 'civil':
+        return Colors.purple.shade600;
+      default:
+        return Colors.grey.shade600;
+    }
+  }
+  
+  /// Gets severity color based on severity level (0.0-1.0)
+  Color _getSeverityColor(double? severity) {
+    if (severity == null) return Colors.grey.shade600;
+    if (severity >= 0.8) return Colors.red.shade700;
+    if (severity >= 0.6) return Colors.orange.shade600;
+    if (severity >= 0.4) return Colors.yellow.shade600;
+    return Colors.green.shade600;
+  }
+  
+  /// Gets severity label based on severity level
+  String _getSeverityLabel(double? severity) {
+    if (severity == null) return 'غير محدد';
+    if (severity >= 0.8) return 'حرج جداً';
+    if (severity >= 0.6) return 'عاجل';
+    if (severity >= 0.4) return 'متوسط';
+    return 'عادي';
+  }
+  
+  /// Formats elapsed time since report creation
+  String _getElapsedTime(DateTime createdAt) {
+    final now = DateTime.now();
+    final difference = now.difference(createdAt);
+    
+    if (difference.inMinutes < 1) {
+      return 'للتو';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes} دقيقة';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours} ساعة';
+    } else {
+      return '${difference.inDays} يوم';
+    }
+  }
+  
+  /// Gets display name for emergency type in Arabic
+  String _getEmergencyTypeDisplayName(String emergencyType) {
+    switch (emergencyType.toLowerCase()) {
+      case 'medical':
+        return 'طبي';
+      case 'fire':
+        return 'حريق';
+      case 'police':
+        return 'أمني';
+      case 'traffic':
+        return 'مروري';
+      case 'civil':
+        return 'مدني';
+      default:
+        return 'طوارئ عامة';
+    }
+  }
+  
+  /// Gets user display name from user ID (for initiator display)
+  String? _getUserDisplayName(int userId) {
+    try {
+      // Try to find user in cached other users list
+      final user = _otherUsers.where((u) => u.id == userId).firstOrNull;
+      return user?.name;
+    } catch (e) {
+      debugPrint('🚨 [ASSIGNMENT_POPUP] Error getting user display name: $e');
+      return null;
+    }
+  }
+
+  // ============================================================================
   // EMERGENCY ASSIGNMENT NOTIFICATION OVERLAY
   // ============================================================================
 
   Widget _buildAssignmentNotificationOverlay() {
     final request = _pendingAssignmentRequest!;
-    final report = request.report;
+    final basicReport = request.report;
+    final enhancedReport = _getEnhancedReportData(request);
 
+    // Use enhanced report data if available, fallback to basic
+    final report = enhancedReport ?? basicReport;
+    final emergencyType = enhancedReport?.state?.emergencyType;
+    final severity = enhancedReport?.state?.severity;
+    final reportName = enhancedReport?.state?.report?.name;
+    final reportDescription = enhancedReport?.state?.report?.description ?? enhancedReport?.state?.report?.text;
+    
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 500),
       curve: Curves.elasticOut,
@@ -1124,214 +1317,473 @@ context
       right: 0,
       child: Container(
         margin: const EdgeInsets.all(16),
+        constraints: const BoxConstraints(maxHeight: 600), // Limit height for scrolling
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.red.shade600, Colors.red.shade800],
+            colors: [
+              _getEmergencyTypeColor(emergencyType),
+              _getEmergencyTypeColor(emergencyType).withOpacity(0.8),
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.red.withOpacity(0.4),
-              blurRadius: 20,
-              spreadRadius: 2,
-              offset: const Offset(0, 8),
+              color: _getEmergencyTypeColor(emergencyType).withOpacity(0.4),
+              blurRadius: 25,
+              spreadRadius: 3,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
         child: Material(
           color: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header with emergency icon and close button
-                Row(
-                  children: [
+          child: SingleChildScrollView(
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Enhanced Header with emergency type
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(
+                          _getEmergencyTypeIcon(emergencyType),
+                          color: Colors.white,
+                          size: 36,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '🚨 مهمة طوارئ جديدة',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            if (emergencyType != null)
+                              Text(
+                                _getEmergencyTypeDisplayName(emergencyType),
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            Text(
+                              'طلب رقم #${request.id}',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.8),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: _dismissAssignmentNotification,
+                        icon: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Emergency Classification Section
+                  if (severity != null || emergencyType != null) ...[
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 1,
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.emergency,
-                        color: Colors.white,
-                        size: 32,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            '🚨 مهمة طوارئ جديدة',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'طلب رقم #${request.id}',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.9),
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: _dismissAssignmentNotification,
-                      icon: const Icon(
-                        Icons.close,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 20),
-
-                // Emergency report details
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Report ID and status
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.report_problem,
-                            color: Colors.amber.shade300,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'بلاغ طوارئ #${report.id}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const Spacer(),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _getReportStatusBackgroundColor(
-                                report.latestStatus.statusColor,
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              report.latestStatus.statusDisplay,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // Initiator info
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.person,
-                            color: Colors.white.withOpacity(0.8),
-                            size: 16,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'مبلغ من: ${report.initiator.name}',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.9),
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      // Assigned by coordinator
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.assignment_ind,
-                            color: Colors.white.withOpacity(0.8),
-                            size: 16,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'مُكلف من: ${request.initiator.name}',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.9),
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      if (report.latestStatus.notes.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
+                          Row(
                             children: [
                               Icon(
-                                Icons.note,
-                                color: Colors.white.withOpacity(0.8),
-                                size: 16,
+                                Icons.priority_high,
+                                color: Colors.white,
+                                size: 20,
                               ),
                               const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  report.latestStatus.notes,
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.9),
-                                    fontSize: 13,
-                                  ),
+                              const Text(
+                                'تصنيف الطوارئ',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ],
                           ),
+                          const SizedBox(height: 12),
+                          if (severity != null)
+                            Row(
+                              children: [
+                                Container(
+                                  width: 12,
+                                  height: 12,
+                                  decoration: BoxDecoration(
+                                    color: _getSeverityColor(severity),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'مستوى الخطورة: ${_getSeverityLabel(severity)}',
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.9),
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '(${(severity * 100).toInt()}%)',
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.7),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          if (enhancedReport?.state?.emergencySubType != null) ...[
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.category,
+                                  color: Colors.white.withOpacity(0.8),
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'النوع الفرعي: ${enhancedReport!.state!.emergencySubType}',
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.9),
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Report Details Section
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Report Name or ID
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.report_problem,
+                              color: Colors.amber.shade300,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                reportName ?? 'بلاغ طوارئ #${basicReport.id}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            if (enhancedReport?.latestStatus != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _getReportStatusBackgroundColor(
+                                    enhancedReport!.latestStatus!.statusColor,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  enhancedReport.latestStatus!.statusDisplay,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
+
+                        // Report description if available
+                        if (reportDescription != null && reportDescription.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              reportDescription,
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 13,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+
+                        const SizedBox(height: 12),
+
+                        // People involved
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.person,
+                              color: Colors.white.withOpacity(0.8),
+                              size: 16,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'مُبلغ من: ${(enhancedReport != null ? _getUserDisplayName(enhancedReport.initiatorId) : basicReport.initiator?.name) ?? 'غير معروف'}',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.assignment_ind,
+                              color: Colors.white.withOpacity(0.8),
+                              size: 16,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'مُكلف من: ${request.initiator.name}',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        // Timing information
+                        if (enhancedReport != null) ...[
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.access_time,
+                                color: Colors.white.withOpacity(0.8),
+                                size: 16,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'منذ: ${_getElapsedTime(enhancedReport.createdAt)}',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const Spacer(),
+                              Text(
+                                '${enhancedReport.formattedTime} - ${enhancedReport.formattedDate}',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.7),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
+
+                  // Location and Distance Section
+                  if (enhancedReport != null) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.location_on,
+                                color: Colors.red.shade300,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'معلومات الموقع',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            enhancedReport.fullAddress,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 14,
+                              height: 1.3,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.gps_fixed,
+                                color: Colors.white.withOpacity(0.8),
+                                size: 16,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                '${enhancedReport.latitude.toStringAsFixed(4)}, ${enhancedReport.longitude.toStringAsFixed(4)}',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.7),
+                                  fontSize: 12,
+                                ),
+                              ),
+                              if (enhancedReport.distance != null) ...[
+                                const Spacer(),
+                                Icon(
+                                  Icons.straighten,
+                                  color: Colors.white.withOpacity(0.8),
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  enhancedReport.distance!,
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.9),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  // Status notes if available
+                  if (enhancedReport?.latestStatus?.notes != null && enhancedReport!.latestStatus!.notes!.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.note_alt,
+                                color: Colors.white.withOpacity(0.8),
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'ملاحظات إضافية',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            enhancedReport.latestStatus!.notes!,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 13,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
 
                 const SizedBox(height: 24),
 
-                // Action buttons
+                // Enhanced Action buttons
                 Row(
                   children: [
                     Expanded(
@@ -1350,7 +1802,7 @@ context
                                   ),
                                 ),
                               )
-                            : const Icon(Icons.check, color: Colors.white),
+                            : const Icon(Icons.check_circle, color: Colors.white, size: 20),
                         label: const Text(
                           'قبول المهمة',
                           style: TextStyle(
@@ -1360,12 +1812,13 @@ context
                           ),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green.shade600,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: Colors.green.shade700,
+                          padding: const EdgeInsets.symmetric(vertical: 18),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(14),
                           ),
                           elevation: 8,
+                          shadowColor: Colors.green.withOpacity(0.4),
                         ),
                       ),
                     ),
@@ -1375,9 +1828,9 @@ context
                         onPressed: _isProcessingAssignmentAction
                             ? null
                             : _rejectAssignmentRequest,
-                        icon: const Icon(Icons.close, color: Colors.white),
+                        icon: const Icon(Icons.cancel_outlined, color: Colors.white, size: 20),
                         label: const Text(
-                          'رفض',
+                          'رفض المهمة',
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -1386,20 +1839,55 @@ context
                         ),
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Colors.white, width: 2),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(vertical: 18),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(14),
                           ),
+                          backgroundColor: Colors.white.withOpacity(0.1),
                         ),
                       ),
                     ),
                   ],
+                ),
+                
+                // Additional information message
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: Colors.white.withOpacity(0.8),
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'قبول المهمة سينقلك تلقائياً إلى وضع التركيز مع التنقل GPS',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.8),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
         ),
       ),
+    )
     );
   }
 

@@ -27,24 +27,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
-                leading: const Icon(Icons.camera_alt),
-                title: const Text('Camera'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  final XFile? image = await _picker.pickImage(
-                    source: ImageSource.camera,
-                    maxWidth: 800,
-                    maxHeight: 800,
-                    imageQuality: 85,
-                  );
-                  if (image != null) {
-                    setState(() {
-                      _selectedImage = File(image.path);
-                    });
-                  }
-                },
-              ),
+              // ListTile(
+              //   leading: const Icon(Icons.camera_alt),
+              //   title: const Text('Camera'),
+              //   onTap: () async {
+              //     Navigator.pop(context);
+              //     final XFile? image = await _picker.pickImage(
+              //       source: ImageSource.camera,
+              //       maxWidth: 800,
+              //       maxHeight: 800,
+              //       imageQuality: 85,
+              //     );
+              //     if (image != null) {
+              //       setState(() {
+              //         _selectedImage = File(image.path);
+              //       });
+              //     }
+              //   },
+              // ),
               ListTile(
                 leading: const Icon(Icons.photo_library),
                 title: const Text('Gallery'),
