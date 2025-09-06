@@ -7,9 +7,9 @@ class LocationConfig {
   
   /// Disable users location polling (viewing other users)
   /// This affects the ability to see other users on the map
-  static const bool disableUsersLocationPolling = false;
+  static const bool disableUsersLocationPolling = true;
   
   /// Disable own location polling (sending location to backend)
   /// This affects sending the current user's location to the server
-  static const bool disableOwnLocationPolling = true;
+  static const bool disableOwnLocationPolling = false;
 }
