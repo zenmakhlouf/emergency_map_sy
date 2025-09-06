@@ -95,7 +95,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       body: BlocConsumer<AuthCubit, AuthState>(
         listener: (context, state) {
           final cubit = context.read<AuthCubit>();
-      
+
           if (state is SendCodeSuccess) {
             Navigator.of(context).push(
               MaterialPageRoute(
@@ -108,7 +108,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         },
         builder: (context, state) {
           final cubit = context.read<AuthCubit>();
-      
+
           return Container(
             height: double.infinity,
             width: double.infinity,
@@ -148,7 +148,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 8),
-      
+
                                 // Subtitle
                                 const Text(
                                   'Create your account to get started',
@@ -176,7 +176,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     ),
                                     child: _selectedImage != null
                                         ? ClipRRect(
-                                            borderRadius: BorderRadius.circular(50),
+                                            borderRadius:
+                                                BorderRadius.circular(50),
                                             child: Image.file(
                                               _selectedImage!,
                                               width: 100,
@@ -185,7 +186,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                             ),
                                           )
                                         : Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
                                             children: [
                                               Icon(
                                                 Icons.camera_alt,
@@ -208,51 +210,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 TextFormField(
                                   controller: cubit.nameController,
                                   keyboardType: TextInputType.name,
-                                  decoration: const InputDecoration(
-                                    prefixStyle: TextStyle(color: Colors.black),
+                                  textCapitalization: TextCapitalization
+                                      .words, // auto-capitalize words
+                                  decoration: InputDecoration(
+                                    prefixStyle:
+                                        const TextStyle(color: Colors.black),
                                     labelText: 'Full Name',
-                                    hintText: 'Enter your full name',
-                                    border: OutlineInputBorder(),
-                                    contentPadding: EdgeInsets.symmetric(
+                                    hintText: 'e.g. John Doe',
+                                    border: const OutlineInputBorder(),
+                                    contentPadding: const EdgeInsets.symmetric(
                                       horizontal: 16,
                                       vertical: 12,
+                                    ),
+                                    suffixIcon: IconButton(
+                                      icon: const Icon(Icons.clear,
+                                          color: Colors.grey),
+                                      onPressed: () =>
+                                          cubit.nameController.clear(),
+                                      tooltip: 'Clear name',
                                     ),
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return 'This field is required';
+                                      return 'Full name is required';
                                     }
-                                    
-                                    // Trim whitespace
-                                    final trimmedValue = value.trim();
-                                    
-                                    if (trimmedValue.length < 2) {
+
+                                    // No trimming here — use the raw value
+                                    if (value.length < 2) {
                                       return 'Name must be at least 2 characters long';
                                     }
-                                    
-                                    if (trimmedValue.length > 50) {
+
+                                    if (value.length > 50) {
                                       return 'Name must be less than 50 characters long';
                                     }
-                                    
-                                    // Check for invalid characters (allow letters, spaces, hyphens, apostrophes)
-                                    if (!RegExp(r"^[a-zA-Z\u0621-\u064A\u0660-\u0669\s\-'\.]+$").hasMatch(trimmedValue)) {
-                                      return 'Name contains invalid characters';
+
+                                    // Check for invalid characters (letters, spaces, hyphens, apostrophes, dots)
+                                    if (!RegExp(
+                                            r"^[a-zA-Z\u0621-\u064A\u0660-\u0669\s\-'\.]+$")
+                                        .hasMatch(value)) {
+                                      return 'Only letters, spaces, hyphens, apostrophes, and dots are allowed';
                                     }
-                                    
-                                    return null;
-                                  },
-                                  onChanged: (value) {
-                                    // Auto-trim and clean input
-                                    if (value != value.trim()) {
-                                      cubit.nameController.text = value.trim();
-                                      cubit.nameController.selection = TextSelection.fromPosition(
-                                        TextPosition(offset: cubit.nameController.text.length),
-                                      );
-                                    }
+
+                                    return null; // ✅ valid input
                                   },
                                 ),
                                 const SizedBox(height: 12),
-      
+
                                 TextFormField(
                                   controller: cubit.phoneController,
                                   keyboardType: TextInputType.phone,
@@ -290,7 +293,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                             if (formKey.currentState!
                                                 .validate()) {
                                               // Set the profile image in cubit
-                                              cubit.setProfileImage(_selectedImage);
+                                              cubit.setProfileImage(
+                                                  _selectedImage);
                                               cubit.sendOtp(
                                                   'phone_number_register');
                                             }
@@ -298,12 +302,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: Colors.red,
                                             foregroundColor: Colors.white,
-                                            padding:
-                                                const EdgeInsets.symmetric(
-                                                    vertical: 16),
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 16),
                                           ),
-                                          child: const Text(
-                                              'Send Register Code'),
+                                          child:
+                                              const Text('Send Register Code'),
                                         ),
                                       ),
                               ],
