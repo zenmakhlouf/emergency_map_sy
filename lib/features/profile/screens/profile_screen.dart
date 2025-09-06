@@ -1,4 +1,5 @@
 import 'package:emergency_map_sy/features/auth/cubit/auth_cubit.dart';
+import 'package:emergency_map_sy/features/posts/screens/my_posts_screen.dart';
 import 'package:emergency_map_sy/features/profile/cubit/profile_cubit.dart';
 import 'package:emergency_map_sy/screens/user_type_selector_screen.dart';
 import 'package:flutter/material.dart';
@@ -28,8 +29,7 @@ class ProfileScreen extends StatelessWidget {
                     Text('Error: ${state.message}'),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      onPressed: () =>
-                          context.read<ProfileCubit>().fetchProfile(),
+                      onPressed: () => context.read<ProfileCubit>().fetchProfile(),
                       child: const Text('Retry'),
                     )
                   ],
@@ -58,19 +58,31 @@ class ProfileScreen extends StatelessWidget {
                         title: const Text('Name'),
                         subtitle: Text(
                           profile.name,
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
+                    const SizedBox(height: 8),
                     Card(
                       child: ListTile(
                         leading: const Icon(Icons.phone_outlined),
                         title: const Text('Phone Number'),
                         subtitle: Text(
                           profile.phoneNumber,
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Card(
+                      child: ListTile(
+                        leading: const Icon(Icons.local_post_office_outlined),
+                        title: const Text('My Posts'),
+                        trailing: const Icon(Icons.arrow_forward_ios_rounded),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const MyPostsScreen(),
+                          ),
                         ),
                       ),
                     ),
@@ -84,10 +96,8 @@ class ProfileScreen extends StatelessWidget {
                           // Pop all routes until login or home screen
                           context.read<AuthCubit>().logout();
                           Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(
-                                builder: (_) => UserTypeSelectorScreen()),
-                            (Route<dynamic> route) =>
-                                false, // remove ALL previous routes
+                            MaterialPageRoute(builder: (_) => UserTypeSelectorScreen()),
+                            (Route<dynamic> route) => false, // remove ALL previous routes
                           );
                         },
                         style: ElevatedButton.styleFrom(

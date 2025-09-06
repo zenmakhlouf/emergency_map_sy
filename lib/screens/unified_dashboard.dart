@@ -8,6 +8,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import '../features/posts/screens/posts_list_screen.dart';
 import '../features/reports/cubit/reports_cubit.dart';
 import '../features/reports/models/report.dart';
 import '../features/auth/cubit/auth_cubit.dart';
@@ -142,7 +143,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
 
   void _initializeTabController() {
     // All user types now have only 3 tabs: Map, Reports, Chat
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   /// Initialize the app by setting up auth and getting initial data
@@ -541,6 +542,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     return const [
       Tab(icon: Icon(Icons.map_outlined), text: 'Map'),
       Tab(icon: Icon(Icons.report_outlined), text: 'Reports'),
+      Tab(icon: Icon(Icons.local_post_office_outlined), text: 'Posts'),
       Tab(icon: Icon(Icons.chat_outlined), text: 'Chat'),
     ];
   }
@@ -549,6 +551,7 @@ class _UnifiedDashboardScreenState extends State<UnifiedDashboardScreen>
     return [
       _buildMapTab(),
       _buildReportsTab(),
+      const PostsListScreen(),
       _buildChatTab(),
     ];
   }

@@ -7,6 +7,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'apis/network.dart';
+import 'features/posts/models/post.dart';
+import 'features/posts/screens/my_posts_screen.dart';
+import 'features/posts/screens/posts_list_screen.dart';
+import 'features/posts/screens/publish_post_screen.dart';
+import 'features/posts/widgets/post_card.dart';
 import 'features/reports/cubit/reports_cubit.dart';
 import 'features/reports/repo/reportRepoService.dart';
 import 'features/chat/cubit/chat_cubit.dart';
@@ -25,8 +30,7 @@ void main() async {
         BlocProvider(create: (_) => ChatCubit(ChatRepository())),
         BlocProvider(
           create: (_) => UsersLocationCubit(
-            locationService:
-                LocationService(dio: Network.dio, baseUrl: Urls.baseUrl),
+            locationService: LocationService(dio: Network.dio, baseUrl: Urls.baseUrl),
           ),
         ),
       ],
