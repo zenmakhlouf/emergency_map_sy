@@ -167,59 +167,155 @@ class _FocusModeScreenState extends State<FocusModeScreen>
   // LOCATION EXTRACTION & VALIDATION
   // ============================================================================
 
-  /// Extracts incident location from full report data with fallback hierarchy
+  /// Extracts incident location from full report data with improved fallback hierarchy
   LatLng _extractIncidentLocation() {
     try {
       // Primary: Use actual report coordinates
       final lat = widget.fullReport.latitude;
       final lon = widget.fullReport.longitude;
       
+      debugPrint('🎯 [FOCUS_MODE] === LOCATION EXTRACTION DEBUG ===');
+      debugPrint('🎯 [FOCUS_MODE] Report ID: ${widget.fullReport.id}');
+      debugPrint('🎯 [FOCUS_MODE] Report coordinates: lat=$lat, lon=$lon');
+      debugPrint('🎯 [FOCUS_MODE] Report coordinate types: lat=${lat.runtimeType}, lon=${lon.runtimeType}');
+      debugPrint('🎯 [FOCUS_MODE] Report full address: "${widget.fullReport.fullAddress}"');
+      debugPrint('🎯 [FOCUS_MODE] Report location object: ${widget.fullReport.location}');
+      
       if (_isValidCoordinate(lat, lon)) {
+        debugPrint('🎯 [FOCUS_MODE] ✅ Using valid report coordinates: $lat, $lon');
         return LatLng(lat, lon);
       }
       
-      debugPrint('🚨 [FOCUS_MODE] Invalid report coordinates: $lat, $lon');
+      debugPrint('🚨 [FOCUS_MODE] Primary coordinates failed validation');
       
-      // Secondary: Use current responder position as fallback
-      if (_isValidCoordinate(widget.currentPosition.latitude, widget.currentPosition.longitude)) {
-        debugPrint('🎯 [FOCUS_MODE] Using current position as fallback');
-        return widget.currentPosition;
+      // Secondary: Try to extract coordinates from location object if available
+      // This handles cases where coordinates might be stored in the location object
+      if (widget.fullReport.location != null) {
+        try {
+          final locationLat = widget.fullReport.location.latitude;
+          final locationLon = widget.fullReport.location.longitude;
+          debugPrint('🎯 [FOCUS_MODE] Location object coordinates: lat=$locationLat, lon=$locationLon');
+          
+          if (_isValidCoordinate(locationLat, locationLon)) {
+            debugPrint('🎯 [FOCUS_MODE] ✅ Using location object coordinates: $locationLat, $locationLon');
+            return LatLng(locationLat, locationLon);
+          }
+        } catch (e) {
+          debugPrint('🚨 [FOCUS_MODE] Error parsing location object: $e');
+        }
+      } else {
+        debugPrint('🚨 [FOCUS_MODE] No location object available');
       }
       
-      // Tertiary: Damascus center (absolute fallback)
-      debugPrint('🚨 [FOCUS_MODE] Using Damascus center as absolute fallback');
+      // Additional: Try to parse coordinates from string format if they exist
+      // Sometimes coordinates come as strings that need parsing
+      try {
+        if (lat != null && lon != null) {
+          final parsedLat = lat is String ? double.tryParse(lat as String) : lat;
+          final parsedLon = lon is String ? double.tryParse(lon as String) : lon;
+          debugPrint('🎯 [FOCUS_MODE] Parsed coordinates: lat=$parsedLat, lon=$parsedLon');
+          
+          if (parsedLat != null && parsedLon != null && _isValidCoordinate(parsedLat, parsedLon)) {
+            debugPrint('🎯 [FOCUS_MODE] ✅ Using parsed coordinates: $parsedLat, $parsedLon');
+            return LatLng(parsedLat, parsedLon);
+          }
+        }
+      } catch (e) {
+        debugPrint('🚨 [FOCUS_MODE] Error parsing string coordinates: $e');
+      }
+      
+      // Tertiary: Try geocoding from address if available
+      final address = widget.fullReport.fullAddress;
+      if (address.isNotEmpty && address != 'Unknown' && address != 'Live Location') {
+        debugPrint('🎯 [FOCUS_MODE] Report has address but no coordinates: $address');
+        debugPrint('🚨 [FOCUS_MODE] Geocoding service needed - using Damascus center as fallback');
+      }
+      
+      // ABSOLUTE LAST RESORT: Damascus center with clear warning
+      // NEVER use current responder position as incident location as it creates meaningless routing
+      debugPrint('🚨 [FOCUS_MODE] 🆘 WARNING: Using Damascus center as absolute fallback - routing may be inaccurate');
+      debugPrint('🚨 [FOCUS_MODE] This means no valid incident coordinates were found in:');
+      debugPrint('🚨 [FOCUS_MODE]   - Primary coordinates: $lat, $lon');
+      debugPrint('🚨 [FOCUS_MODE]   - Location object: ${widget.fullReport.location}');
+      debugPrint('🚨 [FOCUS_MODE]   - Report address: "${widget.fullReport.fullAddress}"');
+      debugPrint('🚨 [FOCUS_MODE] === END LOCATION EXTRACTION ===');
       return const LatLng(33.5138, 36.2765);
       
     } catch (e) {
       debugPrint('🚨 [FOCUS_MODE] Error extracting location: $e');
+      debugPrint('🚨 [FOCUS_MODE] Using Damascus center due to extraction error');
       return const LatLng(33.5138, 36.2765);
     }
   }
 
   /// Validates if coordinates are reasonable for emergency response
-  bool _isValidCoordinate(double lat, double lon) {
-    // Check for zero coordinates
-    if (lat == 0.0 && lon == 0.0) return false;
+  bool _isValidCoordinate(double? lat, double? lon) {
+    debugPrint('🎯 [FOCUS_MODE] === COORDINATE VALIDATION ===');
+    debugPrint('🎯 [FOCUS_MODE] Input: lat=$lat (${lat.runtimeType}), lon=$lon (${lon.runtimeType})');
     
-    // Check for reasonable latitude/longitude bounds (Syria + surrounding region)
-    if (lat < 30.0 || lat > 40.0) return false;
-    if (lon < 30.0 || lon > 45.0) return false;
+    // Check for null coordinates
+    if (lat == null || lon == null) {
+      debugPrint('🚨 [FOCUS_MODE] ❌ Null coordinates detected');
+      return false;
+    }
     
+    // Check for zero coordinates (often indicates unset/default values)
+    if (lat == 0.0 && lon == 0.0) {
+      debugPrint('🚨 [FOCUS_MODE] ❌ Zero coordinates detected (0,0)');
+      return false;
+    }
+    
+    // Check for obviously invalid coordinates
+    if (lat.isNaN || lon.isNaN || lat.isInfinite || lon.isInfinite) {
+      debugPrint('🚨 [FOCUS_MODE] ❌ NaN or infinite coordinates detected');
+      return false;
+    }
+    
+    // Check for reasonable latitude bounds (expanded for border areas)
+    if (lat < 29.0 || lat > 41.0) {
+      debugPrint('🚨 [FOCUS_MODE] ❌ Latitude out of bounds: $lat (expected: 29-41)');
+      return false;
+    }
+    
+    // Check for reasonable longitude bounds (expanded for border areas)  
+    if (lon < 29.0 || lon > 46.0) {
+      debugPrint('🚨 [FOCUS_MODE] ❌ Longitude out of bounds: $lon (expected: 29-46)');
+      return false;
+    }
+    
+    debugPrint('🎯 [FOCUS_MODE] ✅ Coordinates validation passed: lat=$lat, lon=$lon');
     return true;
   }
 
-  /// Gets a human-readable description of the location source
+  /// Gets a human-readable description of the location source with improved accuracy
   String _getLocationSource() {
     final lat = widget.fullReport.latitude;
     final lon = widget.fullReport.longitude;
     
     if (_isValidCoordinate(lat, lon)) {
       return 'Actual incident coordinates';
-    } else if (_isValidCoordinate(widget.currentPosition.latitude, widget.currentPosition.longitude)) {
-      return 'Current responder position (fallback)';
-    } else {
-      return 'Damascus center (absolute fallback)';
     }
+    
+    // Check location object coordinates
+    if (widget.fullReport.location != null) {
+      try {
+        final locationLat = widget.fullReport.location.latitude;
+        final locationLon = widget.fullReport.location.longitude;
+        if (_isValidCoordinate(locationLat, locationLon)) {
+          return 'Location object coordinates';
+        }
+      } catch (e) {
+        debugPrint('🚨 [FOCUS_MODE] Error checking location object: $e');
+      }
+    }
+    
+    // Check if address is available for potential geocoding
+    final address = widget.fullReport.fullAddress;
+    if (address != null && address.isNotEmpty && address != 'Unknown' && address != 'Live Location') {
+      return 'Damascus center (address available for geocoding: $address)';
+    }
+    
+    return 'Damascus center (no valid incident location found)';
   }
 
   Future<void> _initializeFocusMode() async {
@@ -342,9 +438,24 @@ class _FocusModeScreenState extends State<FocusModeScreen>
       return;
     }
     
+    debugPrint('🎯 [FOCUS_MODE] === ROUTE CALCULATION DEBUG ===');
     debugPrint('🎯 [FOCUS_MODE] 🗺️ Starting route calculation...');
-    debugPrint('🎯 [FOCUS_MODE] 🗺️ From: $_currentPosition');
-    debugPrint('🎯 [FOCUS_MODE] 🗺️ To: $_incidentLocation');
+    debugPrint('🎯 [FOCUS_MODE] 🗺️ From (Current Position): $_currentPosition');
+    debugPrint('🎯 [FOCUS_MODE] 🗺️ To (Incident Location): $_incidentLocation');
+    debugPrint('🎯 [FOCUS_MODE] 🗺️ Distance check: ${_calculateStraightLineDistance(_currentPosition, _incidentLocation!)} km');
+    
+    // Check if we're trying to route to the same location (Damascus fallback issue)
+    final distanceKm = _calculateStraightLineDistance(_currentPosition, _incidentLocation!);
+    if (distanceKm < 0.01) {
+      debugPrint('🚨 [FOCUS_MODE] ❌ Same location detected - incident and current position are the same');
+      setState(() {
+        _routingState = const RoutingState(
+          status: RoutingStatus.disabled,
+          errorMessage: 'Cannot route: incident location is same as current position',
+        );
+      });
+      return;
+    }
     
     // Set loading state
     setState(() {
@@ -365,18 +476,29 @@ class _FocusModeScreenState extends State<FocusModeScreen>
       debugPrint('🎯 [FOCUS_MODE] 🗺️ Route valid: ${routeResult.isValid}');
       
       if (routeResult.isValid && mounted) {
-        // Calculate straight-line distance as backup
-        final straightDistance = _calculateStraightLineDistance(_currentPosition, _incidentLocation!);
+        // Validate that we're not routing from position to same position
+        final isSameLocation = _calculateStraightLineDistance(_currentPosition, _incidentLocation!) < 0.01; // Less than 10m
         
-        setState(() {
-          _routingState = RoutingState(
-            status: RoutingStatus.success,
-            route: routeResult.geometry,
-            distance: routeResult.distanceKm,
-            estimatedTime: Duration(minutes: routeResult.durationMinutes.round()),
-          );
-          _distanceToIncident = routeResult.distanceKm;
-        });
+        if (isSameLocation) {
+          debugPrint('🚨 [FOCUS_MODE] ❌ Incident location same as current position - routing disabled despite route success');
+          setState(() {
+            _routingState = RoutingState(
+              status: RoutingStatus.disabled,
+              errorMessage: 'Incident location not available - cannot calculate meaningful route',
+            );
+            _distanceToIncident = 0.0;
+          });
+        } else {
+          setState(() {
+            _routingState = RoutingState(
+              status: RoutingStatus.success,
+              route: routeResult.geometry,
+              distance: routeResult.distanceKm,
+              estimatedTime: Duration(minutes: routeResult.durationMinutes.round()),
+            );
+            _distanceToIncident = routeResult.distanceKm;
+          });
+        }
         
         debugPrint('🎯 [FOCUS_MODE] ✅ Route calculation successful');
         debugPrint('🎯 [FOCUS_MODE] 🗺️ Route points: ${routeResult.geometry.length}');
@@ -387,19 +509,35 @@ class _FocusModeScreenState extends State<FocusModeScreen>
         final errorMsg = routeResult.errorMessage ?? 'Unable to calculate route';
         debugPrint('🚨 [FOCUS_MODE] ❌ Route calculation failed: $errorMsg');
         
-        // Fallback to straight-line distance
-        final straightDistance = _calculateStraightLineDistance(_currentPosition, _incidentLocation!);
+        // Only calculate fallback if incident location is not current position
+        final isSameLocation = _calculateStraightLineDistance(_currentPosition, _incidentLocation!) < 0.01; // Less than 10m
         
-        if (mounted) {
-          setState(() {
-            _routingState = RoutingState(
-              status: RoutingStatus.failed,
-              errorMessage: errorMsg,
-              distance: straightDistance,
-              retryAttempt: _routingState.retryAttempt,
-            );
-            _distanceToIncident = straightDistance;
-          });
+        if (isSameLocation) {
+          debugPrint('🚨 [FOCUS_MODE] ❌ Incident location same as current position - routing disabled');
+          if (mounted) {
+            setState(() {
+              _routingState = RoutingState(
+                status: RoutingStatus.disabled,
+                errorMessage: 'Incident location not available - cannot calculate route',
+              );
+              _distanceToIncident = 0.0;
+            });
+          }
+        } else {
+          // Fallback to straight-line distance
+          final straightDistance = _calculateStraightLineDistance(_currentPosition, _incidentLocation!);
+          
+          if (mounted) {
+            setState(() {
+              _routingState = RoutingState(
+                status: RoutingStatus.failed,
+                errorMessage: errorMsg,
+                distance: straightDistance,
+                retryAttempt: _routingState.retryAttempt,
+              );
+              _distanceToIncident = straightDistance;
+            });
+          }
         }
       }
     } catch (e, stackTrace) {
@@ -416,19 +554,35 @@ class _FocusModeScreenState extends State<FocusModeScreen>
         ? 'Network connection issue. Check your internet connection.'
         : 'Routing service error: ${e.toString()}';
       
-      // Fallback to straight-line distance
-      final straightDistance = _calculateStraightLineDistance(_currentPosition, _incidentLocation!);
+      // Only calculate fallback if incident location is not current position
+      final isSameLocation = _calculateStraightLineDistance(_currentPosition, _incidentLocation!) < 0.01; // Less than 10m
       
-      if (mounted) {
-        setState(() {
-          _routingState = RoutingState(
-            status: status,
-            errorMessage: errorMsg,
-            distance: straightDistance,
-            retryAttempt: _routingState.retryAttempt,
-          );
-          _distanceToIncident = straightDistance;
-        });
+      if (isSameLocation) {
+        debugPrint('🚨 [FOCUS_MODE] ❌ Incident location same as current position - routing disabled');
+        if (mounted) {
+          setState(() {
+            _routingState = RoutingState(
+              status: RoutingStatus.disabled,
+              errorMessage: 'Incident location not available - cannot calculate route',
+            );
+            _distanceToIncident = 0.0;
+          });
+        }
+      } else {
+        // Fallback to straight-line distance
+        final straightDistance = _calculateStraightLineDistance(_currentPosition, _incidentLocation!);
+        
+        if (mounted) {
+          setState(() {
+            _routingState = RoutingState(
+              status: status,
+              errorMessage: errorMsg,
+              distance: straightDistance,
+              retryAttempt: _routingState.retryAttempt,
+            );
+            _distanceToIncident = straightDistance;
+          });
+        }
       }
     }
   }
