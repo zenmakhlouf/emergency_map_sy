@@ -1437,4 +1437,4 @@ class _FocusModeScreenState extends State<FocusModeScreen>
       ),
     );
   }
-}
+}//end
