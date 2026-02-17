@@ -118,13 +118,22 @@ class _FocusModeScreenState extends State<FocusModeScreen>
     debugPrint('🎯 [FOCUS_MODE] Report Name: ${widget.fullReport.state?.report?.name ?? "Unknown"}');
     debugPrint('🎯 [FOCUS_MODE] Emergency Type: ${widget.fullReport.state?.emergencyType ?? "Unknown"}');
     
+    // CRITICAL: Debug the raw report data before extraction
+    debugPrint('🎯 [FOCUS_MODE] === RAW REPORT DATA ===');
+    debugPrint('🎯 [FOCUS_MODE] fullReport.latitude: ${widget.fullReport.latitude}');
+    debugPrint('🎯 [FOCUS_MODE] fullReport.longitude: ${widget.fullReport.longitude}');
+    debugPrint('🎯 [FOCUS_MODE] fullReport.location: ${widget.fullReport.location}');
+    debugPrint('🎯 [FOCUS_MODE] fullReport.fullAddress: ${widget.fullReport.fullAddress}');
+    debugPrint('🎯 [FOCUS_MODE] === END RAW DATA ===');
+    
     WidgetsBinding.instance.addObserver(this);
     _currentPosition = widget.currentPosition;
     
     // Extract REAL incident location from full report data
+    debugPrint('🎯 [FOCUS_MODE] 🔍 Starting location extraction...');
     _incidentLocation = _extractIncidentLocation();
-    debugPrint('🎯 [FOCUS_MODE] Incident location set to: $_incidentLocation');
-    debugPrint('🎯 [FOCUS_MODE] Location source: ${_getLocationSource()}');
+    debugPrint('🎯 [FOCUS_MODE] ✅ Incident location set to: $_incidentLocation');
+    debugPrint('🎯 [FOCUS_MODE] 📍 Location source: ${_getLocationSource()}');
     
     _initializeAnimations();
     _initializeFocusMode();
@@ -250,40 +259,19 @@ class _FocusModeScreenState extends State<FocusModeScreen>
 
   /// Validates if coordinates are reasonable for emergency response
   bool _isValidCoordinate(double? lat, double? lon) {
-    debugPrint('🎯 [FOCUS_MODE] === COORDINATE VALIDATION ===');
-    debugPrint('🎯 [FOCUS_MODE] Input: lat=$lat (${lat.runtimeType}), lon=$lon (${lon.runtimeType})');
-    
     // Check for null coordinates
-    if (lat == null || lon == null) {
-      debugPrint('🚨 [FOCUS_MODE] ❌ Null coordinates detected');
-      return false;
-    }
+    if (lat == null || lon == null) return false;
     
     // Check for zero coordinates (often indicates unset/default values)
-    if (lat == 0.0 && lon == 0.0) {
-      debugPrint('🚨 [FOCUS_MODE] ❌ Zero coordinates detected (0,0)');
-      return false;
-    }
+    if (lat == 0.0 && lon == 0.0) return false;
     
     // Check for obviously invalid coordinates
-    if (lat.isNaN || lon.isNaN || lat.isInfinite || lon.isInfinite) {
-      debugPrint('🚨 [FOCUS_MODE] ❌ NaN or infinite coordinates detected');
-      return false;
-    }
+    if (lat.isNaN || lon.isNaN || lat.isInfinite || lon.isInfinite) return false;
     
-    // Check for reasonable latitude bounds (expanded for border areas)
-    if (lat < 29.0 || lat > 41.0) {
-      debugPrint('🚨 [FOCUS_MODE] ❌ Latitude out of bounds: $lat (expected: 29-41)');
-      return false;
-    }
+    // Check for valid global coordinate bounds
+    if (lat < -90.0 || lat > 90.0) return false;
+    if (lon < -180.0 || lon > 180.0) return false;
     
-    // Check for reasonable longitude bounds (expanded for border areas)  
-    if (lon < 29.0 || lon > 46.0) {
-      debugPrint('🚨 [FOCUS_MODE] ❌ Longitude out of bounds: $lon (expected: 29-46)');
-      return false;
-    }
-    
-    debugPrint('🎯 [FOCUS_MODE] ✅ Coordinates validation passed: lat=$lat, lon=$lon');
     return true;
   }
 
@@ -320,7 +308,8 @@ class _FocusModeScreenState extends State<FocusModeScreen>
 
   Future<void> _initializeFocusMode() async {
     try {
-      debugPrint('🎯 [FOCUS_MODE] Starting focus mode initialization...');
+      debugPrint('🎯 [FOCUS_MODE] 🚀 Starting focus mode initialization...');
+      debugPrint('🎯 [FOCUS_MODE] 📍 Current incident location: $_incidentLocation');
       
       // Get current precise location with high accuracy initially
       debugPrint('🎯 [FOCUS_MODE] Step 1: Getting current precise location');
@@ -329,8 +318,10 @@ class _FocusModeScreenState extends State<FocusModeScreen>
       
       // Calculate initial route to incident
       debugPrint('🎯 [FOCUS_MODE] Step 2: Calculating route to incident');
+      debugPrint('🎯 [FOCUS_MODE] 🗺️ Route from: $_currentPosition');
+      debugPrint('🎯 [FOCUS_MODE] 🗺️ Route to: $_incidentLocation');
       await _calculateRouteToIncident();
-      debugPrint('🎯 [FOCUS_MODE] ✅ Route calculation completed. Points: ${_routingState.route.length}');
+      debugPrint('🎯 [FOCUS_MODE] ✅ Route calculation completed. Status: ${_routingState.status}, Points: ${_routingState.route.length}');
       
       // Auto-zoom to show both positions
       debugPrint('🎯 [FOCUS_MODE] Step 3: Auto-focusing map on incident');
